@@ -130,9 +130,64 @@ class GRNOut(BaseModel):
         from_attributes = True
 
 
+class VendorOut(BaseModel):
+    """Output schema for vendor"""
+    id: int
+    code: str
+    name: str
+    gstin: Optional[str] = None
+    city: Optional[str] = None
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
 # =============================================================================
 # ENDPOINTS
 # =============================================================================
+
+@router.get("/vendors", response_model=List[VendorOut])
+async def list_vendors(
+    db: Session = Depends(get_db),
+    current_user = Depends(require_permission(Permission.GRN_VIEW))
+):
+    """List all active vendors"""
+    vendors = db.query(Vendor).filter(Vendor.is_active == True).order_by(Vendor.name).all()
+    return vendors
+
+
+@router.post("/vendors", status_code=201)
+async def create_vendor(
+    code: str,
+    name: str,
+    gstin: Optional[str] = None,
+    city: Optional[str] = None,
+    contact_person: Optional[str] = None,
+    phone: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_permission(Permission.GRN_CREATE))
+):
+    """Create a new vendor"""
+    existing = db.query(Vendor).filter(Vendor.code == code).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Vendor code already exists")
+    
+    vendor = Vendor(
+        code=code,
+        name=name,
+        gstin=gstin,
+        city=city,
+        contact_person=contact_person,
+        phone=phone
+    )
+    db.add(vendor)
+    db.commit()
+    db.refresh(vendor)
+    return {"id": vendor.id, "code": vendor.code, "name": vendor.name}
+
 
 @router.get("/", response_model=List[GRNOut])
 async def list_grns(

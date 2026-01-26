@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KumarBrothers | Goods Receipt Note (GRN)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .grn-card { border-left: 4px solid #198754; }
+    .pending-card { border-left: 4px solid #ffc107; }
+    .status-badge { font-size: 0.75rem; }
+    .line-item-row:hover { background-color: #f8f9fa; }
+    .weight-display { font-family: monospace; font-size: 1.1rem; }
+    .qa-approved { color: #198754; }
+    .qa-pending { color: #ffc107; }
+    .qa-rejected { color: #dc3545; }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
+        <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+        <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+        <a class="nav-link text-white ms-3" href="grn.html">GRN</a>
+        <a class="nav-link text-white ms-3" href="dispatch.html">Dispatch</a>
+        <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+        <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
+        <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="small-muted">Role:</div>
+      <div id="current-role" class="role-badge">Loading...</div>
+    </div>
+  </nav>
+
+  <div class="container-fluid main-container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Goods Receipt Notes</h2>
+        <small class="text-muted">Manage inward material receipts with QA inspection</small>
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGRNModal" data-permission="grn:create">
+        <i class="bi bi-plus-lg"></i> New GRN
+      </button>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card p-3 pending-card">
+          <small class="text-muted">Pending QA</small>
+          <h4 id="statPendingQA">0</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 grn-card">
+          <small class="text-muted">Today's Receipts</small>
+          <h4 id="statTodayReceipts">0</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3">
+          <small class="text-muted">Total Weight (MT)</small>
+          <h4 id="statTotalWeight">0.00</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3">
+          <small class="text-muted">This Month</small>
+          <h4 id="statMonthCount">0</h4>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <input type="text" class="form-control" id="filterGRNNumber" placeholder="Search GRN Number...">
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="filterStatus">
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted</option>
+              <option value="approved">Approved</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <input type="date" class="form-control" id="filterDateFrom" placeholder="From Date">
+          </div>
+          <div class="col-md-3">
+            <input type="date" class="form-control" id="filterDateTo" placeholder="To Date">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRN Table -->
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>GRN Number</th>
+                <th>Date</th>
+                <th>Vendor</th>
+                <th>Invoice No.</th>
+                <th>Vehicle</th>
+                <th>Net Weight (MT)</th>
+                <th>Status</th>
+                <th>QA Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="grnTableBody">
+              <tr>
+                <td colspan="9" class="text-center py-4 text-muted">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New GRN Modal -->
+  <div class="modal fade" id="newGRNModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create New GRN</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="newGRNForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Vendor *</label>
+                <select class="form-select" id="grnVendor" required>
+                  <option value="">Select Vendor</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Vendor Invoice No.</label>
+                <input type="text" class="form-control" id="grnInvoiceNo">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Invoice Date</label>
+                <input type="date" class="form-control" id="grnInvoiceDate">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Vehicle Number</label>
+                <input type="text" class="form-control" id="grnVehicle" placeholder="e.g., MH12AB1234">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Driver Name</label>
+                <input type="text" class="form-control" id="grnDriverName">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Driver Contact</label>
+                <input type="tel" class="form-control" id="grnDriverContact">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Remarks</label>
+                <textarea class="form-control" id="grnRemarks" rows="2"></textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnCreateGRN">Create GRN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRN Detail Modal -->
+  <div class="modal fade" id="grnDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">GRN Details - <span id="detailGRNNumber"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- GRN Header Info -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <small class="text-muted">Vendor</small>
+              <div id="detailVendor" class="fw-bold">-</div>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Invoice No.</small>
+              <div id="detailInvoice">-</div>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Vehicle</small>
+              <div id="detailVehicle">-</div>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Status</small>
+              <div id="detailStatus">-</div>
+            </div>
+          </div>
+
+          <!-- Weighment Section -->
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span>Weighment Data</span>
+              <button class="btn btn-sm btn-outline-primary" id="btnAddWeighment" data-permission="grn:create">
+                Record Weighment
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col-md-4">
+                  <small class="text-muted">Gross Weight</small>
+                  <div class="weight-display" id="detailGrossWeight">0.000 MT</div>
+                </div>
+                <div class="col-md-4">
+                  <small class="text-muted">Tare Weight</small>
+                  <div class="weight-display" id="detailTareWeight">0.000 MT</div>
+                </div>
+                <div class="col-md-4">
+                  <small class="text-muted">Net Weight</small>
+                  <div class="weight-display fw-bold text-primary" id="detailNetWeight">0.000 MT</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Line Items -->
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span>Line Items</span>
+              <button class="btn btn-sm btn-outline-success" id="btnAddLineItem" data-permission="grn:create">
+                + Add Item
+              </button>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-sm mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Material</th>
+                    <th>Heat No.</th>
+                    <th>Received Qty</th>
+                    <th>Weight (KG)</th>
+                    <th>QA Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="lineItemsBody">
+                  <tr>
+                    <td colspan="6" class="text-center py-3 text-muted">No items added</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-warning" id="btnSubmitGRN" data-permission="grn:create">Submit for QA</button>
+          <button type="button" class="btn btn-success" id="btnApproveGRN" data-permission="grn:approve">Approve GRN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Line Item Modal -->
+  <div class="modal fade" id="addLineItemModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Line Item</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addLineItemForm">
+            <div class="mb-3">
+              <label class="form-label">Material *</label>
+              <select class="form-select" id="lineItemMaterial" required>
+                <option value="">Select Material</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Heat Number</label>
+              <input type="text" class="form-control" id="lineItemHeatNo" placeholder="Mill heat number">
+            </div>
+            <div class="row mb-3">
+              <div class="col-6">
+                <label class="form-label">Received Qty *</label>
+                <input type="number" step="0.001" class="form-control" id="lineItemQty" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label">Weight (KG) *</label>
+                <input type="number" step="0.001" class="form-control" id="lineItemWeight" required>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Rate (per unit)</label>
+              <input type="number" step="0.01" class="form-control" id="lineItemRate">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" id="btnSaveLineItem">Add Item</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // GRN Page JavaScript
+    const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+    let currentGRNId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadVendors();
+      await loadMaterials();
+      await loadGRNList();
+      setupEventListeners();
+    });
+
+    async function loadVendors() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/grn/vendors`);
+        if (res.ok) {
+          const vendors = await res.json();
+          const select = document.getElementById('grnVendor');
+          vendors.forEach(v => {
+            select.innerHTML += `<option value="${v.id}">${v.name} (${v.code})</option>`;
+          });
+        }
+      } catch (e) { console.error('Failed to load vendors:', e); }
+    }
+
+    async function loadMaterials() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/materials`);
+        if (res.ok) {
+          const materials = await res.json();
+          const select = document.getElementById('lineItemMaterial');
+          materials.forEach(m => {
+            select.innerHTML += `<option value="${m.id}">${m.name} (${m.code})</option>`;
+          });
+        }
+      } catch (e) { console.error('Failed to load materials:', e); }
+    }
+
+    async function loadGRNList() {
+      const tbody = document.getElementById('grnTableBody');
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/grn/`);
+        if (!res.ok) throw new Error('Failed to load GRNs');
+        const grns = await res.json();
+        
+        if (grns.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No GRNs found. Create your first GRN!</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = grns.map(grn => `
+          <tr>
+            <td><a href="#" class="grn-link" data-id="${grn.id}">${grn.grn_number}</a></td>
+            <td>${new Date(grn.grn_date).toLocaleDateString()}</td>
+            <td>${grn.vendor_name || '-'}</td>
+            <td>${grn.vendor_invoice_number || '-'}</td>
+            <td>${grn.vehicle_number || '-'}</td>
+            <td class="weight-display">${(grn.total_net_weight_kg / 1000).toFixed(3)}</td>
+            <td><span class="badge bg-${getStatusColor(grn.status)}">${grn.status}</span></td>
+            <td><span class="badge bg-${getQAStatusColor(grn.qa_status)}">${grn.qa_status || 'pending'}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary view-grn" data-id="${grn.id}">View</button>
+            </td>
+          </tr>
+        `).join('');
+
+        // Update stats
+        document.getElementById('statPendingQA').textContent = grns.filter(g => g.qa_status === 'pending').length;
+        document.getElementById('statTodayReceipts').textContent = grns.filter(g => 
+          new Date(g.grn_date).toDateString() === new Date().toDateString()
+        ).length;
+        document.getElementById('statTotalWeight').textContent = 
+          (grns.reduce((sum, g) => sum + (g.total_net_weight_kg || 0), 0) / 1000).toFixed(2);
+        document.getElementById('statMonthCount').textContent = grns.length;
+
+      } catch (e) {
+        console.error('Error loading GRNs:', e);
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-danger">Error loading GRNs</td></tr>';
+      }
+    }
+
+    function getStatusColor(status) {
+      const colors = { draft: 'secondary', submitted: 'warning', approved: 'success', cancelled: 'danger' };
+      return colors[status] || 'secondary';
+    }
+
+    function getQAStatusColor(status) {
+      const colors = { pending: 'warning', approved: 'success', rejected: 'danger', on_hold: 'info', conditional: 'primary' };
+      return colors[status] || 'secondary';
+    }
+
+    function setupEventListeners() {
+      // Create GRN
+      document.getElementById('btnCreateGRN').addEventListener('click', async () => {
+        const vendorId = document.getElementById('grnVendor').value;
+        if (!vendorId) {
+          alert('Please select a vendor');
+          return;
+        }
+
+        const payload = {
+          vendor_id: parseInt(vendorId),
+          vendor_invoice_number: document.getElementById('grnInvoiceNo').value || null,
+          vendor_invoice_date: document.getElementById('grnInvoiceDate').value || null,
+          vehicle_number: document.getElementById('grnVehicle').value || null,
+          driver_name: document.getElementById('grnDriverName').value || null,
+          driver_contact: document.getElementById('grnDriverContact').value || null,
+          remarks: document.getElementById('grnRemarks').value || null
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/v2/grn/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (res.ok) {
+            const grn = await res.json();
+            bootstrap.Modal.getInstance(document.getElementById('newGRNModal')).hide();
+            document.getElementById('newGRNForm').reset();
+            await loadGRNList();
+            showGRNDetail(grn.id);
+          }
+        } catch (e) {
+          console.error('Error creating GRN:', e);
+        }
+      });
+
+      // View GRN details
+      document.getElementById('grnTableBody').addEventListener('click', (e) => {
+        if (e.target.classList.contains('view-grn') || e.target.classList.contains('grn-link')) {
+          e.preventDefault();
+          const id = e.target.dataset.id;
+          showGRNDetail(id);
+        }
+      });
+
+      // Add line item
+      document.getElementById('btnSaveLineItem').addEventListener('click', async () => {
+        if (!currentGRNId) return;
+        
+        const materialId = document.getElementById('lineItemMaterial').value;
+        const qty = document.getElementById('lineItemQty').value;
+        const weight = document.getElementById('lineItemWeight').value;
+
+        if (!materialId || !qty || !weight) {
+          alert('Please fill required fields');
+          return;
+        }
+
+        const payload = {
+          material_id: parseInt(materialId),
+          heat_number: document.getElementById('lineItemHeatNo').value || null,
+          received_qty: parseFloat(qty),
+          weight_kg: parseFloat(weight),
+          rate: document.getElementById('lineItemRate').value ? parseFloat(document.getElementById('lineItemRate').value) : null
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/v2/grn/${currentGRNId}/items`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('addLineItemModal')).hide();
+            document.getElementById('addLineItemForm').reset();
+            showGRNDetail(currentGRNId);
+          }
+        } catch (e) {
+          console.error('Error adding line item:', e);
+        }
+      });
+
+      // Open add line item modal
+      document.getElementById('btnAddLineItem').addEventListener('click', () => {
+        new bootstrap.Modal(document.getElementById('addLineItemModal')).show();
+      });
+    }
+
+    async function showGRNDetail(id) {
+      currentGRNId = id;
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/grn/${id}`);
+        if (!res.ok) throw new Error('Failed to load GRN');
+        const grn = await res.json();
+
+        document.getElementById('detailGRNNumber').textContent = grn.grn_number;
+        document.getElementById('detailVendor').textContent = grn.vendor_name || '-';
+        document.getElementById('detailInvoice').textContent = grn.vendor_invoice_number || '-';
+        document.getElementById('detailVehicle').textContent = grn.vehicle_number || '-';
+        document.getElementById('detailStatus').innerHTML = `<span class="badge bg-${getStatusColor(grn.status)}">${grn.status}</span>`;
+        
+        document.getElementById('detailGrossWeight').textContent = `${((grn.gross_weight_kg || 0) / 1000).toFixed(3)} MT`;
+        document.getElementById('detailTareWeight').textContent = `${((grn.tare_weight_kg || 0) / 1000).toFixed(3)} MT`;
+        document.getElementById('detailNetWeight').textContent = `${((grn.total_net_weight_kg || 0) / 1000).toFixed(3)} MT`;
+
+        // Load line items
+        const itemsRes = await fetch(`${API_BASE}/api/v2/grn/${id}/items`);
+        const items = itemsRes.ok ? await itemsRes.json() : [];
+        
+        const itemsBody = document.getElementById('lineItemsBody');
+        if (items.length === 0) {
+          itemsBody.innerHTML = '<tr><td colspan="6" class="text-center py-3 text-muted">No items added</td></tr>';
+        } else {
+          itemsBody.innerHTML = items.map(item => `
+            <tr class="line-item-row">
+              <td>${item.material_name || item.material_code || '-'}</td>
+              <td>${item.heat_number || '-'}</td>
+              <td>${item.received_qty}</td>
+              <td class="weight-display">${item.weight_kg.toFixed(3)}</td>
+              <td><span class="badge bg-${getQAStatusColor(item.qa_status)}">${item.qa_status || 'pending'}</span></td>
+              <td>
+                <button class="btn btn-sm btn-outline-success qa-approve" data-id="${item.id}" data-permission="qa:approve">✓</button>
+                <button class="btn btn-sm btn-outline-danger qa-reject" data-id="${item.id}" data-permission="qa:reject">✗</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        new bootstrap.Modal(document.getElementById('grnDetailModal')).show();
+      } catch (e) {
+        console.error('Error loading GRN detail:', e);
+      }
+    }
+  </script>
+</body>
+</html>

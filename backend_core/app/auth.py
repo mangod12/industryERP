@@ -3,7 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .deps import get_db, verify_password, get_password_hash, create_access_token, require_role
+from .deps import (
+    get_db, 
+    verify_password, 
+    get_password_hash, 
+    create_access_token, 
+    require_role,
+    get_role_permissions
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -38,8 +45,18 @@ async def login(request: Request, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
+    
+    # Check if user is active (if field exists)
+    if hasattr(user, 'is_active') and not user.is_active:
+        raise HTTPException(status_code=400, detail="User account is disabled")
 
-    access_token = create_access_token({"sub": user.username})
+    # Include role and permissions in token for frontend RBAC
+    permissions = list(get_role_permissions(user.role))
+    access_token = create_access_token({
+        "sub": user.username,
+        "role": user.role,
+        "permissions": permissions
+    })
     return {"access_token": access_token, "token_type": "bearer", "role": user.role}
 
 

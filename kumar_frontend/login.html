@@ -98,36 +98,55 @@
     </div>
   </div>
 
+  <!-- Config JS -->
+  <script src="js/config.js"></script>
+  
   <!-- Auth JS -->
   <script>
+    // Redirect if already logged in
+    if (typeof KBAuth !== 'undefined' && KBAuth.isAuthenticated()) {
+      window.location.href = 'index.html';
+    }
+
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
       e.preventDefault();
       const form = this;
       const username = form.querySelector('input[type=text]').value.trim();
       const password = form.querySelector('input[type=password]').value.trim();
+      
+      // Remove any existing status messages
+      const existingStatus = form.querySelector('.login-status');
+      if (existingStatus) existingStatus.remove();
+      
       const statusEl = document.createElement('div');
+      statusEl.className = 'login-status';
       form.appendChild(statusEl);
 
       try{
-        // Send JSON body and include Content-Type so backend parses correctly
+        const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
         const payload = { username, password };
-        const res = await fetch('http://127.0.0.1:8001/auth/login', {
+        const res = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const data = await res.json();
         if(!res.ok){
-          // `data.detail` may be an object/array (validation errors). Normalize to readable string.
           const detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
           statusEl.innerHTML = `<div class='text-danger mt-2'>${detail || 'Login failed'}</div>`;
           return;
         }
-        // Save token and role
-        localStorage.setItem('kb_token', data.access_token);
-        localStorage.setItem('kb_role', data.role || 'User');
-        // Redirect to dashboard
-        window.location.href = 'index.html';
+        
+        // Save auth data using KBAuth or fallback to localStorage
+        if (typeof KBAuth !== 'undefined') {
+          KBAuth.saveAuth(data.access_token, data.role || 'User', { username });
+        } else {
+          localStorage.setItem('kb_token', data.access_token);
+          localStorage.setItem('kb_role', data.role || 'User');
+        }
+        
+        statusEl.innerHTML = `<div class='text-success mt-2'>Login successful! Redirecting...</div>`;
+        setTimeout(() => { window.location.href = 'index.html'; }, 500);
       }catch(err){
         statusEl.innerHTML = `<div class='text-danger mt-2'>Login error: ${err.message}</div>`;
       }

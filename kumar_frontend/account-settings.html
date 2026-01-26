@@ -51,8 +51,9 @@
       <button class="btn btn-primary btn-sm" type="submit">Change password</button>
     </form>
 
+  <script src="js/config.js"></script>
   <script>
-    const API_BASE = 'http://127.0.0.1:8001';
+    const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
     function showToast(msg, type='info'){
       const el = document.createElement('div'); el.className = `toast align-items-center text-bg-${type} border-0`; el.role='alert'; el.ariaLive='assertive'; el.ariaAtomic='true';
       el.style.position='fixed'; el.style.right='20px'; el.style.top='20px'; el.style.zIndex=9999; el.style.padding='10px'; el.innerText = msg;
@@ -61,7 +62,7 @@
 
     async function apiFetch(path, opts={}){
       opts.headers = opts.headers || {};
-      const token = localStorage.getItem('kb_token');
+      const token = (typeof KBAuth !== 'undefined') ? KBAuth.getToken() : localStorage.getItem('kb_token');
       if(token) opts.headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch(API_BASE + path, opts);
       return res;

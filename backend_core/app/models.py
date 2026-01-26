@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float
 from sqlalchemy.orm import relationship
 from .db import Base
 
@@ -12,6 +12,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)  # Account status
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -74,7 +75,7 @@ class MaterialUsage(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
     production_item_id = Column(Integer, ForeignKey("production_items.id"), nullable=True)
     name = Column(String, nullable=False)
-    qty = Column(Integer, nullable=False)
+    qty = Column(Float, nullable=False)  # Changed to Float for decimal quantities
     unit = Column(String, nullable=True)
     by = Column(String, nullable=True)
     ts = Column(DateTime, default=datetime.utcnow)
@@ -85,8 +86,8 @@ class Inventory(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     unit = Column(String, nullable=True)
-    total = Column(Integer, nullable=False, default=0)
-    used = Column(Integer, nullable=False, default=0)
+    total = Column(Float, nullable=False, default=0.0)  # Changed to Float for decimal quantities
+    used = Column(Float, nullable=False, default=0.0)   # Changed to Float for decimal quantities
     # Optional metadata fields to support richer searching/filtering
     code = Column(String, nullable=True)
     section = Column(String, nullable=True)

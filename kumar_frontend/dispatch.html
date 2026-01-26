@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KumarBrothers | Dispatch</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .dispatch-card { border-left: 4px solid #0d6efd; }
+    .pending-card { border-left: 4px solid #ffc107; }
+    .weight-display { font-family: monospace; font-size: 1.1rem; }
+    .stock-lot-card { cursor: pointer; transition: all 0.2s; }
+    .stock-lot-card:hover { border-color: #0d6efd; background-color: #f8f9fa; }
+    .stock-lot-card.selected { border-color: #0d6efd; border-width: 2px; background-color: #e7f1ff; }
+    .heat-badge { font-family: monospace; background-color: #6c757d; }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
+        <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+        <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+        <a class="nav-link text-white ms-3" href="grn.html">GRN</a>
+        <a class="nav-link text-white ms-3" href="dispatch.html">Dispatch</a>
+        <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+        <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
+        <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="small-muted">Role:</div>
+      <div id="current-role" class="role-badge">Loading...</div>
+    </div>
+  </nav>
+
+  <div class="container-fluid main-container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Dispatch Notes</h2>
+        <small class="text-muted">Manage outward material dispatches with FIFO picking</small>
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDispatchModal" data-permission="dispatch:create">
+        <i class="bi bi-plus-lg"></i> New Dispatch
+      </button>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card p-3 pending-card">
+          <small class="text-muted">Pending Dispatch</small>
+          <h4 id="statPendingDispatch">0</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 dispatch-card">
+          <small class="text-muted">Today's Dispatches</small>
+          <h4 id="statTodayDispatches">0</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3">
+          <small class="text-muted">Total Dispatched (MT)</small>
+          <h4 id="statTotalDispatched">0.00</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3">
+          <small class="text-muted">This Month</small>
+          <h4 id="statMonthCount">0</h4>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <input type="text" class="form-control" id="filterDispatchNumber" placeholder="Search Dispatch Number...">
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="filterCustomer">
+              <option value="">All Customers</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="filterStatus">
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Ready</option>
+              <option value="approved">Dispatched</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <input type="date" class="form-control" id="filterDate">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dispatch Table -->
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Dispatch No.</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Sales Order</th>
+                <th>Vehicle</th>
+                <th>Weight (MT)</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dispatchTableBody">
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Dispatch Modal -->
+  <div class="modal fade" id="newDispatchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create New Dispatch</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="newDispatchForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Customer *</label>
+                <select class="form-select" id="dispatchCustomer" required>
+                  <option value="">Select Customer</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Sales Order Ref.</label>
+                <input type="text" class="form-control" id="dispatchSalesOrder">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Vehicle Number</label>
+                <input type="text" class="form-control" id="dispatchVehicle" placeholder="e.g., MH12AB1234">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Transporter</label>
+                <input type="text" class="form-control" id="dispatchTransporter">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Driver Name</label>
+                <input type="text" class="form-control" id="dispatchDriverName">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Driver Contact</label>
+                <input type="tel" class="form-control" id="dispatchDriverContact">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Remarks</label>
+                <textarea class="form-control" id="dispatchRemarks" rows="2"></textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnCreateDispatch">Create Dispatch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dispatch Detail Modal -->
+  <div class="modal fade" id="dispatchDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Dispatch Details - <span id="detailDispatchNumber"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Dispatch Header Info -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <small class="text-muted">Customer</small>
+              <div id="detailCustomer" class="fw-bold">-</div>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Sales Order</small>
+              <div id="detailSalesOrder">-</div>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Vehicle</small>
+              <div id="detailVehicle">-</div>
+            </div>
+            <div class="col-md-3">
+              <small class="text-muted">Status</small>
+              <div id="detailStatus">-</div>
+            </div>
+          </div>
+
+          <!-- Weight Summary -->
+          <div class="card mb-4 dispatch-card">
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col-md-4">
+                  <small class="text-muted">Total Items</small>
+                  <div class="weight-display" id="detailItemCount">0</div>
+                </div>
+                <div class="col-md-4">
+                  <small class="text-muted">Total Weight</small>
+                  <div class="weight-display fw-bold text-primary" id="detailTotalWeight">0.000 MT</div>
+                </div>
+                <div class="col-md-4">
+                  <small class="text-muted">Total Amount</small>
+                  <div class="weight-display" id="detailTotalAmount">₹ 0.00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stock Picking Section -->
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span>Pick Stock (FIFO)</span>
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#pickStockModal" data-permission="dispatch:create">
+                + Pick Material
+              </button>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-sm mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Lot Number</th>
+                    <th>Material</th>
+                    <th>Heat No.</th>
+                    <th>Available (KG)</th>
+                    <th>Dispatch (KG)</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="dispatchItemsBody">
+                  <tr>
+                    <td colspan="8" class="text-center py-3 text-muted">No items picked</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-warning" id="btnSubmitDispatch" data-permission="dispatch:create">Mark Ready</button>
+          <button type="button" class="btn btn-success" id="btnApproveDispatch" data-permission="dispatch:approve">Confirm Dispatch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pick Stock Modal -->
+  <div class="modal fade" id="pickStockModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Pick Stock</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Material Selection -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Material</label>
+              <select class="form-select" id="pickMaterial">
+                <option value="">Select Material</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Required Weight (KG)</label>
+              <input type="number" step="0.001" class="form-control" id="pickRequiredWeight" placeholder="Enter weight needed">
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Available Stock Lots (FIFO Order)</h6>
+            <button class="btn btn-sm btn-outline-primary" id="btnAutoPickFIFO">Auto-Pick FIFO</button>
+          </div>
+
+          <!-- Available Stock Lots -->
+          <div id="availableStockLots" class="row g-3">
+            <div class="col-12 text-center text-muted py-4">
+              Select a material to view available stock
+            </div>
+          </div>
+
+          <!-- Selected for picking -->
+          <div class="mt-4">
+            <h6>Selected for Dispatch</h6>
+            <div id="selectedLots" class="border rounded p-3 bg-light">
+              <div class="text-muted text-center">No lots selected</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="me-auto">
+            <strong>Total Selected: <span id="totalSelectedWeight">0.000</span> KG</strong>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" id="btnConfirmPick">Add to Dispatch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Dispatch Page JavaScript
+    const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+    let currentDispatchId = null;
+    let selectedLots = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadCustomers();
+      await loadMaterials();
+      await loadDispatchList();
+      setupEventListeners();
+    });
+
+    async function loadCustomers() {
+      try {
+        const res = await fetch(`${API_BASE}/customers/`);
+        if (res.ok) {
+          const customers = await res.json();
+          const selects = [document.getElementById('dispatchCustomer'), document.getElementById('filterCustomer')];
+          selects.forEach(select => {
+            if (select) {
+              customers.forEach(c => {
+                select.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+              });
+            }
+          });
+        }
+      } catch (e) { console.error('Failed to load customers:', e); }
+    }
+
+    async function loadMaterials() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/materials`);
+        if (res.ok) {
+          const materials = await res.json();
+          const select = document.getElementById('pickMaterial');
+          materials.forEach(m => {
+            select.innerHTML += `<option value="${m.id}">${m.name} (${m.code})</option>`;
+          });
+        }
+      } catch (e) { console.error('Failed to load materials:', e); }
+    }
+
+    async function loadDispatchList() {
+      const tbody = document.getElementById('dispatchTableBody');
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/`);
+        if (!res.ok) throw new Error('Failed to load dispatches');
+        const dispatches = await res.json();
+        
+        if (dispatches.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No dispatches found. Create your first dispatch!</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = dispatches.map(d => `
+          <tr>
+            <td><a href="#" class="dispatch-link" data-id="${d.id}">${d.dispatch_number}</a></td>
+            <td>${new Date(d.dispatch_date).toLocaleDateString()}</td>
+            <td>${d.customer_name || '-'}</td>
+            <td>${d.sales_order_ref || '-'}</td>
+            <td>${d.vehicle_number || '-'}</td>
+            <td class="weight-display">${((d.total_weight_kg || 0) / 1000).toFixed(3)}</td>
+            <td><span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary view-dispatch" data-id="${d.id}">View</button>
+            </td>
+          </tr>
+        `).join('');
+
+        // Update stats
+        document.getElementById('statPendingDispatch').textContent = dispatches.filter(d => d.status === 'draft' || d.status === 'submitted').length;
+        document.getElementById('statTodayDispatches').textContent = dispatches.filter(d => 
+          new Date(d.dispatch_date).toDateString() === new Date().toDateString()
+        ).length;
+        document.getElementById('statTotalDispatched').textContent = 
+          (dispatches.filter(d => d.status === 'approved').reduce((sum, d) => sum + (d.total_weight_kg || 0), 0) / 1000).toFixed(2);
+        document.getElementById('statMonthCount').textContent = dispatches.length;
+
+      } catch (e) {
+        console.error('Error loading dispatches:', e);
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Error loading dispatches</td></tr>';
+      }
+    }
+
+    function getStatusColor(status) {
+      const colors = { draft: 'secondary', submitted: 'warning', approved: 'success', cancelled: 'danger' };
+      return colors[status] || 'secondary';
+    }
+
+    function setupEventListeners() {
+      // Create Dispatch
+      document.getElementById('btnCreateDispatch').addEventListener('click', async () => {
+        const customerId = document.getElementById('dispatchCustomer').value;
+        if (!customerId) {
+          alert('Please select a customer');
+          return;
+        }
+
+        const payload = {
+          customer_id: parseInt(customerId),
+          sales_order_ref: document.getElementById('dispatchSalesOrder').value || null,
+          vehicle_number: document.getElementById('dispatchVehicle').value || null,
+          transporter: document.getElementById('dispatchTransporter').value || null,
+          driver_name: document.getElementById('dispatchDriverName').value || null,
+          driver_contact: document.getElementById('dispatchDriverContact').value || null,
+          remarks: document.getElementById('dispatchRemarks').value || null
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/v2/dispatch/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (res.ok) {
+            const dispatch = await res.json();
+            bootstrap.Modal.getInstance(document.getElementById('newDispatchModal')).hide();
+            document.getElementById('newDispatchForm').reset();
+            await loadDispatchList();
+            showDispatchDetail(dispatch.id);
+          }
+        } catch (e) {
+          console.error('Error creating dispatch:', e);
+        }
+      });
+
+      // View dispatch details
+      document.getElementById('dispatchTableBody').addEventListener('click', (e) => {
+        if (e.target.classList.contains('view-dispatch') || e.target.classList.contains('dispatch-link')) {
+          e.preventDefault();
+          const id = e.target.dataset.id;
+          showDispatchDetail(id);
+        }
+      });
+
+      // Material selection for picking
+      document.getElementById('pickMaterial').addEventListener('change', async (e) => {
+        const materialId = e.target.value;
+        if (!materialId) {
+          document.getElementById('availableStockLots').innerHTML = '<div class="col-12 text-center text-muted py-4">Select a material to view available stock</div>';
+          return;
+        }
+        await loadAvailableStock(materialId);
+      });
+
+      // Auto-pick FIFO
+      document.getElementById('btnAutoPickFIFO').addEventListener('click', async () => {
+        const materialId = document.getElementById('pickMaterial').value;
+        const requiredWeight = parseFloat(document.getElementById('pickRequiredWeight').value) || 0;
+        
+        if (!materialId || requiredWeight <= 0) {
+          alert('Please select material and enter required weight');
+          return;
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/api/v2/dispatch/${currentDispatchId}/auto-pick`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ material_id: parseInt(materialId), required_weight_kg: requiredWeight })
+          });
+          
+          if (res.ok) {
+            const result = await res.json();
+            bootstrap.Modal.getInstance(document.getElementById('pickStockModal')).hide();
+            showDispatchDetail(currentDispatchId);
+            if (result.shortfall_kg > 0) {
+              alert(`Picked ${(result.picked_weight_kg / 1000).toFixed(3)} MT. Shortfall: ${(result.shortfall_kg / 1000).toFixed(3)} MT`);
+            }
+          }
+        } catch (e) {
+          console.error('Error auto-picking:', e);
+        }
+      });
+    }
+
+    async function loadAvailableStock(materialId) {
+      const container = document.getElementById('availableStockLots');
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/stock?material_id=${materialId}&qa_status=approved`);
+        if (!res.ok) throw new Error('Failed to load stock');
+        const lots = await res.json();
+        
+        if (lots.length === 0) {
+          container.innerHTML = '<div class="col-12 text-center text-muted py-4">No approved stock available for this material</div>';
+          return;
+        }
+
+        container.innerHTML = lots.map(lot => `
+          <div class="col-md-6">
+            <div class="card stock-lot-card p-3" data-lot-id="${lot.id}" data-available="${lot.current_weight_kg}">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-bold">${lot.lot_number}</div>
+                  <small class="text-muted">${lot.material_name}</small>
+                </div>
+                <span class="badge heat-badge">${lot.heat_number || 'No Heat#'}</span>
+              </div>
+              <div class="mt-2">
+                <div class="d-flex justify-content-between">
+                  <span>Available:</span>
+                  <span class="weight-display">${lot.current_weight_kg.toFixed(3)} KG</span>
+                </div>
+                <div class="d-flex justify-content-between text-muted small">
+                  <span>Age:</span>
+                  <span>${lot.age_days} days</span>
+                </div>
+              </div>
+              <div class="mt-2">
+                <input type="number" step="0.001" class="form-control form-control-sm pick-qty" 
+                       placeholder="Qty to dispatch" max="${lot.current_weight_kg}">
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        // Add click handlers for lot selection
+        container.querySelectorAll('.stock-lot-card').forEach(card => {
+          card.addEventListener('click', (e) => {
+            if (e.target.classList.contains('pick-qty')) return;
+            card.classList.toggle('selected');
+            updateSelectedTotal();
+          });
+        });
+
+      } catch (e) {
+        console.error('Error loading stock:', e);
+        container.innerHTML = '<div class="col-12 text-center text-danger py-4">Error loading stock</div>';
+      }
+    }
+
+    function updateSelectedTotal() {
+      let total = 0;
+      document.querySelectorAll('.stock-lot-card.selected').forEach(card => {
+        const input = card.querySelector('.pick-qty');
+        const qty = parseFloat(input.value) || parseFloat(card.dataset.available);
+        total += qty;
+      });
+      document.getElementById('totalSelectedWeight').textContent = total.toFixed(3);
+    }
+
+    async function showDispatchDetail(id) {
+      currentDispatchId = id;
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/${id}`);
+        if (!res.ok) throw new Error('Failed to load dispatch');
+        const dispatch = await res.json();
+
+        document.getElementById('detailDispatchNumber').textContent = dispatch.dispatch_number;
+        document.getElementById('detailCustomer').textContent = dispatch.customer_name || '-';
+        document.getElementById('detailSalesOrder').textContent = dispatch.sales_order_ref || '-';
+        document.getElementById('detailVehicle').textContent = dispatch.vehicle_number || '-';
+        document.getElementById('detailStatus').innerHTML = `<span class="badge bg-${getStatusColor(dispatch.status)}">${dispatch.status}</span>`;
+        
+        document.getElementById('detailItemCount').textContent = dispatch.line_items?.length || 0;
+        document.getElementById('detailTotalWeight').textContent = `${((dispatch.total_weight_kg || 0) / 1000).toFixed(3)} MT`;
+        document.getElementById('detailTotalAmount').textContent = `₹ ${(dispatch.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+        // Load line items
+        const itemsBody = document.getElementById('dispatchItemsBody');
+        const items = dispatch.line_items || [];
+        
+        if (items.length === 0) {
+          itemsBody.innerHTML = '<tr><td colspan="8" class="text-center py-3 text-muted">No items picked</td></tr>';
+        } else {
+          itemsBody.innerHTML = items.map(item => `
+            <tr>
+              <td><span class="badge bg-secondary">${item.lot_number}</span></td>
+              <td>${item.material_name || '-'}</td>
+              <td><span class="badge heat-badge">${item.heat_number || '-'}</span></td>
+              <td class="weight-display">-</td>
+              <td class="weight-display">${item.dispatched_weight_kg.toFixed(3)}</td>
+              <td>₹ ${item.rate?.toFixed(2) || '-'}</td>
+              <td>₹ ${item.amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '-'}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-danger remove-item" data-id="${item.id}">×</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        new bootstrap.Modal(document.getElementById('dispatchDetailModal')).show();
+      } catch (e) {
+        console.error('Error loading dispatch detail:', e);
+      }
+    }
+  </script>
+</body>
+</html>

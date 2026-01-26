@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .db import create_db_and_tables  
@@ -17,6 +18,22 @@ from .routers.grn import router as grn_router
 from .routers.dispatch import router as dispatch_router
 
 
+def get_cors_origins():
+    """Get CORS origins from environment or use defaults for development"""
+    origins_env = os.getenv("CORS_ORIGINS", "")
+    if origins_env:
+        return [o.strip() for o in origins_env.split(",") if o.strip()]
+    # Default development origins
+    return [
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "http://127.0.0.1:3000",
+        "http://localhost:3000",
+        "http://127.0.0.1:8080",
+        "http://localhost:8080",
+    ]
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="KumarBrothers Steel Industry ERP",
@@ -25,12 +42,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1:5500",
-            "http://localhost:5500",
-            "http://127.0.0.1:3000",
-            "http://localhost:3000",
-        ],
+        allow_origins=get_cors_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
