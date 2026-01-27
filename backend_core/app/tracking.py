@@ -3,9 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from sqlalchemy import select, exists, and_, or_, func
+import json
 
 from . import models, schemas
-from .deps import get_db, require_role
+from .deps import get_db, require_role, get_current_user
 
 router = APIRouter(prefix="/tracking", tags=["tracking"])
 
@@ -14,6 +15,110 @@ STAGE_ORDER = ["fabrication", "painting", "dispatch"]
 
 def _capitalize_stage(s: str) -> str:
     return s.capitalize() if s else s
+
+
+def _deduct_materials_for_fabrication(item: models.ProductionItem, db: Session, user_id: int) -> dict:
+    """
+    Automatically deduct raw materials from inventory when fabrication is completed.
+    This only happens ONCE per item (tracked via fabrication_deducted flag).
+    
+    Returns:
+        dict with deduction details: {success: bool, deducted: [], skipped_reason: str}
+    """
+    result = {"success": False, "deducted": [], "skipped_reason": None, "warnings": []}
+    
+    if item.fabrication_deducted:
+        result["skipped_reason"] = "Already deducted"
+        return result
+    
+    # Parse material requirements from JSON (set during Excel import)
+    material_reqs = []
+    if item.material_requirements:
+        try:
+            material_reqs = json.loads(item.material_requirements)
+        except json.JSONDecodeError:
+            result["warnings"].append("Invalid material_requirements JSON")
+    
+    # If no specific material requirements, try to auto-calculate based on item properties
+    if not material_reqs and item.section:
+        # Try to find matching inventory item by section/name
+        inv_item = db.query(models.Inventory).filter(
+            or_(
+                models.Inventory.name.ilike(f"%{item.section}%"),
+                models.Inventory.section.ilike(f"%{item.section}%") if hasattr(models.Inventory, 'section') else False
+            )
+        ).first()
+        
+        if inv_item:
+            # Calculate qty based on weight and quantity
+            qty = (item.quantity or 1) * (item.weight_per_unit or 0)
+            if qty > 0:
+                material_reqs = [{"material_id": inv_item.id, "qty": qty, "inventory_name": inv_item.name}]
+        else:
+            result["warnings"].append(f"No inventory match for section '{item.section}'")
+    
+    if not material_reqs:
+        result["skipped_reason"] = "No material requirements set and no auto-match found"
+        # Create notification for admin
+        notification = models.Notification(
+            role="Boss",
+            message=f"⚠️ Item '{item.item_name}' (Code: {item.item_code}) completed Fabrication but has no material link. No auto-deduction performed.",
+            level="warning"
+        )
+        db.add(notification)
+        # Still mark as deducted to prevent retry
+        item.fabrication_deducted = True
+        db.add(item)
+        return result
+    
+    # Deduct materials from inventory
+    for req in material_reqs:
+        material_id = req.get("material_id")
+        qty = req.get("qty", 0)
+        
+        if material_id and qty > 0:
+            inv_item = db.query(models.Inventory).filter(models.Inventory.id == material_id).first()
+            if inv_item:
+                # Check if enough stock
+                available = (inv_item.total or 0) - (inv_item.used or 0)
+                if available < qty:
+                    result["warnings"].append(f"Low stock warning: {inv_item.name} needs {qty:.2f}, only {available:.2f} available")
+                    # Create low stock notification
+                    notification = models.Notification(
+                        role="Boss",
+                        message=f"⚠️ Low Stock Alert: '{inv_item.name}' - needed {qty:.2f} for item '{item.item_name}', only {available:.2f} available",
+                        level="warning"
+                    )
+                    db.add(notification)
+                
+                # Perform deduction (even if going negative - admin can adjust)
+                inv_item.used = (inv_item.used or 0) + qty
+                db.add(inv_item)
+                
+                # Log the material usage
+                usage = models.MaterialUsage(
+                    customer_id=item.customer_id,
+                    production_item_id=item.id,
+                    name=inv_item.name,
+                    qty=qty,
+                    unit=inv_item.unit,
+                    by=f"Auto-deducted on fabrication completion (user: {user_id})"
+                )
+                db.add(usage)
+                
+                result["deducted"].append({
+                    "material": inv_item.name,
+                    "qty": qty,
+                    "unit": inv_item.unit
+                })
+    
+    # Mark as deducted
+    item.fabrication_deducted = True
+    item.material_deducted = True  # Also set the alias flag
+    db.add(item)
+    
+    result["success"] = len(result["deducted"]) > 0
+    return result
 
 
 @router.post("/start-stage", response_model=schemas.StageStatusOut)
@@ -65,8 +170,40 @@ def complete_stage(action: schemas.StageAction, db: Session = Depends(get_db), c
     row.status = "completed"
     row.completed_at = datetime.utcnow()
     row.updated_by = current_user.id
+    
+    deduction_result = None
+    
+    # AUTO-DEDUCTION: When fabrication is completed, deduct raw materials
+    if stage == "fabrication":
+        deduction_result = _deduct_materials_for_fabrication(item, db, current_user.id)
+    
+    # Update item's current_stage to next stage
+    stage_idx = STAGE_ORDER.index(stage)
+    if stage_idx < len(STAGE_ORDER) - 1:
+        next_stage = STAGE_ORDER[stage_idx + 1]
+        item.current_stage = next_stage
+    else:
+        item.current_stage = "completed"
+    
+    item.stage_updated_at = datetime.utcnow()
+    item.stage_updated_by = current_user.id
+    db.add(item)
+    
+    # Log stage change history
+    history = models.TrackingStageHistory(
+        material_id=item.id,
+        from_stage=stage,
+        to_stage=item.current_stage,
+        changed_by=current_user.id,
+        remarks=f"Stage '{stage}' completed"
+    )
+    db.add(history)
+    
     db.commit()
     db.refresh(row)
+    
+    # Return with deduction info (not in response model, but useful for API consumers)
+    # The standard response_model will filter this out, but logs can use it
     return row
 
 
@@ -83,6 +220,13 @@ def _serialize_item_with_stages(item: models.ProductionItem, db: Session) -> sch
         item_name=item.item_name,
         section=item.section,
         length_mm=item.length_mm,
+        quantity=item.quantity,
+        unit=item.unit,
+        weight_per_unit=item.weight_per_unit,
+        material_requirements=item.material_requirements,
+        checklist=item.checklist,
+        notes=item.notes,
+        fabrication_deducted=item.fabrication_deducted,
         stages=[_serialize_stage(s) for s in stages],
     )
 
@@ -356,3 +500,357 @@ def post_material_usage(customer_id: int, mu: schemas.MaterialUsageCreate, db: S
     db.commit()
     db.refresh(m)
     return m
+
+
+# =============================================================================
+# PRODUCTION ITEM CRUD (Edit, Checklist, Search)
+# =============================================================================
+
+@router.get("/items/search", response_model=List[schemas.ProductionItemWithStages])
+def search_production_items(
+    search: Optional[str] = Query(None, description="Search term for item name, code, or section"),
+    customer_id: Optional[int] = Query(None),
+    stage: Optional[str] = Query(None),
+    stage_status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Search production items across all customers with optional filters.
+    Returns items with their current stage status.
+    """
+    query = db.query(models.ProductionItem)
+    
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.ProductionItem.item_name.ilike(search_term),
+                models.ProductionItem.item_code.ilike(search_term),
+                models.ProductionItem.section.ilike(search_term),
+            )
+        )
+    
+    if customer_id:
+        query = query.filter(models.ProductionItem.customer_id == customer_id)
+    
+    items = query.all()
+    
+    # Filter by stage if specified
+    if stage or stage_status:
+        filtered_items = []
+        for item in items:
+            stage_row = db.query(models.StageTracking).filter(
+                models.StageTracking.production_item_id == item.id
+            )
+            if stage:
+                stage_row = stage_row.filter(func.lower(models.StageTracking.stage) == stage.lower())
+            if stage_status:
+                stage_row = stage_row.filter(models.StageTracking.status == stage_status)
+            if stage_row.first():
+                filtered_items.append(item)
+        items = filtered_items
+    
+    return [_serialize_item_with_stages(item, db) for item in items]
+
+
+@router.get("/items/{item_id}", response_model=schemas.ProductionItemWithStages)
+def get_production_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Get a single production item with all its details and stage tracking."""
+    item = db.query(models.ProductionItem).filter(models.ProductionItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Production item not found")
+    return _serialize_item_with_stages(item, db)
+
+
+@router.put("/items/{item_id}", response_model=schemas.ProductionItemWithStages)
+def update_production_item(
+    item_id: int,
+    update_data: schemas.ProductionItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss", "Software Supervisor")),
+):
+    """
+    Update a production item's details (edit functionality).
+    Allows updating item info, checklist, notes, and material requirements.
+    """
+    item = db.query(models.ProductionItem).filter(models.ProductionItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Production item not found")
+    
+    # Update only provided fields
+    update_dict = update_data.dict(exclude_unset=True)
+    for field, value in update_dict.items():
+        if value is not None:
+            setattr(item, field, value)
+    
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return _serialize_item_with_stages(item, db)
+
+
+@router.put("/items/{item_id}/checklist")
+def update_item_checklist(
+    item_id: int,
+    checklist: List[dict],
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Update the checklist for a production item.
+    Checklist format: [{"item": "Cut material", "done": true}, {"item": "Weld joints", "done": false}]
+    """
+    item = db.query(models.ProductionItem).filter(models.ProductionItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Production item not found")
+    
+    item.checklist = json.dumps(checklist)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    
+    return {"message": "Checklist updated", "checklist": checklist}
+
+
+@router.put("/items/{item_id}/material-requirements")
+def update_item_material_requirements(
+    item_id: int,
+    requirements: List[dict],
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss", "Software Supervisor")),
+):
+    """
+    Update material requirements for a production item.
+    Format: [{"material_id": 1, "qty": 10.5}, {"material_id": 2, "qty": 5.0}]
+    These materials will be auto-deducted when fabrication is completed.
+    """
+    item = db.query(models.ProductionItem).filter(models.ProductionItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Production item not found")
+    
+    if item.fabrication_deducted:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot update material requirements - fabrication already completed and materials deducted"
+        )
+    
+    item.material_requirements = json.dumps(requirements)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    
+    return {"message": "Material requirements updated", "requirements": requirements}
+
+
+# =============================================================================
+# DASHBOARD API
+# =============================================================================
+
+@router.get("/dashboard/summary")
+def get_dashboard_summary(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Get dashboard summary including:
+    - Raw material totals
+    - Stage-wise job counts
+    - Low stock alerts
+    - Recent activity
+    """
+    # Inventory stats
+    inventory_items = db.query(models.Inventory).all()
+    total_materials = len(inventory_items)
+    total_value = sum((item.total - item.used) for item in inventory_items)
+    low_stock = sum(1 for item in inventory_items if item.total > 0 and (item.total - item.used) / item.total < 0.15)
+    
+    # Get all production items
+    all_items = db.query(models.ProductionItem).all()
+    
+    # Count items by stage
+    fab_count = 0
+    paint_count = 0
+    dispatch_count = 0
+    completed_count = 0
+    pending_count = 0
+    
+    for item in all_items:
+        stages = db.query(models.StageTracking).filter(
+            models.StageTracking.production_item_id == item.id
+        ).all()
+        
+        if not stages:
+            pending_count += 1
+            continue
+        
+        stage_statuses = {s.stage: s.status for s in stages}
+        
+        # Check if dispatch is completed
+        if stage_statuses.get('dispatch') == 'completed':
+            completed_count += 1
+        elif stage_statuses.get('dispatch') == 'in_progress':
+            dispatch_count += 1
+        elif stage_statuses.get('painting') == 'in_progress':
+            paint_count += 1
+        elif stage_statuses.get('painting') == 'completed':
+            dispatch_count += 1  # Ready for dispatch
+        elif stage_statuses.get('fabrication') == 'in_progress':
+            fab_count += 1
+        elif stage_statuses.get('fabrication') == 'completed':
+            paint_count += 1  # Ready for painting
+        else:
+            fab_count += 1  # In fabrication by default
+    
+    # Recent activity (last 10 stage changes)
+    recent_stages = db.query(models.StageTracking).order_by(
+        models.StageTracking.completed_at.desc().nullsfirst(),
+        models.StageTracking.started_at.desc()
+    ).limit(10).all()
+    
+    recent_activity = []
+    for stage in recent_stages:
+        item = db.query(models.ProductionItem).filter(
+            models.ProductionItem.id == stage.production_item_id
+        ).first()
+        customer = db.query(models.Customer).filter(
+            models.Customer.id == item.customer_id
+        ).first() if item else None
+        
+        recent_activity.append({
+            "item_name": item.item_name if item else "Unknown",
+            "customer_name": customer.name if customer else "Unknown",
+            "stage": stage.stage.capitalize(),
+            "status": stage.status,
+            "timestamp": (stage.completed_at or stage.started_at).isoformat() if (stage.completed_at or stage.started_at) else None
+        })
+    
+    # Low stock items list
+    low_stock_items = [
+        {
+            "id": item.id,
+            "name": item.name,
+            "remaining": item.total - item.used,
+            "total": item.total,
+            "unit": item.unit
+        }
+        for item in inventory_items 
+        if item.total > 0 and (item.total - item.used) / item.total < 0.15
+    ]
+    
+    return {
+        "total_raw_materials": total_materials,
+        "total_inventory_value": total_value,
+        "low_stock_count": low_stock,
+        "low_stock_items": low_stock_items,
+        "fabrication_jobs": fab_count,
+        "painting_jobs": paint_count,
+        "dispatch_jobs": dispatch_count,
+        "completed_jobs": completed_count,
+        "pending_jobs": pending_count,
+        "recent_activity": recent_activity,
+        "inventory_items": [
+            {
+                "id": item.id,
+                "name": item.name,
+                "total": item.total,
+                "used": item.used,
+                "remaining": item.total - item.used,
+                "unit": item.unit
+            }
+            for item in inventory_items
+        ]
+    }
+
+
+@router.get("/all-items", response_model=List[dict])
+def get_all_tracking_items(
+    search: Optional[str] = Query(None),
+    stage: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Get all production items with their tracking status for the main tracking view.
+    Returns flattened list suitable for table display.
+    """
+    query = db.query(models.ProductionItem)
+    
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                models.ProductionItem.item_name.ilike(search_term),
+                models.ProductionItem.item_code.ilike(search_term),
+                models.ProductionItem.section.ilike(search_term),
+            )
+        )
+    
+    items = query.all()
+    result = []
+    
+    for item in items:
+        customer = db.query(models.Customer).filter(models.Customer.id == item.customer_id).first()
+        stages = db.query(models.StageTracking).filter(
+            models.StageTracking.production_item_id == item.id
+        ).all()
+        
+        stage_map = {s.stage: s.status for s in stages}
+        
+        fab_status = stage_map.get('fabrication', 'pending')
+        paint_status = stage_map.get('painting', 'pending')
+        disp_status = stage_map.get('dispatch', 'pending')
+        
+        # Determine current stage
+        if disp_status == 'completed':
+            current_stage = 'Completed'
+        elif disp_status == 'in_progress' or paint_status == 'completed':
+            current_stage = 'Dispatch'
+        elif paint_status == 'in_progress' or fab_status == 'completed':
+            current_stage = 'Painting'
+        else:
+            current_stage = 'Fabrication'
+        
+        # Apply stage filter
+        if stage and current_stage.lower() != stage.lower():
+            continue
+        
+        # Apply status filter
+        if status:
+            current_status = stage_map.get(current_stage.lower(), 'pending')
+            if current_status != status:
+                continue
+        
+        # Parse checklist
+        checklist = []
+        if item.checklist:
+            try:
+                checklist = json.loads(item.checklist)
+            except:
+                pass
+        
+        result.append({
+            "id": item.id,
+            "customer_id": item.customer_id,
+            "customer_name": customer.name if customer else "Unknown",
+            "item_code": item.item_code,
+            "item_name": item.item_name,
+            "section": item.section,
+            "length_mm": item.length_mm,
+            "quantity": item.quantity or 1,
+            "unit": item.unit,
+            "current_stage": current_stage,
+            "fabrication_status": fab_status,
+            "painting_status": paint_status,
+            "dispatch_status": disp_status,
+            "checklist": checklist,
+            "notes": item.notes,
+            "fabrication_deducted": item.fabrication_deducted,
+        })
+    
+    return result

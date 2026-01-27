@@ -6,6 +6,13 @@
   <title>KumarBrothers | Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
+  <style>
+    .stat-card { transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); }
+    .low-stock-alert { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+    .refresh-indicator { font-size: 0.75rem; color: #6c757d; }
+    .activity-item { border-left: 3px solid #0d6efd; padding-left: 10px; margin-bottom: 8px; }
+  </style>
 </head>
 <body>
 
@@ -19,6 +26,7 @@
       <a class="nav-link text-white ms-3" href="grn.html">GRN</a>
       <a class="nav-link text-white ms-3" href="dispatch.html">Dispatch</a>
       <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+      <a class="nav-link text-white ms-3" href="tracking.html">Tracking</a>
       <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
       <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
     </div>
@@ -28,65 +36,122 @@
     <div id="current-role" class="role-badge" aria-live="polite">Loading...</div>
   </div>
 </nav>
-  <!-- Stage Summary Cards -->
-  <div class="row g-3 mb-3">
-    <div class="col-md-4">
-      <div class="card p-3">
-        <small class="text-muted">Fabrication</small>
-        <h4 id="stageFabrication">0 Jobs</h4>
+
+<div class="container-fluid main-container">
+  <!-- Dashboard Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-0">Dashboard</h2>
+      <small class="text-muted">Real-time overview of operations</small>
+    </div>
+    <div>
+      <span class="refresh-indicator me-2">Last updated: <span id="lastUpdate">-</span></span>
+      <button class="btn btn-sm btn-outline-primary" onclick="refreshDashboard()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <!-- Raw Materials Summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card p-3 stat-card">
+        <small class="text-muted">Total Raw Materials</small>
+        <h4 id="totalMaterials">0 Items</h4>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card p-3">
-        <small class="text-muted">Painting</small>
-        <h4 id="stagePainting">0 Jobs</h4>
+    <div class="col-md-3">
+      <div class="card p-3 stat-card">
+        <small class="text-muted">Total Stock (kg)</small>
+        <h4 id="totalStockValue">0</h4>
+        <small class="text-success" id="stockPurchased">Purchased: 0 kg</small>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card p-3">
-        <small class="text-muted">Dispatch</small>
-        <h4 id="stageDispatch">0 Jobs</h4>
+    <div class="col-md-3">
+      <div class="card p-3 stat-card">
+        <small class="text-muted">Total Consumed (kg)</small>
+        <h4 id="totalConsumed" class="text-danger">0</h4>
+        <small class="text-muted" id="utilizationPct">Utilization: 0%</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 stat-card">
+        <small class="text-muted">Low Stock Alerts</small>
+        <h4 id="lowStockCount" class="text-warning">0 Items</h4>
       </div>
     </div>
   </div>
 
-  <!-- Mid Section: Chart + Live Status -->
-    <div class="row g-4 mb-3">
-      <div class="col-md-8">
-          <div class="card p-4 kb-card">
-            <h6 class="kb-section-title">Material Usage</h6>
-            <canvas id="materialChart" style="height:260px" aria-label="Material usage chart" role="img"></canvas>
-          </div>
+  <!-- Stage Summary Cards -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card p-3 stat-card" style="border-left: 4px solid #ffc107;">
+        <small class="text-muted">Fabrication</small>
+        <h4 id="stageFabrication">0 Jobs</h4>
+        <small class="text-muted">Items in fabrication stage</small>
       </div>
-      <div class="col-md-4">
-          <div class="card p-4 kb-card">
-            <h6 class="kb-section-title">Live Status</h6>
-          <div class="mb-3 d-flex justify-content-between align-items-center">
-            <div>
-              <div class="small text-muted">Active Customers</div>
-              <div class="h5 mb-0">24</div>
-            </div>
-            <div>
-                <span class="badge badge-success">24 Active</span>
-            </div>
-          </div>
-          <div class="mb-2 d-flex justify-content-between align-items-center">
-            <div>
-              <div class="small text-muted">Current Stages</div>
-              <div class="h6 mb-0">Assembly / Painting</div>
-            </div>
-          </div>
-          <div class="small text-muted">Alerts</div>
-          <ul class="mb-0 mt-2">
-            <li class="text-danger">Low stock: Steel Sheet (800 kg)</li>
-          </ul>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 stat-card" style="border-left: 4px solid #17a2b8;">
+        <small class="text-muted">Painting</small>
+        <h4 id="stagePainting">0 Jobs</h4>
+        <small class="text-muted">Items in painting stage</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 stat-card" style="border-left: 4px solid #28a745;">
+        <small class="text-muted">Dispatch</small>
+        <h4 id="stageDispatch">0 Jobs</h4>
+        <small class="text-muted">Ready for dispatch</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 stat-card" style="border-left: 4px solid #6c757d;">
+        <small class="text-muted">Completed</small>
+        <h4 id="stageCompleted">0 Jobs</h4>
+        <small class="text-muted">Fully dispatched</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mid Section: Inventory + Alerts -->
+  <div class="row g-4 mb-3">
+    <div class="col-md-8">
+      <div class="card p-4 kb-card">
+        <h6 class="kb-section-title">Raw Materials Overview</h6>
+        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Total</th>
+                <th>Used</th>
+                <th>Available</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryOverview">
+              <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
+    <div class="col-md-4">
+      <div class="card p-4 kb-card">
+        <h6 class="kb-section-title">Alerts & Notifications</h6>
+        <div id="alertsContainer">
+          <div class="text-muted">Loading alerts...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Live Production Status -->
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-body">
-      <h5 class="fw-semibold mb-3">Live Production Status</h5>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-semibold mb-0">Live Production Status</h5>
+        <a href="tracking.html" class="btn btn-sm btn-outline-primary">View All Tracking →</a>
+      </div>
 
       <div class="table-responsive">
         <table class="table align-middle">
@@ -99,24 +164,20 @@
               <th>Dispatch</th>
             </tr>
           </thead>
-          <tbody>
-            <tr>
-              <td>ABC Industries</td>
-              <td>Stair Stringer</td>
-              <td><span class="badge bg-success">Completed</span></td>
-              <td><span class="badge bg-warning text-dark">In Progress</span></td>
-              <td><span class="badge bg-secondary">Pending</span></td>
-            </tr>
+          <tbody id="liveProductionBody">
+            <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
           </tbody>
         </table>
       </div>
-
     </div>
   </div>
 
-    <div class="card shadow-sm border-0 mb-4">
-      <div class="card-body">
-        <h5 class="fw-semibold mb-3">Latest Instructions</h5>
+  <!-- Recent Activity -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <h5 class="fw-semibold mb-3">Recent Activity</h5>
+      <div id="recentActivity">
+        <div class="text-muted">Loading recent activity...</div>
       </div>
     </div>
   </div>
@@ -125,5 +186,166 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/config.js"></script>
 <script src="js/main.js"></script>
+<script>
+  const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+
+  function escapeHtml(s) { 
+    return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); 
+  }
+
+  function statusBadge(status) {
+    const s = String(status || '').toLowerCase();
+    if(s === 'completed') return '<span class="badge bg-success">Completed</span>';
+    if(s === 'in_progress') return '<span class="badge bg-warning text-dark">In Progress</span>';
+    return '<span class="badge bg-secondary">Pending</span>';
+  }
+
+  async function refreshDashboard() {
+    try {
+      // Use the new dashboard-data endpoint for comprehensive data
+      const res = await fetch(`${API_BASE}/inventory/dashboard-data`);
+      if(!res.ok) throw new Error('Failed to load dashboard data');
+      const data = await res.json();
+
+      // Update inventory stats with grand totals
+      const inv = data.inventory;
+      document.getElementById('totalMaterials').textContent = `${inv.total_materials} Items`;
+      document.getElementById('totalStockValue').textContent = `${inv.current_stock_kg.toLocaleString()} kg`;
+      document.getElementById('stockPurchased').textContent = `Purchased: ${inv.total_purchased_kg.toLocaleString()} kg`;
+      document.getElementById('totalConsumed').textContent = `${inv.total_consumed_kg.toLocaleString()} kg`;
+      document.getElementById('utilizationPct').textContent = `Utilization: ${inv.total_purchased_kg > 0 ? ((inv.total_consumed_kg / inv.total_purchased_kg) * 100).toFixed(1) : 0}%`;
+      document.getElementById('lowStockCount').textContent = `${inv.low_stock_count} Items`;
+
+      // Update stage counts from tracking data
+      const tracking = data.tracking;
+      document.getElementById('stageFabrication').textContent = `${tracking.fabrication.pending || 0} Jobs`;
+      document.getElementById('stagePainting').textContent = `${tracking.painting.pending || 0} Jobs`;
+      document.getElementById('stageDispatch').textContent = `${tracking.dispatch.pending || 0} Jobs`;
+      document.getElementById('stageCompleted').textContent = `${tracking.fully_completed || 0} Jobs`;
+
+      // Fetch full inventory for overview table
+      const invRes = await fetch(`${API_BASE}/inventory/`);
+      if(invRes.ok) {
+        const invItems = await invRes.json();
+        const invBody = document.getElementById('inventoryOverview');
+        invBody.innerHTML = '';
+        
+        if(invItems.length > 0) {
+          invItems.slice(0, 15).forEach(item => {
+            const remaining = (item.total || 0) - (item.used || 0);
+            const pct = item.total > 0 ? (remaining / item.total * 100) : 0;
+            let statusClass = 'bg-success';
+            let statusText = 'OK';
+            if(pct < 15) { statusClass = 'bg-danger'; statusText = 'Low'; }
+            else if(pct < 30) { statusClass = 'bg-warning text-dark'; statusText = 'Medium'; }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${escapeHtml(item.name)}</td>
+              <td>${(item.total || 0).toFixed(2)} ${escapeHtml(item.unit || '')}</td>
+              <td>${(item.used || 0).toFixed(2)}</td>
+              <td>${remaining.toFixed(2)}</td>
+              <td><span class="badge ${statusClass}">${statusText}</span></td>
+            `;
+            invBody.appendChild(tr);
+          });
+        } else {
+          invBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No materials found. <a href="raw_material.html">Add Raw Materials</a></td></tr>';
+        }
+      }
+
+      // Update low stock alerts
+      const alertsContainer = document.getElementById('alertsContainer');
+      alertsContainer.innerHTML = '';
+      if(inv.low_stock_items && inv.low_stock_items.length > 0) {
+        inv.low_stock_items.forEach(item => {
+          const div = document.createElement('div');
+          div.className = 'alert low-stock-alert py-2 mb-2';
+          div.innerHTML = `<strong>⚠️ Low Stock:</strong> ${escapeHtml(item.name)} - Only ${item.available.toFixed(2)} remaining`;
+          alertsContainer.appendChild(div);
+        });
+      } else {
+        alertsContainer.innerHTML = '<div class="text-success">✓ All materials are at healthy stock levels</div>';
+      }
+
+      // Update recent activity
+      const activityContainer = document.getElementById('recentActivity');
+      activityContainer.innerHTML = '';
+      if(data.recent_activity && data.recent_activity.length > 0) {
+        data.recent_activity.forEach(act => {
+          const div = document.createElement('div');
+          div.className = 'activity-item';
+          div.innerHTML = `
+            <strong>${escapeHtml(act.item_name)}</strong>
+            <br><small class="text-muted">${act.stage} - ${act.status} ${act.timestamp ? '• ' + new Date(act.timestamp).toLocaleString() : ''}</small>
+          `;
+          activityContainer.appendChild(div);
+        });
+      } else {
+        activityContainer.innerHTML = '<div class="text-muted">No recent activity</div>';
+      }
+
+      // Fetch live production items
+      const trackRes = await fetch(`${API_BASE}/tracking/all-items`);
+      if(trackRes.ok) {
+        const items = await trackRes.json();
+        const prodBody = document.getElementById('liveProductionBody');
+        prodBody.innerHTML = '';
+        
+        // Show first 10 items
+        const displayItems = items.slice(0, 10);
+        if(displayItems.length > 0) {
+          displayItems.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${escapeHtml(item.customer_name)}</td>
+              <td>${escapeHtml(item.item_name)}</td>
+              <td>${statusBadge(item.fabrication_status)}</td>
+              <td>${statusBadge(item.painting_status)}</td>
+              <td>${statusBadge(item.dispatch_status)}</td>
+            `;
+            prodBody.appendChild(tr);
+          });
+        } else {
+          prodBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No production items. <a href="customers.html">Upload tracking Excel for a customer</a></td></tr>';
+        }
+      }
+
+      // Update last refresh time
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+    } catch(err) {
+      console.error('Dashboard refresh error:', err);
+      // Fallback: try the old endpoint
+      try {
+        await refreshDashboardLegacy();
+      } catch(e) {
+        console.error('Legacy dashboard also failed:', e);
+      }
+    }
+  }
+
+  // Legacy refresh for backwards compatibility
+  async function refreshDashboardLegacy() {
+    const res = await fetch(`${API_BASE}/tracking/dashboard/summary`);
+    if(!res.ok) return;
+    const data = await res.json();
+
+    document.getElementById('totalMaterials').textContent = `${data.total_raw_materials || 0} Items`;
+    document.getElementById('totalStockValue').textContent = (data.total_inventory_value || 0).toFixed(2);
+    document.getElementById('lowStockCount').textContent = `${data.low_stock_count || 0} Items`;
+
+    document.getElementById('stageFabrication').textContent = `${data.fabrication_jobs || 0} Jobs`;
+    document.getElementById('stagePainting').textContent = `${data.painting_jobs || 0} Jobs`;
+    document.getElementById('stageDispatch').textContent = `${data.dispatch_jobs || 0} Jobs`;
+    document.getElementById('stageCompleted').textContent = `${data.completed_jobs || 0} Jobs`;
+  }
+
+  // Initial load
+  refreshDashboard();
+
+  // Auto-refresh every 10 seconds (reduced from 15 for better real-time feel)
+  setInterval(refreshDashboard, 10000);
+</script>
 </body>
 </html>

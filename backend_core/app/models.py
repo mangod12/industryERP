@@ -21,6 +21,9 @@ class Customer(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     project_details = Column(Text)
+    email = Column(String, nullable=True, index=True)
+    phone = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     production_items = relationship("ProductionItem", back_populates="customer")
 
@@ -33,6 +36,24 @@ class ProductionItem(Base):
     item_name = Column(String, nullable=False)
     section = Column(String, nullable=True)
     length_mm = Column(Integer, nullable=True)
+    quantity = Column(Float, nullable=True, default=1.0)  # Quantity from Excel
+    unit = Column(String, nullable=True)  # Unit from Excel
+    weight_per_unit = Column(Float, nullable=True)  # Weight per unit for material calculation
+    # Material requirements for this item (JSON stored as string for SQLite compatibility)
+    material_requirements = Column(Text, nullable=True)  # JSON: [{"material_id": 1, "qty": 10.5}, ...]
+    # Checklist for tracking progress
+    checklist = Column(Text, nullable=True)  # JSON: [{"item": "Cut", "done": true}, ...]
+    # Notes for the item
+    notes = Column(Text, nullable=True)
+    # Current stage tracking for this production item (lowercase values)
+    current_stage = Column(String, nullable=False, default="fabrication")
+    stage_updated_at = Column(DateTime, nullable=True)
+    stage_updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # Flag to track if fabrication deduction has been done (prevents double deduction)
+    fabrication_deducted = Column(Boolean, default=False)
+    # Also use material_deducted as an alias for FIFO deduction tracking
+    material_deducted = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
     customer = relationship("Customer", back_populates="production_items")
     stages = relationship("StageTracking", back_populates="production_item")
 
@@ -46,6 +67,7 @@ class StageTracking(Base):
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_checked = Column(Boolean, default=False)
     production_item = relationship("ProductionItem", back_populates="stages")
 
 
@@ -67,6 +89,7 @@ class Instruction(Base):
     message = Column(Text, nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)
 
 
 class MaterialUsage(Base):
@@ -78,6 +101,7 @@ class MaterialUsage(Base):
     qty = Column(Float, nullable=False)  # Changed to Float for decimal quantities
     unit = Column(String, nullable=True)
     by = Column(String, nullable=True)
+    applied = Column(Boolean, default=False)  # Whether this usage has been applied to inventory
     ts = Column(DateTime, default=datetime.utcnow)
 
 
@@ -121,6 +145,26 @@ class NotificationSetting(Base):
     low_inventory = Column(Boolean, default=True)
     dispatch_completed = Column(Boolean, default=True)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MaterialConsumption(Base):
+    __tablename__ = "material_consumption"
+    id = Column(Integer, primary_key=True, index=True)
+    material_usage_id = Column(Integer, ForeignKey("material_usage.id"), nullable=False)
+    inventory_id = Column(Integer, ForeignKey("inventory.id"), nullable=False)
+    qty = Column(Float, nullable=False)
+    ts = Column(DateTime, default=datetime.utcnow)
+
+
+class TrackingStageHistory(Base):
+    __tablename__ = "tracking_stage_history"
+    id = Column(Integer, primary_key=True, index=True)
+    material_id = Column(Integer, ForeignKey("production_items.id"), nullable=False)
+    from_stage = Column(String, nullable=True)
+    to_stage = Column(String, nullable=True)
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    changed_at = Column(DateTime, default=datetime.utcnow)
+    remarks = Column(Text, nullable=True)
 
 
 class RoleNotificationSetting(Base):

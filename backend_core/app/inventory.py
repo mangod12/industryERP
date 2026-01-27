@@ -221,3 +221,189 @@ def delete_item(item_id: int, db: Session = Depends(get_db), current_user: model
     db.delete(i)
     db.commit()
     return {"message": "deleted"}
+
+
+@router.get("/stats/summary")
+def get_inventory_stats(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Get comprehensive inventory statistics for dashboard.
+    
+    Returns:
+    - Grand totals: total purchased, total consumed, current stock
+    - Per-material breakdown
+    - Low stock alerts
+    - Recent consumption history
+    """
+    from sqlalchemy import func
+    
+    # Get all inventory items
+    inventory_items = db.query(models.Inventory).all()
+    
+    # Calculate grand totals
+    total_purchased = sum((item.total or 0) for item in inventory_items)
+    total_consumed = sum((item.used or 0) for item in inventory_items)
+    current_stock = total_purchased - total_consumed
+    
+    # Low stock threshold (10% of total)
+    low_stock_items = []
+    for item in inventory_items:
+        available = (item.total or 0) - (item.used or 0)
+        if item.total and available < (item.total * 0.1):
+            low_stock_items.append({
+                "id": item.id,
+                "name": item.name,
+                "total": item.total,
+                "used": item.used,
+                "available": available,
+                "percentage_remaining": round((available / item.total) * 100, 1) if item.total else 0
+            })
+    
+    # Per-material breakdown
+    material_breakdown = []
+    for item in inventory_items:
+        available = (item.total or 0) - (item.used or 0)
+        material_breakdown.append({
+            "id": item.id,
+            "name": item.name,
+            "unit": item.unit,
+            "total": item.total or 0,
+            "used": item.used or 0,
+            "available": available,
+            "section": getattr(item, 'section', None),
+            "category": getattr(item, 'category', None),
+        })
+    
+    # Recent material usage (last 10)
+    recent_usage = db.query(models.MaterialUsage).order_by(
+        models.MaterialUsage.ts.desc()
+    ).limit(10).all()
+    
+    recent_usage_list = [
+        {
+            "id": u.id,
+            "name": u.name,
+            "qty": u.qty,
+            "unit": u.unit,
+            "by": u.by,
+            "timestamp": u.ts.isoformat() if u.ts else None,
+        }
+        for u in recent_usage
+    ]
+    
+    return {
+        "grand_totals": {
+            "total_purchased_kg": round(total_purchased, 2),
+            "total_consumed_kg": round(total_consumed, 2),
+            "current_stock_kg": round(current_stock, 2),
+            "utilization_percentage": round((total_consumed / total_purchased) * 100, 1) if total_purchased else 0,
+        },
+        "item_count": len(inventory_items),
+        "low_stock_count": len(low_stock_items),
+        "low_stock_items": low_stock_items,
+        "material_breakdown": material_breakdown,
+        "recent_usage": recent_usage_list,
+    }
+
+
+@router.get("/dashboard-data")
+def get_dashboard_data(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Get all dashboard data in a single call for optimal performance.
+    Combines inventory stats, tracking stats, and recent activity.
+    """
+    from sqlalchemy import func
+    
+    # Inventory stats
+    inventory_items = db.query(models.Inventory).all()
+    total_purchased = sum((item.total or 0) for item in inventory_items)
+    total_consumed = sum((item.used or 0) for item in inventory_items)
+    
+    # Tracking stats by stage
+    stage_counts = {}
+    for stage in ["fabrication", "painting", "dispatch"]:
+        # Count items with this stage in_progress or pending (not completed)
+        pending = db.query(models.StageTracking).filter(
+            models.StageTracking.stage == stage,
+            models.StageTracking.status.in_(["pending", "in_progress"])
+        ).count()
+        
+        completed = db.query(models.StageTracking).filter(
+            models.StageTracking.stage == stage,
+            models.StageTracking.status == "completed"
+        ).count()
+        
+        stage_counts[stage] = {
+            "pending": pending,
+            "completed": completed,
+            "total": pending + completed
+        }
+    
+    # Total completed (all 3 stages done)
+    # An item is fully completed when dispatch is completed
+    fully_completed = db.query(models.StageTracking).filter(
+        models.StageTracking.stage == "dispatch",
+        models.StageTracking.status == "completed"
+    ).count()
+    
+    # Total items
+    total_items = db.query(models.ProductionItem).count()
+    
+    # Customers count
+    customer_count = db.query(models.Customer).count()
+    
+    # Low stock items
+    low_stock = []
+    for item in inventory_items:
+        available = (item.total or 0) - (item.used or 0)
+        if item.total and available < (item.total * 0.15):  # 15% threshold
+            low_stock.append({
+                "name": item.name,
+                "available": available,
+                "total": item.total,
+            })
+    
+    # Recent activity (stage changes)
+    recent_stages = db.query(models.StageTracking).order_by(
+        models.StageTracking.id.desc()
+    ).limit(5).all()
+    
+    recent_activity = []
+    for s in recent_stages:
+        item = db.query(models.ProductionItem).filter(
+            models.ProductionItem.id == s.production_item_id
+        ).first()
+        if item:
+            recent_activity.append({
+                "item_name": item.item_name,
+                "stage": s.stage,
+                "status": s.status,
+                "timestamp": (s.completed_at or s.started_at).isoformat() if (s.completed_at or s.started_at) else None
+            })
+    
+    return {
+        "inventory": {
+            "total_materials": len(inventory_items),
+            "total_purchased_kg": round(total_purchased, 2),
+            "total_consumed_kg": round(total_consumed, 2),
+            "current_stock_kg": round(total_purchased - total_consumed, 2),
+            "low_stock_count": len(low_stock),
+            "low_stock_items": low_stock[:5],  # Top 5
+        },
+        "tracking": {
+            "total_items": total_items,
+            "fabrication": stage_counts.get("fabrication", {}),
+            "painting": stage_counts.get("painting", {}),
+            "dispatch": stage_counts.get("dispatch", {}),
+            "fully_completed": fully_completed,
+        },
+        "customers": {
+            "total": customer_count,
+        },
+        "recent_activity": recent_activity,
+    }

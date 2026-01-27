@@ -1,4 +1,4 @@
-from typing import Optional, List
+﻿from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, EmailStr
 
@@ -26,7 +26,7 @@ class UserOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CustomerCreate(BaseModel):
@@ -39,6 +39,12 @@ class ProductionItemCreate(BaseModel):
     item_name: str
     section: Optional[str]
     length_mm: Optional[int]
+    quantity: Optional[float] = 1.0
+    unit: Optional[str] = None
+    weight_per_unit: Optional[float] = None
+    material_requirements: Optional[str] = None  # JSON string
+    checklist: Optional[str] = None  # JSON string
+    notes: Optional[str] = None
 
 
 class ProductionItemOut(BaseModel):
@@ -48,9 +54,17 @@ class ProductionItemOut(BaseModel):
     item_name: str
     section: Optional[str]
     length_mm: Optional[int]
+    quantity: Optional[float] = 1.0
+    unit: Optional[str] = None
+    weight_per_unit: Optional[float] = None
+    material_requirements: Optional[str] = None
+    checklist: Optional[str] = None
+    notes: Optional[str] = None
+    fabrication_deducted: Optional[bool] = False
+    created_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CustomerOut(BaseModel):
@@ -61,7 +75,7 @@ class CustomerOut(BaseModel):
     production_items: Optional[List[ProductionItemOut]] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class StageAction(BaseModel):
@@ -76,10 +90,53 @@ class ProductionItemWithStages(BaseModel):
     item_name: str
     section: Optional[str]
     length_mm: Optional[int]
+    quantity: Optional[float] = 1.0
+    unit: Optional[str] = None
+    weight_per_unit: Optional[float] = None
+    material_requirements: Optional[str] = None
+    checklist: Optional[str] = None
+    notes: Optional[str] = None
+    fabrication_deducted: Optional[bool] = False
     stages: List["StageStatusOut"] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+
+# Schema for updating a production item (edit functionality)
+class ProductionItemUpdate(BaseModel):
+    item_code: Optional[str] = None
+    item_name: Optional[str] = None
+    section: Optional[str] = None
+    length_mm: Optional[int] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    weight_per_unit: Optional[float] = None
+    material_requirements: Optional[str] = None
+    checklist: Optional[str] = None
+    notes: Optional[str] = None
+
+
+# Schema for Excel import with flexible column mapping
+class ExcelImportConfig(BaseModel):
+    customer_id: int
+    sheet_name: Optional[str] = None
+    column_mapping: Optional[dict] = None  # Maps Excel columns to ProductionItem fields
+    # Default mapping if not provided:
+    # {"Item Code": "item_code", "Item Name": "item_name", "Section": "section", etc.}
+
+
+# Schema for dashboard summary
+class DashboardSummary(BaseModel):
+    total_raw_materials: int
+    total_inventory_value: float
+    low_stock_items: int
+    fabrication_jobs: int
+    painting_jobs: int
+    dispatch_jobs: int
+    completed_jobs: int
+    pending_jobs: int
+    recent_activity: List[dict] = []
 
 
 class MaterialUsageCreate(BaseModel):
@@ -101,7 +158,7 @@ class MaterialUsageOut(BaseModel):
     ts: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class CustomerTrackingOut(BaseModel):
@@ -114,7 +171,7 @@ class CustomerTrackingOut(BaseModel):
     stage_history: List["StageStatusOut"] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class StageStatusOut(BaseModel):
@@ -127,7 +184,7 @@ class StageStatusOut(BaseModel):
     updated_by: Optional[int]
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class QueryCreate(BaseModel):
@@ -149,7 +206,7 @@ class QueryOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class InstructionCreate(BaseModel):
@@ -163,7 +220,7 @@ class InstructionOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class InventoryIn(BaseModel):
@@ -188,7 +245,7 @@ class InventoryOut(BaseModel):
     created_at: datetime | None = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class NotificationOut(BaseModel):
@@ -201,7 +258,7 @@ class NotificationOut(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class NotificationCreate(BaseModel):
@@ -224,7 +281,7 @@ class NotificationSettingOut(BaseModel):
     updated_at: datetime | None = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class NotificationSettingIn(BaseModel):
@@ -250,3 +307,4 @@ class RoleNotificationSettingIn(NotificationSettingIn):
 class ChangePasswordIn(BaseModel):
     old_password: str
     new_password: str
+

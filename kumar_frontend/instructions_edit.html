@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>KumarBrothers — Edit Instructions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+  </head>
+  <body>
+    <nav class="kb-navbar d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <div class="navbar-brand">KumarBrothers</div>
+        <div class="d-none d-lg-flex">
+          <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+          <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+          <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+          <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
+          <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="small-muted">Role:</div>
+        <div id="current-role" class="role-badge">Loading...</div>
+      </div>
+    </nav>
+
+    <div class="container main-container py-4">
+      <div class="row">
+        <div class="col-12 mb-3">
+          <h3 class="mb-0">Edit Instructions</h3>
+        </div>
+
+        <div class="col-lg-8">
+          <div class="card p-3 kb-card">
+            <label class="form-label">Instruction (this will create a new version)</label>
+            <textarea id="instruction-text" class="form-control mb-3" rows="8"></textarea>
+            <div class="d-flex justify-content-end">
+              <button id="instr-save" class="btn btn-kb">Save Instruction</button>
+            </div>
+            <div id="instrStatus" class="small-muted mt-2"></div>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card p-3 kb-card">
+            <div class="small-muted">Latest Instructions</div>
+            <div id="instrPreview" class="mt-2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+      function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+      
+      document.addEventListener('DOMContentLoaded', async ()=>{
+        if(typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
+        // only Boss allowed here - redirect otherwise
+        if(typeof KBAuth !== 'undefined' && !KBAuth.hasRole('Boss')){
+          alert('Access denied: Boss role required');
+          window.location.href = 'instructions.html';
+          return;
+        }
+
+        const statusEl = document.getElementById('instrStatus');
+        const saveBtn = document.getElementById('instr-save');
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('id');
+        const BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+
+        // If editing an existing instruction, load it and prefill
+        if(editId){
+          statusEl.innerText = 'Loading instruction...';
+          try{
+            const r = await fetch(`${BASE}/instructions/${editId}`);
+            if(!r.ok){ statusEl.innerText = 'Failed to load instruction'; }
+            else{
+              const obj = await r.json();
+              document.getElementById('instruction-text').value = obj.message || '';
+              statusEl.innerText = '';
+            }
+          }catch(err){ statusEl.innerText = `Error: ${err.message}`; }
+        }
+
+        saveBtn.addEventListener('click', async ()=>{
+          const txt = document.getElementById('instruction-text').value.trim();
+          if(!txt) return alert('Enter instruction text');
+          statusEl.innerText = 'Saving...';
+          try{
+            let res;
+            if(editId){
+              // update existing version
+              res = await fetch(`${BASE}/instructions/${editId}`, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({message: txt})
+              });
+            }else{
+              // create new version
+              res = await fetch(`${BASE}/instructions`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({message: txt})
+              });
+            }
+
+            if(!res.ok){
+              const e = await res.json().catch(()=>null);
+              const m = e && e.detail ? e.detail : `Save failed (${res.status})`;
+              statusEl.innerText = m;
+              return;
+            }
+            statusEl.innerText = 'Saved successfully';
+            document.getElementById('instruction-text').value = '';
+            // refresh preview
+            loadLatestInstruction();
+            // if we edited, redirect back to view
+            if(editId){ setTimeout(()=>{ window.location.href = 'instructions.html'; }, 800); }
+          }catch(err){
+            statusEl.innerText = `Error: ${err.message}`;
+          }
+        });
+
+        async function loadLatestInstruction(){
+          const p = document.getElementById('instrPreview');
+          p.innerHTML = 'Loading...';
+          try{
+            const r = await fetch(`${BASE}/instructions`);
+            if(!r.ok) { p.innerText = 'Failed to load'; return; }
+            const items = await r.json();
+            if(!items.length) { p.innerText = 'No instructions yet'; return; }
+            const latest = items[items.length-1];
+            p.innerHTML = `<div class="small-muted">${new Date(latest.created_at).toLocaleString()} — by ${latest.created_by}</div><div class="mt-2">${escapeHtml(latest.message)}</div>`;
+          }catch(err){ p.innerText = `Error: ${err.message}`; }
+        }
+
+        loadLatestInstruction();
+      });
+    </script>
+  </body>
+</html>

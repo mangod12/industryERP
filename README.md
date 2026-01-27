@@ -1,6 +1,211 @@
 # KumarBrothers Steel ERP
 
-A comprehensive steel fabrication inventory management system with role-based access control, GRN (Goods Receipt Note) workflow, dispatch management, and full material traceability.
+A comprehensive steel fabrication tracking and inventory management system with automatic material deduction, Excel import, and real-time dashboard.
+
+---
+
+## 📋 System Workflow (How It Works)
+
+### Overview Diagram
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        KUMARBROTHERS STEEL ERP WORKFLOW                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    STEP 1                    STEP 2                    STEP 3
+┌─────────────┐          ┌─────────────┐          ┌─────────────┐
+│  Add Raw    │          │ Add Customer│          │Upload Excel │
+│  Materials  │    →     │  /Project   │    →     │  Tracking   │
+│  (Profiles) │          │             │          │    File     │
+└─────────────┘          └─────────────┘          └─────────────┘
+      │                                                  │
+      │                                                  ▼
+      │                                    ┌──────────────────────────┐
+      │                                    │ System Auto-Links        │
+      │                                    │ PROFILE → Raw Material   │
+      │                                    │ (e.g., UB203X133X25)     │
+      └───────────────────────────────────►└──────────────────────────┘
+                                                         │
+                                                         ▼
+                         TRACKING STAGES (Sequential - Cannot Skip)
+    ┌─────────────────┬─────────────────┬─────────────────┐
+    │  FABRICATION    │    PAINTING     │    DISPATCH     │
+    │    (Stage 1)    │    (Stage 2)    │    (Stage 3)    │
+    │                 │                 │                 │
+    │  ✓ Complete     │  ✓ Complete     │  ✓ Complete     │
+    │      ↓          │      ↓          │      ↓          │
+    │  AUTO-DEDUCT    │  Move to next   │    FINISHED!    │
+    │  from inventory │     stage       │                 │
+    └─────────────────┴─────────────────┴─────────────────┘
+                                                         │
+                                                         ▼
+                                          ┌──────────────────────────┐
+                                          │  Dashboard Updates       │
+                                          │  - Stock reduced         │
+                                          │  - Progress shown        │
+                                          │  - All users see changes │
+                                          └──────────────────────────┘
+```
+
+---
+
+## 🔄 Step-by-Step Guide
+
+### STEP 1: Add Raw Materials (Admin)
+**Page: Raw Materials** → http://127.0.0.1:5500/raw_material.html
+
+Before tracking can auto-deduct materials, you must add your steel profiles:
+
+| Field | Example Value | Description |
+|-------|---------------|-------------|
+| Name | UB203X133X25 | Profile name (must match Excel PROFILE column) |
+| Total | 5000 | Total quantity in kg |
+| Used | 0 | Already used (starts at 0) |
+| Unit | kg | Unit of measurement |
+
+**Example Raw Materials to Add:**
+```
+UB203X133X25    - Universal Beam 203x133x25
+UB254X146X31    - Universal Beam 254x146x31
+ISMC250         - Indian Standard Medium Channel 250
+```
+
+> ⚠️ **Important:** The material NAME must match the PROFILE column in your tracking Excel/CSV file for auto-deduction to work.
+
+---
+
+### STEP 2: Add Customer/Project (Admin)
+**Page: Customers** → http://127.0.0.1:5500/customers.html
+
+1. Click **"+ Add Customer"**
+2. Enter customer name and project details
+3. Save the customer
+
+Each customer can have multiple tracking Excel files uploaded.
+
+---
+
+### STEP 3: Upload Tracking Excel (Admin)
+**Page: Customers** → Click **"Upload Excel"** button on any customer
+
+#### Supported File Formats:
+- ✅ Excel (.xlsx)
+- ✅ CSV (.csv)
+
+#### Supported Column Names (Flexible):
+The system auto-detects these columns:
+
+| Excel Column | Maps To | Example |
+|--------------|---------|---------|
+| Drawing no | Item Code | TCI-SFD-49-02-11-07-000-01817 |
+| ASSEMBLY | Assembly | B1, B2, C1 |
+| NAME | Item Name | BEAM, COLUMN |
+| **PROFILE** | Section | **UB203X133X25** (links to Raw Material) |
+| QTY. | Quantity | 1, 2, 5 |
+| WT-(kg) | Weight | 45.6, 123.4 |
+| AR(m²) | Area | 1.23 |
+| PAINT | Paint Status | - |
+| LOT 1 | Lot Number | Lot tracking |
+
+#### What Happens on Upload:
+1. **Preview** shows which profiles match inventory (✅) vs unmatched (⚠️)
+2. **Auto-Link**: System links PROFILE column to Raw Materials
+3. **Import**: Creates tracking items in Fabrication stage
+4. **Notification**: Warns if any profiles need to be added to Raw Materials
+
+---
+
+### STEP 4: Track Progress Through Stages
+**Page: Tracking** → http://127.0.0.1:5500/tracking.html
+
+All items follow this sequence (cannot skip stages):
+
+```
+FABRICATION → PAINTING → DISPATCH → COMPLETED
+```
+
+#### For Each Item:
+1. **Start Stage** → Status becomes "In Progress"
+2. **Complete Stage** → Status becomes "Completed", moves to next stage
+
+#### Special: Fabrication Completion
+When Fabrication is marked **Complete**:
+- ✅ System automatically deducts materials from inventory
+- ✅ Deduction = Weight (kg) × Quantity from Excel
+- ✅ Only happens ONCE per item (tracked by system)
+- ✅ Dashboard immediately shows updated stock
+
+---
+
+### STEP 5: Monitor on Dashboard
+**Page: Dashboard** → http://127.0.0.1:5500/index.html
+
+Real-time display (auto-refreshes every 10 seconds):
+
+| Metric | Description |
+|--------|-------------|
+| **Total Stock (kg)** | Current available raw materials |
+| **Total Consumed (kg)** | Materials deducted by completed fabrication |
+| **Utilization %** | Consumed / Purchased ratio |
+| **Low Stock Alerts** | Items below 15% remaining |
+| **Stage Counts** | Jobs in Fabrication/Painting/Dispatch |
+
+---
+
+## 📊 Example Workflow
+
+### Scenario: New Project "TCIL Building Structure"
+
+**1. Admin adds Raw Materials:**
+```
+UB203X133X25  - 5000 kg
+ISMC250       - 3000 kg
+```
+
+**2. Admin adds Customer:** "TCIL Corporation"
+
+**3. Admin uploads tracking CSV with 100 items:**
+```csv
+Drawing no,NAME,PROFILE,QTY.,WT-(kg)
+DWG-001,BEAM,UB203X133X25,1,45.6
+DWG-002,BEAM,UB203X133X25,2,91.2
+DWG-003,CHANNEL,ISMC250,1,38.5
+...
+```
+
+**4. System shows preview:**
+- ✅ UB203X133X25 → Matched to "UB203X133X25" (5000 kg available)
+- ✅ ISMC250 → Matched to "ISMC250" (3000 kg available)
+
+**5. Import creates 100 tracking items in Fabrication stage**
+
+**6. Worker completes fabrication for DWG-001:**
+- Click "Complete" on Fabrication
+- System deducts 45.6 kg from UB203X133X25
+- Item moves to Painting stage
+- Dashboard shows: UB203X133X25 = 4954.4 kg remaining
+
+**7. Dashboard shows:**
+- Fabrication: 99 jobs remaining
+- Painting: 1 job
+- Stock: 4954.4 kg (UB203X133X25)
+
+---
+
+## 🎯 Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Flexible Excel Import** | Supports 40+ column name variations |
+| **Auto Material Linking** | PROFILE column auto-matches to inventory |
+| **Auto Deduction** | Materials deduct when Fabrication completes |
+| **Stage Enforcement** | Cannot skip stages (Fab → Paint → Dispatch) |
+| **Real-time Dashboard** | Updates every 10 seconds for all users |
+| **Low Stock Alerts** | Notifications when materials run low |
+| **Edit & Checklist** | Each item has edit and checklist features |
+| **Search & Filter** | Find items by name, code, customer, stage |
+
+---
 
 ## 🚀 Quick Start
 
@@ -74,11 +279,11 @@ After logging in as admin, you can create users with different roles:
 |------|-----|-------------|
 | Login | `/login.html` | User authentication |
 | Dashboard | `/index.html` | Overview and stats |
-| Materials | `/materials.html` | Material master catalog |
-| Stock | `/stock.html` | Stock lots with heat traceability |
-| GRN | `/grn.html` | Goods Receipt Notes workflow |
+| Raw Materials | `/raw_material.html` | Add/manage steel profiles |
+| Customers | `/customers.html` | Customer management + Excel upload |
+| Tracking | `/tracking.html` | Stage tracking (Fab/Paint/Dispatch) |
+| GRN | `/grn.html` | Goods Receipt Notes |
 | Dispatch | `/dispatch.html` | Outward dispatch management |
-| Customers | `/customers.html` | Customer management |
 | Settings | `/settings.html` | System settings |
 
 ---
@@ -95,11 +300,12 @@ Once the backend is running, access the interactive API docs:
 | Endpoint | Description |
 |----------|-------------|
 | `POST /auth/login` | User authentication |
-| `GET /api/v2/inventory/materials` | List all materials |
-| `GET /api/v2/inventory/stock` | List stock lots |
-| `POST /api/v2/grn/` | Create new GRN |
-| `GET /api/v2/grn/vendors` | List vendors |
-| `POST /api/v2/dispatch/` | Create dispatch note |
+| `GET /inventory/` | List all raw materials |
+| `GET /inventory/dashboard-data` | Dashboard statistics |
+| `POST /excel/preview-import/{customer_id}` | Preview Excel with material matching |
+| `POST /excel/import-tracking/{customer_id}` | Import tracking items |
+| `POST /tracking/complete-stage` | Complete a stage (triggers auto-deduction) |
+| `GET /tracking/all-items` | List all tracking items |
 
 ---
 
@@ -110,27 +316,26 @@ next_project/
 ├── backend_core/           # FastAPI Backend
 │   ├── app/
 │   │   ├── main.py         # App entry point
-│   │   ├── models.py       # V1 database models
-│   │   ├── models_v2.py    # V2 steel industry models
+│   │   ├── models.py       # Database models
+│   │   ├── excel.py        # Excel/CSV import with auto-linking
+│   │   ├── tracking.py     # Stage tracking with auto-deduction
+│   │   ├── inventory.py    # Raw materials & dashboard stats
 │   │   ├── security.py     # Authentication & RBAC
 │   │   ├── deps.py         # Dependencies
-│   │   ├── routers/        # API routers
-│   │   │   ├── grn.py      # GRN endpoints
-│   │   │   ├── dispatch.py # Dispatch endpoints
-│   │   │   └── inventory_v2.py
-│   │   └── services/       # Business logic
+│   │   └── routers/        # Additional API routers
 │   └── data/
 │       └── kumar_core.db   # SQLite database
 │
 ├── kumar_frontend/         # Frontend (HTML/JS/CSS)
-│   ├── index.html          # Dashboard
+│   ├── index.html          # Dashboard with grand totals
 │   ├── login.html          # Login page
-│   ├── grn.html            # GRN management
+│   ├── raw_material.html   # Raw materials management
+│   ├── customers.html      # Customers + Excel upload
+│   ├── tracking.html       # Stage tracking
+│   ├── grn.html            # Goods Receipt Notes
 │   ├── dispatch.html       # Dispatch management
-│   ├── materials.html      # Materials master
-│   ├── stock.html          # Stock inventory
 │   ├── js/
-│   │   ├── config.js       # API config & auth
+│   │   ├── config.js       # API config
 │   │   └── main.js         # Main application JS
 │   └── css/
 │       └── main.css        # Styles
@@ -143,48 +348,25 @@ next_project/
 
 ---
 
-## 🔄 Testing Workflow
+## ❓ Frequently Asked Questions
 
-### 1. Login Test
-```
-1. Navigate to http://127.0.0.1:5500/login.html
-2. Enter: admin / Admin@123
-3. Click Login
-4. Should redirect to Dashboard
-```
+### Q: Why aren't materials being deducted automatically?
+**A:** Make sure:
+1. The PROFILE column in your Excel matches the material NAME in Raw Materials
+2. The item has WT-(kg) value in the Excel
+3. You clicked "Complete" on Fabrication stage (not just "Start")
 
-### 2. Create Material Test
-```
-1. Go to Materials page
-2. Click "+ Add Material"
-3. Fill in:
-   - Code: STL-CR-1.5
-   - Name: CR Steel Sheet 1.5mm
-   - Type: sheet
-   - Grade: IS 513 CR2
-   - Thickness: 1.5
-4. Click Save
-```
+### Q: Can I upload different Excel formats?
+**A:** Yes! The system supports 40+ column name variations. It auto-detects columns like "Drawing no", "PROFILE", "QTY.", "WT-(kg)", etc. Column order doesn't matter.
 
-### 3. Create Vendor & GRN Test
-```
-1. Go to GRN page
-2. Click "New GRN"
-3. Select vendor (Tata Steel already exists)
-4. Fill vehicle number, driver details
-5. Click "Create GRN"
-6. Add line items with heat numbers
-7. Submit for QA
-```
+### Q: What happens if a profile is not in Raw Materials?
+**A:** The item will still be imported, but no auto-deduction will happen. You'll see a warning to add the missing profile.
 
-### 4. Dispatch Test
-```
-1. Go to Dispatch page
-2. Click "New Dispatch"
-3. Select customer
-4. Pick stock lots (FIFO)
-5. Confirm dispatch
-```
+### Q: Can I skip the Painting stage?
+**A:** No, stages must be completed in order: Fabrication → Painting → Dispatch.
+
+### Q: How do I see all tracking items for a customer?
+**A:** Go to Tracking page and filter by customer name.
 
 ---
 
@@ -196,17 +378,7 @@ For production deployment, set these environment variables:
 $env:KUMAR_SECRET_KEY = "your-secure-64-char-secret-key"
 $env:ENVIRONMENT = "production"
 $env:CORS_ORIGINS = "https://yourdomain.com"
-$env:DATABASE_URL = "postgresql://user:pass@host/db"  # Optional
 ```
-
----
-
-## 📝 Notes
-
-- Default database: SQLite (stored in `backend_core/data/kumar_core.db`)
-- All weights stored internally in KG, displayed in MT where appropriate
-- Heat number tracking for full steel traceability
-- FIFO picking for dispatch operations
 
 ---
 
@@ -229,6 +401,12 @@ Remove-Item backend_core/data/kumar_core.db
 
 ### Create admin user manually
 ```powershell
-$env:PYTHONPATH = "c:\Users\ansha\Downloads\next_project"
-python scripts/create_admin.py --username admin --email admin@kumarbrothers.com --password Admin@123
+cd c:\Users\ansha\Downloads\next_project
+python scripts/create_admin.py
 ```
+
+---
+
+## 📞 Support
+
+For issues or questions, contact the development team.

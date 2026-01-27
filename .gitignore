@@ -41,6 +41,16 @@ pip-delete-this-directory.txt
 *.db
 backend_core/data/
 
+# Sample data files
+*.csv
+
+# Temp scripts
+temp_*.py
+check_*.py
+
+# Old project folders
+kbsteel-main/
+
 # OS files
 .DS_Store
 Thumbs.db
