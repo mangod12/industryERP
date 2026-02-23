@@ -1,5 +1,7 @@
 # KumarBrothers Steel ERP
 
+[![CI](https://github.com/mangod12/industryERP/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/ci.yml)
+
 A comprehensive steel fabrication tracking and inventory management system with automatic material deduction, Excel import, and real-time dashboard.
 ## 📸 System Screenshots
 
