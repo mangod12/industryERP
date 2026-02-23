@@ -5,7 +5,7 @@
 
 const KBConfig = {
   // API Configuration - change this for different environments
-  API_BASE: 'http://127.0.0.1:8000',
+  API_BASE: 'http://127.0.0.1:8001',
   
   // Available roles in the system
   ROLES: Object.freeze({

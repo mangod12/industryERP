@@ -1,0 +1,24 @@
+[project]
+name = "steel_erp"
+version = "1.0.0"
+description = "Kumar Brothers Steel ERP - Steel Fabrication Industry Customization"
+authors = [
+    {name = "Kumar Brothers Steel", email = "admin@kumarbrothers.com"}
+]
+license = {text = "MIT"}
+requires-python = ">=3.10"
+readme = "README.md"
+
+dependencies = [
+    "frappe",
+    "erpnext",
+    "openpyxl>=3.0.0",
+    "pandas>=1.5.0"
+]
+
+[build-system]
+requires = ["flit_core>=3.4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.module]
+name = "steel_erp"

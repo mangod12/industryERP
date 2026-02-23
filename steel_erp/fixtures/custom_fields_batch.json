@@ -1,0 +1,65 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Batch",
+    "fieldname": "custom_steel_batch_info",
+    "label": "Steel Batch Information",
+    "fieldtype": "Section Break",
+    "insert_after": "batch_id"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Batch",
+    "fieldname": "custom_heat_number",
+    "label": "Heat Number",
+    "fieldtype": "Data",
+    "insert_after": "custom_steel_batch_info",
+    "in_list_view": 1,
+    "description": "Heat/Melt number for steel traceability"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Batch",
+    "fieldname": "custom_coil_number",
+    "label": "Coil Number",
+    "fieldtype": "Data",
+    "insert_after": "custom_heat_number",
+    "description": "Coil identification number"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Batch",
+    "fieldname": "custom_column_break_batch",
+    "fieldtype": "Column Break",
+    "insert_after": "custom_coil_number"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Batch",
+    "fieldname": "custom_qa_status",
+    "label": "QA Status",
+    "fieldtype": "Select",
+    "insert_after": "custom_column_break_batch",
+    "options": "Pending\nApproved\nRejected\nOn Hold",
+    "default": "Pending",
+    "in_list_view": 1
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Batch",
+    "fieldname": "custom_mill_certificate_ref",
+    "label": "Mill Certificate Reference",
+    "fieldtype": "Data",
+    "insert_after": "custom_qa_status",
+    "description": "Reference to mill test certificate"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Batch",
+    "fieldname": "custom_block_reason",
+    "label": "Block Reason",
+    "fieldtype": "Small Text",
+    "insert_after": "custom_mill_certificate_ref",
+    "depends_on": "eval:doc.custom_qa_status=='On Hold' || doc.custom_qa_status=='Rejected'"
+  }
+]

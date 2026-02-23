@@ -1,0 +1,87 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_weighbridge_section",
+    "label": "Weighbridge Details",
+    "fieldtype": "Section Break",
+    "insert_after": "supplier_address"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_vehicle_number",
+    "label": "Vehicle Number",
+    "fieldtype": "Data",
+    "insert_after": "custom_weighbridge_section"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_driver_name",
+    "label": "Driver Name",
+    "fieldtype": "Data",
+    "insert_after": "custom_vehicle_number"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_column_break_weighbridge",
+    "fieldtype": "Column Break",
+    "insert_after": "custom_driver_name"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_gross_weight",
+    "label": "Gross Weight (kg)",
+    "fieldtype": "Float",
+    "insert_after": "custom_column_break_weighbridge",
+    "precision": "3"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_tare_weight",
+    "label": "Tare Weight (kg)",
+    "fieldtype": "Float",
+    "insert_after": "custom_gross_weight",
+    "precision": "3"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_net_weight",
+    "label": "Net Weight (kg)",
+    "fieldtype": "Float",
+    "insert_after": "custom_tare_weight",
+    "precision": "3",
+    "read_only": 1
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_weighbridge_slip_no",
+    "label": "Weighbridge Slip No",
+    "fieldtype": "Data",
+    "insert_after": "custom_net_weight"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_weighment_time",
+    "label": "Weighment Time",
+    "fieldtype": "Datetime",
+    "insert_after": "custom_weighbridge_slip_no"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Purchase Receipt",
+    "fieldname": "custom_steel_production_order",
+    "label": "Steel Production Order",
+    "fieldtype": "Link",
+    "insert_after": "custom_weighment_time",
+    "options": "Steel Production Order",
+    "hidden": 1
+  }
+]

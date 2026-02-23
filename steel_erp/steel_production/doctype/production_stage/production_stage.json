@@ -1,0 +1,96 @@
+{
+ "actions": [],
+ "creation": "2026-02-02 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "stage_name",
+  "stage_order",
+  "status",
+  "column_break_1",
+  "started_at",
+  "completed_at",
+  "operator",
+  "section_break_2",
+  "remarks",
+  "material_deducted"
+ ],
+ "fields": [
+  {
+   "fieldname": "stage_name",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Stage Name",
+   "options": "Fabrication\nPainting\nDispatch\nCompleted",
+   "reqd": 1
+  },
+  {
+   "fieldname": "stage_order",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Stage Order",
+   "reqd": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Not Started\nIn Progress\nCompleted\nOn Hold",
+   "default": "Not Started",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "label": "Started At"
+  },
+  {
+   "fieldname": "completed_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Completed At"
+  },
+  {
+   "fieldname": "operator",
+   "fieldtype": "Link",
+   "label": "Operator",
+   "options": "User"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "default": "0",
+   "fieldname": "material_deducted",
+   "fieldtype": "Check",
+   "label": "Material Deducted",
+   "read_only": 1,
+   "description": "Automatically set when Fabrication stage is completed"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-02-02 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Steel Production",
+ "name": "Production Stage",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

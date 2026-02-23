@@ -1,0 +1,87 @@
+# Kumar Brothers Steel ERP - Production Docker Setup
+# Simplified single-container approach for reliability
+
+services:
+  # MariaDB Database
+  mariadb:
+    image: mariadb:10.6
+    container_name: kumar_mariadb
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-kumar_root_2026}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - kumar-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # Redis for caching
+  redis-cache:
+    image: redis:7-alpine
+    container_name: kumar_redis_cache
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-cache-data:/data
+    networks:
+      - kumar-network
+    restart: unless-stopped
+
+  # Redis for queue
+  redis-queue:
+    image: redis:7-alpine
+    container_name: kumar_redis_queue
+    volumes:
+      - redis-queue-data:/data
+    networks:
+      - kumar-network
+    restart: unless-stopped
+
+  # ERPNext All-in-One (Backend + Frontend + Workers)
+  erpnext:
+    image: frappe/erpnext:v15
+    container_name: kumar_erpnext
+    command: ["bash", "-c", "cd /home/frappe/frappe-bench && echo 'Waiting for MariaDB...' && sleep 15 && bench set-config -g db_host mariadb && bench set-config -g redis_cache redis://redis-cache:6379 && bench set-config -g redis_queue redis://redis-queue:6379 && bench set-config -g redis_socketio redis://redis-queue:6379 && if [ ! -f sites/kumar.local/site_config.json ]; then echo 'Creating site kumar.local...' && bench new-site kumar.local --db-root-password kumar_root_2026 --admin-password KumarAdmin@2026 --no-mariadb-socket --install-app erpnext && echo 'Site created successfully!'; else echo 'Site already exists, running migrations...' && bench --site kumar.local migrate; fi && bench use kumar.local && echo 'kumar.local' > sites/currentsite.txt && echo '{\"serve_default_site\": true, \"default_site\": \"kumar.local\"}' > sites/common_site_config.json && bench --site kumar.local enable-scheduler && echo '========================================' && echo 'ERPNext is ready!' && echo 'Access at: http://localhost:8080' && echo 'Login: Administrator / KumarAdmin@2026' && echo '========================================' && bench serve --port 8000"]
+    environment:
+      - FRAPPE_SITE_NAME_HEADER=kumar.local
+    volumes:
+      - sites-data:/home/frappe/frappe-bench/sites
+      - logs-data:/home/frappe/frappe-bench/logs
+    ports:
+      - "8080:8000"
+    networks:
+      - kumar-network
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+    restart: unless-stopped
+
+networks:
+  kumar-network:
+    name: kumar_steel_network
+    driver: bridge
+
+volumes:
+  mariadb-data:
+    name: kumar_mariadb_data
+  redis-cache-data:
+    name: kumar_redis_cache_data
+  redis-queue-data:
+    name: kumar_redis_queue_data
+  sites-data:
+    name: kumar_sites_data
+  logs-data:
+    name: kumar_logs_data

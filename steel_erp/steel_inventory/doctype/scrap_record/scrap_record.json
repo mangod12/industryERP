@@ -1,0 +1,252 @@
+{
+ "actions": [],
+ "autoname": "format:SCR-{YYYY}-{#####}",
+ "creation": "2026-02-02 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "posting_date",
+  "material_item",
+  "item_name",
+  "column_break_1",
+  "weight_kg",
+  "uom",
+  "section_classification",
+  "reason_code",
+  "scrap_type",
+  "column_break_2",
+  "recoverable",
+  "recovery_percentage",
+  "section_source",
+  "source_production_order",
+  "source_warehouse",
+  "column_break_3",
+  "batch_no",
+  "heat_number",
+  "section_details",
+  "description",
+  "remarks",
+  "section_financial",
+  "estimated_loss_value",
+  "recovery_value",
+  "column_break_4",
+  "net_loss_value",
+  "approved_by",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "material_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Material Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "material_item.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "weight_kg",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Weight (kg)",
+   "precision": "3",
+   "reqd": 1
+  },
+  {
+   "default": "Kg",
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "section_classification",
+   "fieldtype": "Section Break",
+   "label": "Classification"
+  },
+  {
+   "fieldname": "reason_code",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Reason Code",
+   "options": "\nCutting Waste\nDefect\nDamage\nOverrun\nLeftover\nQuality Rejection\nHandling Damage\nMachine Error\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scrap_type",
+   "fieldtype": "Select",
+   "label": "Scrap Type",
+   "options": "\nProcess Scrap\nRejection Scrap\nOffcut\nTurnings\nEnd Cuts"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "recoverable",
+   "fieldtype": "Check",
+   "label": "Recoverable"
+  },
+  {
+   "depends_on": "eval:doc.recoverable==1",
+   "fieldname": "recovery_percentage",
+   "fieldtype": "Percent",
+   "label": "Recovery %"
+  },
+  {
+   "fieldname": "section_source",
+   "fieldtype": "Section Break",
+   "label": "Source Information"
+  },
+  {
+   "fieldname": "source_production_order",
+   "fieldtype": "Link",
+   "label": "Source Production Order",
+   "options": "Steel Production Order"
+  },
+  {
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Source Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fetch_from": "batch_no.custom_heat_number",
+   "fieldname": "heat_number",
+   "fieldtype": "Data",
+   "label": "Heat Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_details",
+   "fieldtype": "Section Break",
+   "label": "Additional Details"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "section_financial",
+   "fieldtype": "Section Break",
+   "label": "Financial Impact"
+  },
+  {
+   "fieldname": "estimated_loss_value",
+   "fieldtype": "Currency",
+   "label": "Estimated Loss Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "recovery_value",
+   "fieldtype": "Currency",
+   "label": "Recovery Value"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "net_loss_value",
+   "fieldtype": "Currency",
+   "label": "Net Loss Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Scrap Record",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-02-02 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Steel Inventory",
+ "name": "Scrap Record",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

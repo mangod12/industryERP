@@ -1,0 +1,326 @@
+<?php
+
+namespace App\Http\Controllers\Workflow;
+
+use Illuminate\Support\Str;
+use App\Events\QuoteCreated;
+use App\Models\Admin\Factory;
+use App\Models\Workflow\Orders;
+use App\Models\Workflow\Quotes;
+use App\Traits\NextPreviousTrait;
+use App\Models\Workflow\Deliverys;
+use App\Models\Workflow\OrderLines;
+use App\Services\SelectDataService;
+use App\Http\Controllers\Controller;
+use App\Services\CustomFieldService;
+use Illuminate\Support\Facades\Auth;
+use App\Services\NotificationService;
+use App\Models\Workflow\DeliveryLines;
+use App\Models\Workflow\Opportunities;
+use App\Notifications\QuoteNotification;
+use App\Services\OpportunitiesKPIService;
+use App\Models\Accounting\AccountingDelivery;
+use App\Models\Workflow\OpportunitiesEventsLogs;
+use App\Models\Accounting\AccountingPaymentMethod;
+use App\Models\Workflow\OpportunitiesActivitiesLogs;
+use App\Models\Accounting\AccountingPaymentConditions;
+use App\Http\Requests\Workflow\UpdateOpportunityRequest;
+
+class OpportunitiesController extends Controller
+{ 
+    use NextPreviousTrait;
+    protected $notificationService ;
+    protected $SelectDataService;
+    protected $opportunitiesKPIService;
+    protected $customFieldService;
+
+    public function __construct(
+            NotificationService $notificationService,
+            SelectDataService $SelectDataService, 
+            OpportunitiesKPIService $opportunitiesKPIService,
+            CustomFieldService $customFieldService
+        ){
+        $this->SelectDataService = $SelectDataService;
+        $this->opportunitiesKPIService = $opportunitiesKPIService;
+        $this->customFieldService = $customFieldService;
+        $this->notificationService  = $notificationService ;
+    }
+
+    /**
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function index()
+    {
+        // Using the OpportunitiesKPIService to retrieve KPI data
+        $data['opportunitiesDataRate'] = $this->opportunitiesKPIService->getOpportunitiesDataRate();
+        $recentActivities = $this->opportunitiesKPIService->getRecentActivities();
+        $opportunitiesByAmount = $this->opportunitiesKPIService->getOpportunitiesByAmount();
+        $opportunitiesByCloseDate = $this->opportunitiesKPIService->getOpportunitiesByCloseDate();
+        $opportunitiesByCompany = $this->opportunitiesKPIService->getOpportunitiesByCompany();
+        $opportunitiesCount = $this->opportunitiesKPIService->getOpportunitiesCount();
+        $quotesSummary = $this->opportunitiesKPIService->getQuotesSummary();
+
+        return view('workflow/opportunities-index', array_merge(
+            compact('recentActivities', 'opportunitiesByAmount', 'opportunitiesByCloseDate', 
+                    'opportunitiesByCompany', 'opportunitiesCount'), 
+            $quotesSummary
+        ))->with('data', $data);
+    }
+
+    /**
+     * Load the relations for the given opportunity.
+     *
+     * @param Opportunities $opportunity
+     * @return Opportunities
+     */
+    private function loadOpportunityRelations(Opportunities $opportunity)
+    {
+        return $opportunity->load('lead', 'activities', 'events', 'quotes');
+    }
+
+    /**
+     * Get the activities logs for the given opportunity.
+     *
+     * @param int $opportunityId
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    private function getActivities($opportunityId)
+    {
+        return OpportunitiesActivitiesLogs::where('opportunities_id', $opportunityId)->orderBy('id')->get();
+    }
+
+    /**
+     * Get the events logs for the given opportunity.
+     *
+     * @param int $opportunityId
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    private function getEvents($opportunityId)
+    {
+        return OpportunitiesEventsLogs::where('opportunities_id', $opportunityId)->orderBy('id')->get();
+    }
+
+    /**
+     * Get the first factory record.
+     *
+     * @return Factory
+     */
+    private function getFactory()
+    {
+        return Factory::first();
+    }
+    
+    /**
+     * Organize timeline data for the given opportunity.
+     *
+     * @param Opportunities $opportunity
+     * @param $factory
+     * @return array
+     */
+    private function organizeTimelineData(Opportunities $opportunity, $factory)
+    {
+        $timelineData = [];
+
+        if ($opportunity->lead) {
+            $timelineData[] = [
+                'date' => $opportunity->lead->created_at->format('d M Y'),
+                'icon' => 'fas fa-globe bg-info',
+                'content' => "Lead " . $opportunity->lead->campaign,
+                'details' => $opportunity->lead->GetPrettyCreatedAttribute(),
+            ];
+        }
+
+        // Ajouter les événements s'il y en a
+        foreach ($opportunity->events as $event) {
+
+            if($event->type  == 1) $type = __('general_content.activity_maketing_trans_key') ;
+            if($event->type  == 2) $type = __('general_content.internal_meeting_trans_key') ;
+            if($event->type  == 3) $type = __('general_content.onsite_visite_trans_key') ;
+            if($event->type  == 4) $type = __('general_content.sales_meeting_trans_key') ;
+
+            $timelineData[] = [
+                'date' => $event->created_at->format('d M Y'),
+                'icon' => 'fas fa-calendar-alt  bg-danger',
+                'content' => $event->label ." - " .  $type,
+                'details' => $event->GetPrettyCreatedAttribute(),
+            ];
+        }
+
+        // Ajouter les activités s'il y en a
+        foreach ($opportunity->activities as $activity) {
+            if($activity->type  == 1) $type = __('general_content.activity_maketing_trans_key');
+            if($activity->type  == 2) $type = __('general_content.email_send_trans_key');
+            if($activity->type  == 3) $type = __('general_content.pre_sakes_aactivity_trans_key');
+            if($activity->type  == 4) $type = __('general_content.sales_activity_trans_key');
+            if($activity->type  == 5) $type = __('general_content.sales_telephone_call_trans_key');
+
+            $timelineData[] = [
+                'date' => $activity->created_at->format('d M Y'),
+                'icon' => 'fas fa-comments bg-warning',
+                'content' => $activity->label ." - " .  $type,
+                'details' => $activity->GetPrettyCreatedAttribute(),
+            ];
+        }
+
+        // Ajouter les devis s'il y en a
+        foreach ($opportunity->quotes as $quote) {
+
+            // Ajouter les commandes issues des devis
+            $orders = Orders::where('quotes_id', $quote->id)->get();
+
+            foreach ($orders as $order) {
+
+                // Ajouter les lignes de commande
+                $orderLines = OrderLines::where('orders_id', $order->id)->get();
+
+                // Tableau pour suivre les IDs des livraisons déjà ajoutées à la timeline
+                $addedDeliveries = [];
+
+                foreach ($orderLines as $orderLine) {
+                    
+                    // Ajouter les livraisons associées à la ligne de commande (uniquement si elles n'ont pas déjà été ajoutées)
+                    $deliveryLines = DeliveryLines::where('order_line_id', $orderLine->id)->get();
+
+                    foreach ($deliveryLines as $deliveryLine) {
+                        $deliveryId = $deliveryLine->deliverys_id;
+
+                        if (!in_array($deliveryId, $addedDeliveries)) {
+                            $delivery = Deliverys::find($deliveryId);
+
+                            if ($delivery) {
+                                $timelineData[] = [
+                                    'date' => $delivery->created_at->format('d M Y'),
+                                    'icon' => 'fas fa-truck bg-warning',
+                                    'content' => __('general_content.delivery_notes_trans_key') ." - ".  $delivery->label ,
+                                    'details' => $delivery->GetPrettyCreatedAttribute(),
+                                ];
+
+                                // Ajouter l'ID de la livraison à la liste des livraisons déjà ajoutées
+                                $addedDeliveries[] = $deliveryId;
+                            }
+                        }
+                    }
+                }
+
+                $timelineData[] = [
+                    'date' => $order->created_at->format('d M Y'),
+                    'icon' => 'fas fa-shopping-cart bg-secondary',
+                    'content' => __('general_content.order_trans_key') ." ". $order->label . " - ". __('general_content.total_price_trans_key') ." : ". $order->formatted_total_price ,
+                    'details' => $order->GetPrettyCreatedAttribute(),
+                ];
+            }
+
+            $timelineData[] = [
+                'date' => $quote->created_at->format('d M Y'),
+                'icon' => 'fas fa-calculator  bg-success', 
+                'content' => __('general_content.quote_trans_key') ." ". $quote->label . " - ". __('general_content.total_price_trans_key') ." : ". $quote->formatted_total_price,
+                'details' => $quote->GetPrettyCreatedAttribute(),
+            ];
+        }
+
+        // Ajouter l'opportunité initiale
+        $timelineData[] = [
+            'date' => $opportunity->created_at->format('d M Y'),
+            'icon' => 'fa fa-tags bg-primary',
+            'content' => "Opportunité créée",
+            'details' => $opportunity->GetPrettyCreatedAttribute(),
+        ];
+
+         // Trier le tableau par date
+        usort($timelineData, function ($a, $b) {
+            return strtotime($b['date']) - strtotime($a['date']);
+        });
+
+        return $timelineData;
+    }
+
+    /**
+     * @param $id
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function show(Opportunities $id)
+    {  
+        $CompanieSelect = $this->SelectDataService->getCompanies();
+        $AddressSelect = $this->SelectDataService->getAddress($id->companies_id);
+        $ContactSelect = $this->SelectDataService->getContact($id->companies_id);
+        $Activities = $this->getActivities($id->id);
+        $Events = $this->getEvents($id->id);
+        list($previousUrl, $nextUrl) = $this->getNextPrevious(new Opportunities(), $id->id);
+        $factory = $this->getFactory();
+        $opportunity = $this->loadOpportunityRelations($id);
+        $timelineData = $this->organizeTimelineData($opportunity, $factory);
+
+        return view('workflow/opportunities-show', [
+            'Opportunity' => $id,
+            'CompanieSelect' => $CompanieSelect,
+            'AddressSelect' => $AddressSelect,
+            'ContactSelect' => $ContactSelect,
+            'previousUrl' =>  $previousUrl,
+            'nextUrl' =>  $nextUrl,
+            'ActivitiesList' =>  $Activities,
+            'EventsList' =>  $Events,
+            'timelineData' => $timelineData,
+        ]);
+    }
+
+    /**
+     * @param \App\Http\Requests\Workflow\UpdateOpportunityRequest $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function update(UpdateOpportunityRequest $request)
+    {
+        $opportunity = Opportunities::findOrFail($request->id);
+        $opportunity->update($request->validated());
+
+        return redirect()->route('opportunities.show', ['id' => $opportunity->id])
+                        ->with('success', 'Successfully updated opportunity');
+    }
+
+    /**
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function storeQuote(Opportunities $id)
+    {
+        $lastQuote = Quotes::latest('id')->first();
+        $quoteId = $lastQuote ? $lastQuote->id + 1 : 0;
+        $code = "QT-$quoteId";
+        $label = "QT-$quoteId";
+
+        $defaultSettings = [
+            'payment_conditions' => AccountingPaymentConditions::getDefault(),
+            'payment_methods' => AccountingPaymentMethod::getDefault(),
+            'deliveries' => AccountingDelivery::getDefault()
+        ];
+
+        foreach ($defaultSettings as $key => $setting) {
+            if (is_null($setting)) {
+                return redirect()->route('opportunities.show', ['id' => $id->id])
+                                ->with('error', 'No default settings for ' . str_replace('_', ' ', $key));
+            }
+        }
+
+        $quotesCreated = Quotes::create([
+            'uuid' => Str::uuid(),
+            'code' => $code,
+            'label' => $label,
+            'companies_id' => $id->companies_id,
+            'companies_contacts_id' => $id->companies_contacts_id,
+            'companies_addresses_id' => $id->companies_addresses_id,
+            'user_id' => Auth::id(),
+            'opportunities_id' => $id->id,
+            'accounting_payment_conditions_id' => $defaultSettings['payment_conditions']->id,
+            'accounting_payment_methods_id' => $defaultSettings['payment_methods']->id,
+            'accounting_deliveries_id' => $defaultSettings['deliveries']->id,
+        ]);
+
+        $this->notificationService->sendNotification(QuoteNotification::class, $quotesCreated, 'quotes_notification');
+
+        $id->update(['statu' => 2]);
+
+        event(new QuoteCreated($quotesCreated));
+        return redirect()->route('quotes.show', ['id' => $quotesCreated->id])
+                        ->with('success', 'Successfully created new quote');
+    }
+}
+

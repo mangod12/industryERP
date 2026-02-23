@@ -1,0 +1,281 @@
+{
+ "actions": [],
+ "autoname": "format:RUS-{YYYY}-{#####}",
+ "creation": "2026-02-02 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "material_item",
+  "item_name",
+  "column_break_1",
+  "available_weight",
+  "uom",
+  "section_specifications",
+  "dimensions",
+  "profile_section",
+  "column_break_2",
+  "quality_grade",
+  "material_grade",
+  "section_source",
+  "source_scrap_record",
+  "source_production_order",
+  "column_break_3",
+  "batch_no",
+  "heat_number",
+  "section_storage",
+  "warehouse",
+  "storage_location",
+  "column_break_4",
+  "date_added",
+  "last_modified",
+  "section_usage",
+  "is_allocated",
+  "allocated_to",
+  "column_break_5",
+  "usage_date",
+  "used_weight",
+  "section_additional",
+  "remarks",
+  "photos",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "material_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Material Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "material_item.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "available_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Available Weight (kg)",
+   "precision": "3",
+   "reqd": 1
+  },
+  {
+   "default": "Kg",
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "section_specifications",
+   "fieldtype": "Section Break",
+   "label": "Specifications"
+  },
+  {
+   "fieldname": "dimensions",
+   "fieldtype": "Data",
+   "label": "Dimensions",
+   "description": "e.g., 500mm x 200mm x 10mm"
+  },
+  {
+   "fieldname": "profile_section",
+   "fieldtype": "Data",
+   "label": "Profile/Section"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "quality_grade",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Quality Grade",
+   "options": "\nGrade A - Excellent\nGrade B - Good\nGrade C - Fair\nScrap - Recoverable"
+  },
+  {
+   "fieldname": "material_grade",
+   "fieldtype": "Data",
+   "label": "Material Grade"
+  },
+  {
+   "fieldname": "section_source",
+   "fieldtype": "Section Break",
+   "label": "Source Information"
+  },
+  {
+   "fieldname": "source_scrap_record",
+   "fieldtype": "Link",
+   "label": "Source Scrap Record",
+   "options": "Scrap Record"
+  },
+  {
+   "fieldname": "source_production_order",
+   "fieldtype": "Link",
+   "label": "Source Production Order",
+   "options": "Steel Production Order"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fetch_from": "batch_no.custom_heat_number",
+   "fieldname": "heat_number",
+   "fieldtype": "Data",
+   "label": "Heat Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_storage",
+   "fieldtype": "Section Break",
+   "label": "Storage Location"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "storage_location",
+   "fieldtype": "Data",
+   "label": "Storage Location",
+   "description": "Specific location within warehouse (e.g., Rack A, Bin 5)"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date_added",
+   "fieldtype": "Date",
+   "label": "Date Added"
+  },
+  {
+   "fieldname": "last_modified",
+   "fieldtype": "Datetime",
+   "label": "Last Modified",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_usage",
+   "fieldtype": "Section Break",
+   "label": "Usage Status"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_allocated",
+   "fieldtype": "Check",
+   "label": "Is Allocated"
+  },
+  {
+   "depends_on": "eval:doc.is_allocated==1",
+   "fieldname": "allocated_to",
+   "fieldtype": "Link",
+   "label": "Allocated To",
+   "options": "Steel Production Order"
+  },
+  {
+   "fieldname": "column_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "usage_date",
+   "fieldtype": "Date",
+   "label": "Usage Date"
+  },
+  {
+   "default": "0",
+   "fieldname": "used_weight",
+   "fieldtype": "Float",
+   "label": "Used Weight (kg)",
+   "precision": "3"
+  },
+  {
+   "fieldname": "section_additional",
+   "fieldtype": "Section Break",
+   "label": "Additional Information"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "photos",
+   "fieldtype": "Attach Image",
+   "label": "Photos"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Reusable Stock",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-02-02 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Steel Inventory",
+ "name": "Reusable Stock",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

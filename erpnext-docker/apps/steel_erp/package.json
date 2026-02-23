@@ -1,0 +1,15 @@
+{
+    "name": "steel_erp",
+    "version": "1.0.0",
+    "description": "Kumar Brothers Steel ERP - Steel Fabrication Industry Customization for ERPNext",
+    "author": "Kumar Brothers Steel",
+    "license": "MIT",
+    "app_name": "steel_erp",
+    "app_title": "Steel ERP",
+    "app_publisher": "Kumar Brothers Steel",
+    "app_description": "Complete steel fabrication industry solution including inventory management, tracking, dispatch, and GRN",
+    "app_icon": "octicon octicon-package",
+    "app_color": "#2E86AB",
+    "app_email": "admin@kumarbrothers.com",
+    "app_version": "1.0.0"
+}

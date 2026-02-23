@@ -1,0 +1,71 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_steel_specifications",
+    "label": "Steel Specifications",
+    "fieldtype": "Section Break",
+    "insert_after": "item_name"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_steel_grade",
+    "label": "Steel Grade",
+    "fieldtype": "Data",
+    "insert_after": "custom_steel_specifications",
+    "description": "e.g., IS2062 E250, ASTM A36, EN10025 S275"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_material_type",
+    "label": "Material Type",
+    "fieldtype": "Select",
+    "insert_after": "custom_steel_grade",
+    "options": "\nCOIL\nBILLET\nSLAB\nSHEET\nBAR\nPLATE\nPIPE\nANGLE\nCHANNEL\nBEAM\nHOLLOW_SECTION\nOTHER"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_column_break_steel",
+    "fieldtype": "Column Break",
+    "insert_after": "custom_material_type"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_profile_section",
+    "label": "Profile/Section",
+    "fieldtype": "Data",
+    "insert_after": "custom_column_break_steel",
+    "description": "e.g., UB203X133X25, ISMC250, ISA75X75X6"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_thickness_mm",
+    "label": "Thickness (mm)",
+    "fieldtype": "Float",
+    "insert_after": "custom_profile_section",
+    "precision": "2"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_width_mm",
+    "label": "Width (mm)",
+    "fieldtype": "Float",
+    "insert_after": "custom_thickness_mm",
+    "precision": "2"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Item",
+    "fieldname": "custom_hsn_code",
+    "label": "HSN Code",
+    "fieldtype": "Data",
+    "insert_after": "custom_width_mm",
+    "description": "Harmonized System of Nomenclature code"
+  }
+]
