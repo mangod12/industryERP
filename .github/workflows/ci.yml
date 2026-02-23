@@ -31,9 +31,8 @@ jobs:
         run: |
           if python -c 'import pytest' > /dev/null 2>&1; then
             python -m pytest backend_core/ --tb=short || rc=$?
-            # pytest exit code 5 means "no tests collected"; don't fail CI for that.
             if [ "${rc:-0}" -eq 5 ]; then
-              echo "No tests collected; skipping."
+              echo "No tests collected (exit code 5). Skipping."
               exit 0
             fi
             exit "${rc:-0}"
