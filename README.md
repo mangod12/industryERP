@@ -1,7 +1,29 @@
 # KumarBrothers Steel ERP
 (ONGOING)
 A comprehensive steel fabrication tracking and inventory management system with automatic material deduction, Excel import, and real-time dashboard.
+## 📸 System Screenshots
 
+### Dashboard
+<p align="center">
+  <img src="./dashboard.png" width="100%" />
+</p>
+
+### Raw Materials Inventory
+<p align="center">
+  <img src="./Raw_materials.png" width="100%" />
+</p>
+
+### Customers & Excel Upload
+<p align="center">
+  <img src="./customers_page.png" width="100%" />
+</p>
+
+### Production Tracking Board
+<p align="center">
+  <img src="./production_tracking.png" width="100%" />
+</p>
+
+---
 ---
 
 ## 📋 System Workflow (How It Works)
