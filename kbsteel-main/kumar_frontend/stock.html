@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KumarBrothers | Stock Inventory</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .weight-display { font-family: monospace; }
+    .heat-badge { font-family: monospace; background-color: #6c757d; }
+    .qa-approved { background-color: #198754; }
+    .qa-pending { background-color: #ffc107; color: #000; }
+    .qa-rejected { background-color: #dc3545; }
+    .qa-on_hold { background-color: #0dcaf0; color: #000; }
+    .low-stock { background-color: #fff3cd !important; }
+    .stock-row:hover { background-color: #f8f9fa; }
+    .age-old { color: #dc3545; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
+        <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+        <a class="nav-link text-white ms-3" href="materials.html">Materials</a>
+        <a class="nav-link text-white ms-3" href="stock.html">Stock</a>
+        <a class="nav-link text-white ms-3" href="grn.html">GRN</a>
+        <a class="nav-link text-white ms-3" href="dispatch.html">Dispatch</a>
+        <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+        <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="small-muted">Role:</div>
+      <div id="current-role" class="role-badge">Loading...</div>
+    </div>
+  </nav>
+
+  <div class="container-fluid main-container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Stock Lots</h2>
+        <small class="text-muted">View all stock lots with heat traceability</small>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline-primary" id="btnExportCSV">Export CSV</button>
+        <button class="btn btn-outline-secondary" id="btnPrintReport">Print</button>
+      </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-4 border-primary">
+          <small class="text-muted">Total Stock (MT)</small>
+          <h4 id="statTotalStock" class="weight-display">0.000</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-4 border-success">
+          <small class="text-muted">Approved Stock (MT)</small>
+          <h4 id="statApprovedStock" class="weight-display">0.000</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-4 border-warning">
+          <small class="text-muted">Pending QA</small>
+          <h4 id="statPendingQA">0 lots</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 border-start border-4 border-danger">
+          <small class="text-muted">Low Stock Items</small>
+          <h4 id="statLowStock">0</h4>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-2">
+            <input type="text" class="form-control" id="filterLotNumber" placeholder="Lot Number...">
+          </div>
+          <div class="col-md-2">
+            <input type="text" class="form-control" id="filterHeatNumber" placeholder="Heat Number...">
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="filterMaterial">
+              <option value="">All Materials</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="filterQAStatus">
+              <option value="">All QA Status</option>
+              <option value="approved">Approved</option>
+              <option value="pending">Pending</option>
+              <option value="rejected">Rejected</option>
+              <option value="on_hold">On Hold</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select" id="filterLocation">
+              <option value="">All Locations</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" id="btnClearFilters">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Table -->
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Lot Number</th>
+                <th>Material</th>
+                <th>Heat No.</th>
+                <th>Received</th>
+                <th>Net Weight</th>
+                <th>Current Weight</th>
+                <th>QA Status</th>
+                <th>Location</th>
+                <th>Age</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody">
+              <tr>
+                <td colspan="10" class="text-center py-4 text-muted">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="text-muted small">
+        Showing <span id="showingCount">0</span> lots
+      </div>
+      <nav>
+        <ul class="pagination pagination-sm mb-0" id="pagination"></ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Stock Detail Modal -->
+  <div class="modal fade" id="stockDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Stock Lot Details - <span id="detailLotNumber"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Lot Header -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <table class="table table-sm">
+                <tr><th>Material:</th><td id="detailMaterial">-</td></tr>
+                <tr><th>Heat Number:</th><td id="detailHeatNumber">-</td></tr>
+                <tr><th>Batch Number:</th><td id="detailBatchNumber">-</td></tr>
+                <tr><th>Vendor:</th><td id="detailVendor">-</td></tr>
+                <tr><th>GRN:</th><td id="detailGRN">-</td></tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-sm">
+                <tr><th>Received Date:</th><td id="detailReceivedDate">-</td></tr>
+                <tr><th>Location:</th><td id="detailLocation">-</td></tr>
+                <tr><th>QA Status:</th><td id="detailQAStatus">-</td></tr>
+                <tr><th>Test Certificate:</th><td id="detailTestCert">-</td></tr>
+                <tr><th>Age:</th><td id="detailAge">-</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Weight Details -->
+          <div class="card mb-4">
+            <div class="card-header">Weight Details</div>
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col-md-3">
+                  <small class="text-muted">Gross Weight</small>
+                  <div class="weight-display fs-5" id="detailGrossWeight">0.000 MT</div>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted">Tare Weight</small>
+                  <div class="weight-display fs-5" id="detailTareWeight">0.000 MT</div>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted">Net Weight</small>
+                  <div class="weight-display fs-5" id="detailNetWeight">0.000 MT</div>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted">Current Weight</small>
+                  <div class="weight-display fs-5 fw-bold text-primary" id="detailCurrentWeight">0.000 MT</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Movement History -->
+          <div class="card">
+            <div class="card-header">Movement History</div>
+            <div class="card-body p-0">
+              <table class="table table-sm mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Weight (KG)</th>
+                    <th>Reference</th>
+                    <th>By</th>
+                  </tr>
+                </thead>
+                <tbody id="movementHistory">
+                  <tr><td colspan="5" class="text-center text-muted">No movements recorded</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-warning" id="btnHoldStock" data-permission="qa:hold">Hold Stock</button>
+          <button type="button" class="btn btn-success" id="btnReleaseStock" data-permission="qa:approve">Release</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+    let currentPage = 0;
+    const pageSize = 50;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadMaterials();
+      await loadStock();
+      setupEventListeners();
+    });
+
+    async function loadMaterials() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/materials`);
+        if (res.ok) {
+          const materials = await res.json();
+          const select = document.getElementById('filterMaterial');
+          materials.forEach(m => {
+            select.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+          });
+        }
+      } catch (e) { console.error('Failed to load materials:', e); }
+    }
+
+    async function loadStock() {
+      const tbody = document.getElementById('stockTableBody');
+      try {
+        let url = `${API_BASE}/api/v2/inventory/stock?limit=${pageSize}&offset=${currentPage * pageSize}`;
+        
+        const materialId = document.getElementById('filterMaterial').value;
+        const qaStatus = document.getElementById('filterQAStatus').value;
+        const heatNumber = document.getElementById('filterHeatNumber').value;
+        
+        if (materialId) url += `&material_id=${materialId}`;
+        if (qaStatus) url += `&qa_status=${qaStatus}`;
+        if (heatNumber) url += `&heat_number=${encodeURIComponent(heatNumber)}`;
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to load stock');
+        const lots = await res.json();
+        
+        if (lots.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-muted">No stock lots found</td></tr>';
+          updateStats([]);
+          return;
+        }
+
+        tbody.innerHTML = lots.map(lot => `
+          <tr class="stock-row ${lot.is_low_stock ? 'low-stock' : ''}">
+            <td><a href="#" class="lot-link" data-id="${lot.id}">${lot.lot_number}</a></td>
+            <td>${lot.material_name || lot.material_code || '-'}</td>
+            <td><span class="badge heat-badge">${lot.heat_number || '-'}</span></td>
+            <td>${new Date(lot.received_date).toLocaleDateString()}</td>
+            <td class="weight-display">${lot.net_weight_kg.toFixed(3)} KG</td>
+            <td class="weight-display fw-bold">${lot.current_weight_kg.toFixed(3)} KG</td>
+            <td><span class="badge qa-${lot.qa_status}">${lot.qa_status}</span></td>
+            <td>${lot.location_code || '-'}</td>
+            <td class="${lot.age_days > 90 ? 'age-old' : ''}">${lot.age_days}d</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary view-lot" data-id="${lot.id}">View</button>
+            </td>
+          </tr>
+        `).join('');
+
+        document.getElementById('showingCount').textContent = lots.length;
+        updateStats(lots);
+
+      } catch (e) {
+        console.error('Error loading stock:', e);
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4 text-danger">Error loading stock</td></tr>';
+      }
+    }
+
+    function updateStats(lots) {
+      const totalWeight = lots.reduce((sum, l) => sum + l.current_weight_kg, 0);
+      const approvedWeight = lots.filter(l => l.qa_status === 'approved').reduce((sum, l) => sum + l.current_weight_kg, 0);
+      const pendingCount = lots.filter(l => l.qa_status === 'pending').length;
+      const lowStockCount = lots.filter(l => l.is_low_stock).length;
+
+      document.getElementById('statTotalStock').textContent = (totalWeight / 1000).toFixed(3);
+      document.getElementById('statApprovedStock').textContent = (approvedWeight / 1000).toFixed(3);
+      document.getElementById('statPendingQA').textContent = `${pendingCount} lots`;
+      document.getElementById('statLowStock').textContent = lowStockCount;
+    }
+
+    function setupEventListeners() {
+      // Filter handlers
+      document.getElementById('filterMaterial').addEventListener('change', loadStock);
+      document.getElementById('filterQAStatus').addEventListener('change', loadStock);
+      document.getElementById('filterHeatNumber').addEventListener('input', debounce(loadStock, 300));
+      document.getElementById('btnClearFilters').addEventListener('click', () => {
+        document.getElementById('filterLotNumber').value = '';
+        document.getElementById('filterHeatNumber').value = '';
+        document.getElementById('filterMaterial').value = '';
+        document.getElementById('filterQAStatus').value = '';
+        document.getElementById('filterLocation').value = '';
+        loadStock();
+      });
+
+      // View lot detail
+      document.getElementById('stockTableBody').addEventListener('click', (e) => {
+        if (e.target.classList.contains('view-lot') || e.target.classList.contains('lot-link')) {
+          e.preventDefault();
+          const id = e.target.dataset.id;
+          showLotDetail(id);
+        }
+      });
+
+      // Export CSV
+      document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+    }
+
+    async function showLotDetail(id) {
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/stock/${id}`);
+        if (!res.ok) throw new Error('Failed to load lot');
+        const lot = await res.json();
+
+        document.getElementById('detailLotNumber').textContent = lot.lot_number;
+        document.getElementById('detailMaterial').textContent = lot.material_name || '-';
+        document.getElementById('detailHeatNumber').textContent = lot.heat_number || '-';
+        document.getElementById('detailBatchNumber').textContent = lot.batch_number || '-';
+        document.getElementById('detailReceivedDate').textContent = new Date(lot.received_date).toLocaleDateString();
+        document.getElementById('detailLocation').textContent = lot.location_code || '-';
+        document.getElementById('detailQAStatus').innerHTML = `<span class="badge qa-${lot.qa_status}">${lot.qa_status}</span>`;
+        document.getElementById('detailAge').textContent = `${lot.age_days} days`;
+
+        document.getElementById('detailGrossWeight').textContent = `${(lot.gross_weight_kg / 1000).toFixed(3)} MT`;
+        document.getElementById('detailTareWeight').textContent = `${(lot.tare_weight_kg / 1000).toFixed(3)} MT`;
+        document.getElementById('detailNetWeight').textContent = `${(lot.net_weight_kg / 1000).toFixed(3)} MT`;
+        document.getElementById('detailCurrentWeight').textContent = `${(lot.current_weight_kg / 1000).toFixed(3)} MT`;
+
+        new bootstrap.Modal(document.getElementById('stockDetailModal')).show();
+      } catch (e) {
+        console.error('Error loading lot detail:', e);
+      }
+    }
+
+    function exportCSV() {
+      // TODO: Implement CSV export
+      alert('CSV export coming soon');
+    }
+
+    function debounce(fn, delay) {
+      let timer;
+      return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+  </script>
+</body>
+</html>

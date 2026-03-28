@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KumarBrothers | Materials Master</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    .material-card { transition: all 0.2s; }
+    .material-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .spec-badge { font-family: monospace; font-size: 0.8rem; }
+    .low-stock { background-color: #fff3cd; }
+  </style>
+</head>
+<body>
+  <!-- NAVBAR -->
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
+        <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+        <a class="nav-link text-white ms-3" href="materials.html">Materials</a>
+        <a class="nav-link text-white ms-3" href="stock.html">Stock</a>
+        <a class="nav-link text-white ms-3" href="grn.html">GRN</a>
+        <a class="nav-link text-white ms-3" href="dispatch.html">Dispatch</a>
+        <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+        <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="small-muted">Role:</div>
+      <div id="current-role" class="role-badge">Loading...</div>
+    </div>
+  </nav>
+
+  <div class="container-fluid main-container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Materials Master</h2>
+        <small class="text-muted">Manage material catalog for steel inventory</small>
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newMaterialModal" data-permission="inventory:create">
+        + Add Material
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <input type="text" class="form-control" id="filterSearch" placeholder="Search by code or name...">
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="filterType">
+              <option value="">All Types</option>
+              <option value="coil">Coil</option>
+              <option value="sheet">Sheet</option>
+              <option value="plate">Plate</option>
+              <option value="bar">Bar</option>
+              <option value="pipe">Pipe</option>
+              <option value="angle">Angle</option>
+              <option value="channel">Channel</option>
+              <option value="beam">Beam</option>
+              <option value="billet">Billet</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" id="filterCategory">
+              <option value="">All Categories</option>
+              <option value="raw">Raw Material</option>
+              <option value="semi-finished">Semi-Finished</option>
+              <option value="finished">Finished Goods</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" id="btnClearFilters">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Materials Grid -->
+    <div class="row g-3" id="materialsGrid">
+      <div class="col-12 text-center py-5 text-muted">Loading materials...</div>
+    </div>
+  </div>
+
+  <!-- New Material Modal -->
+  <div class="modal fade" id="newMaterialModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Material</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="newMaterialForm">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Material Code *</label>
+                <input type="text" class="form-control" id="matCode" required placeholder="e.g., STL-HR-2.5">
+              </div>
+              <div class="col-md-8">
+                <label class="form-label">Name *</label>
+                <input type="text" class="form-control" id="matName" required placeholder="e.g., HR Steel Coil 2.5mm">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Type *</label>
+                <select class="form-select" id="matType" required>
+                  <option value="">Select Type</option>
+                  <option value="coil">Coil</option>
+                  <option value="sheet">Sheet</option>
+                  <option value="plate">Plate</option>
+                  <option value="bar">Bar</option>
+                  <option value="pipe">Pipe</option>
+                  <option value="angle">Angle</option>
+                  <option value="channel">Channel</option>
+                  <option value="beam">Beam</option>
+                  <option value="billet">Billet</option>
+                  <option value="slab">Slab</option>
+                  <option value="scrap">Scrap</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Grade</label>
+                <input type="text" class="form-control" id="matGrade" placeholder="e.g., IS 2062 E250">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="matCategory">
+                  <option value="">Select Category</option>
+                  <option value="raw">Raw Material</option>
+                  <option value="semi-finished">Semi-Finished</option>
+                  <option value="finished">Finished Goods</option>
+                </select>
+              </div>
+              
+              <div class="col-12"><hr><h6>Dimensions (Optional)</h6></div>
+              <div class="col-md-3">
+                <label class="form-label">Thickness (mm)</label>
+                <input type="number" step="0.001" class="form-control" id="matThickness">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Width (mm)</label>
+                <input type="number" step="0.01" class="form-control" id="matWidth">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Length (mm)</label>
+                <input type="number" step="0.01" class="form-control" id="matLength">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Diameter (mm)</label>
+                <input type="number" step="0.01" class="form-control" id="matDiameter">
+              </div>
+
+              <div class="col-12"><hr><h6>Inventory Settings</h6></div>
+              <div class="col-md-4">
+                <label class="form-label">Default Unit</label>
+                <select class="form-select" id="matUnit">
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="ton">Metric Ton (MT)</option>
+                  <option value="pcs">Pieces</option>
+                  <option value="m">Meters</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Reorder Level</label>
+                <input type="number" step="0.001" class="form-control" id="matReorderLevel" value="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">HSN Code</label>
+                <input type="text" class="form-control" id="matHSN" placeholder="For GST">
+              </div>
+              
+              <div class="col-12">
+                <label class="form-label">Specification / Notes</label>
+                <textarea class="form-control" id="matSpec" rows="2" placeholder="Technical specifications..."></textarea>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnSaveMaterial">Save Material</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadMaterials();
+      setupEventListeners();
+    });
+
+    async function loadMaterials() {
+      const grid = document.getElementById('materialsGrid');
+      try {
+        let url = `${API_BASE}/api/v2/inventory/materials`;
+        const params = new URLSearchParams();
+        
+        const type = document.getElementById('filterType').value;
+        const search = document.getElementById('filterSearch').value;
+        
+        if (type) params.append('material_type', type);
+        if (search) params.append('search', search);
+        
+        if (params.toString()) url += '?' + params.toString();
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to load materials');
+        const materials = await res.json();
+        
+        if (materials.length === 0) {
+          grid.innerHTML = '<div class="col-12 text-center py-5 text-muted">No materials found. Add your first material!</div>';
+          return;
+        }
+
+        grid.innerHTML = materials.map(m => `
+          <div class="col-md-4">
+            <div class="card material-card h-100">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <span class="badge bg-secondary">${m.code}</span>
+                  <span class="badge bg-${m.is_active ? 'success' : 'danger'}">${m.is_active ? 'Active' : 'Inactive'}</span>
+                </div>
+                <h6 class="card-title">${m.name}</h6>
+                <div class="mb-2">
+                  <span class="badge bg-primary">${m.material_type}</span>
+                  ${m.grade ? `<span class="badge bg-info spec-badge">${m.grade}</span>` : ''}
+                </div>
+                <div class="small text-muted">
+                  ${m.thickness_mm ? `<div>Thickness: ${m.thickness_mm}mm</div>` : ''}
+                  ${m.width_mm ? `<div>Width: ${m.width_mm}mm</div>` : ''}
+                  <div>Unit: ${m.default_unit}</div>
+                  <div>Reorder Level: ${m.reorder_level.toLocaleString()}</div>
+                </div>
+              </div>
+              <div class="card-footer bg-transparent">
+                <button class="btn btn-sm btn-outline-primary edit-material" data-id="${m.id}">Edit</button>
+                <button class="btn btn-sm btn-outline-danger toggle-active" data-id="${m.id}" data-active="${m.is_active}">
+                  ${m.is_active ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+      } catch (e) {
+        console.error('Error loading materials:', e);
+        grid.innerHTML = '<div class="col-12 text-center py-5 text-danger">Error loading materials</div>';
+      }
+    }
+
+    function setupEventListeners() {
+      // Save material
+      document.getElementById('btnSaveMaterial').addEventListener('click', async () => {
+        const code = document.getElementById('matCode').value.trim();
+        const name = document.getElementById('matName').value.trim();
+        const type = document.getElementById('matType').value;
+
+        if (!code || !name || !type) {
+          alert('Please fill required fields');
+          return;
+        }
+
+        const payload = {
+          code,
+          name,
+          material_type: type,
+          grade: document.getElementById('matGrade').value || null,
+          category: document.getElementById('matCategory').value || null,
+          thickness_mm: document.getElementById('matThickness').value ? parseFloat(document.getElementById('matThickness').value) : null,
+          width_mm: document.getElementById('matWidth').value ? parseFloat(document.getElementById('matWidth').value) : null,
+          length_mm: document.getElementById('matLength').value ? parseFloat(document.getElementById('matLength').value) : null,
+          diameter_mm: document.getElementById('matDiameter').value ? parseFloat(document.getElementById('matDiameter').value) : null,
+          default_unit: document.getElementById('matUnit').value,
+          reorder_level: parseFloat(document.getElementById('matReorderLevel').value) || 0,
+          hsn_code: document.getElementById('matHSN').value || null,
+          specification: document.getElementById('matSpec').value || null
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/v2/inventory/materials`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (res.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('newMaterialModal')).hide();
+            document.getElementById('newMaterialForm').reset();
+            loadMaterials();
+          }
+        } catch (e) {
+          console.error('Error saving material:', e);
+        }
+      });
+
+      // Filter handlers
+      document.getElementById('filterSearch').addEventListener('input', debounce(loadMaterials, 300));
+      document.getElementById('filterType').addEventListener('change', loadMaterials);
+      document.getElementById('btnClearFilters').addEventListener('click', () => {
+        document.getElementById('filterSearch').value = '';
+        document.getElementById('filterType').value = '';
+        document.getElementById('filterCategory').value = '';
+        loadMaterials();
+      });
+    }
+
+    function debounce(fn, delay) {
+      let timer;
+      return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+  </script>
+</body>
+</html>

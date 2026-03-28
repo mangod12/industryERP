@@ -1,0 +1,303 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:SPO-{customer}-{#####}",
+ "creation": "2026-02-02 10:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "customer",
+  "customer_name",
+  "column_break_basic",
+  "posting_date",
+  "expected_delivery_date",
+  "section_item_details",
+  "item_code",
+  "item_name",
+  "column_break_item",
+  "drawing_number",
+  "assembly_mark",
+  "section_specifications",
+  "profile_section",
+  "material_grade",
+  "column_break_spec",
+  "quantity",
+  "weight_per_unit",
+  "total_weight",
+  "section_material_requirements",
+  "material_requirements",
+  "section_production_stages",
+  "production_stages",
+  "section_additional",
+  "priority",
+  "paint_specification",
+  "column_break_additional",
+  "lot_number",
+  "remarks",
+  "section_status",
+  "status",
+  "current_stage",
+  "column_break_status",
+  "overall_completion",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_basic",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "expected_delivery_date",
+   "fieldtype": "Date",
+   "label": "Expected Delivery Date"
+  },
+  {
+   "fieldname": "section_item_details",
+   "fieldtype": "Section Break",
+   "label": "Item Details"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_item",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "drawing_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Drawing Number"
+  },
+  {
+   "fieldname": "assembly_mark",
+   "fieldtype": "Data",
+   "label": "Assembly Mark"
+  },
+  {
+   "fieldname": "section_specifications",
+   "fieldtype": "Section Break",
+   "label": "Specifications"
+  },
+  {
+   "fieldname": "profile_section",
+   "fieldtype": "Data",
+   "label": "Profile/Section",
+   "description": "e.g., UB203X133X25, ISMC250"
+  },
+  {
+   "fieldname": "material_grade",
+   "fieldtype": "Data",
+   "label": "Material Grade",
+   "description": "e.g., IS2062 E250, ASTM A36"
+  },
+  {
+   "fieldname": "column_break_spec",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity",
+   "reqd": 1,
+   "default": 1
+  },
+  {
+   "fieldname": "weight_per_unit",
+   "fieldtype": "Float",
+   "label": "Weight Per Unit (kg)",
+   "precision": "3"
+  },
+  {
+   "fieldname": "total_weight",
+   "fieldtype": "Float",
+   "label": "Total Weight (kg)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_material_requirements",
+   "fieldtype": "Section Break",
+   "label": "Material Requirements"
+  },
+  {
+   "fieldname": "material_requirements",
+   "fieldtype": "Table",
+   "label": "Material Requirements",
+   "options": "Production Material Requirement"
+  },
+  {
+   "fieldname": "section_production_stages",
+   "fieldtype": "Section Break",
+   "label": "Production Stages"
+  },
+  {
+   "fieldname": "production_stages",
+   "fieldtype": "Table",
+   "label": "Production Stages",
+   "options": "Production Stage",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_additional",
+   "fieldtype": "Section Break",
+   "label": "Additional Information"
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "\nLow\nMedium\nHigh\nUrgent",
+   "default": "Medium"
+  },
+  {
+   "fieldname": "paint_specification",
+   "fieldtype": "Small Text",
+   "label": "Paint Specification"
+  },
+  {
+   "fieldname": "column_break_additional",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lot_number",
+   "fieldtype": "Data",
+   "label": "Lot Number"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nIn Progress\nCompleted\nCancelled\nOn Hold",
+   "default": "Draft",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_stage",
+   "fieldtype": "Data",
+   "label": "Current Stage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "overall_completion",
+   "fieldtype": "Percent",
+   "label": "Overall Completion %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Steel Production Order",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-02-02 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Steel Production",
+ "name": "Steel Production Order",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Manufacturing User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "track_seen": 1,
+ "track_views": 1
+}

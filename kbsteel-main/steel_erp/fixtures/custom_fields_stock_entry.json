@@ -1,0 +1,29 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Stock Entry",
+    "fieldname": "custom_steel_reference",
+    "label": "Steel Reference",
+    "fieldtype": "Section Break",
+    "insert_after": "from_bom",
+    "collapsible": 1
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Stock Entry",
+    "fieldname": "custom_steel_production_order",
+    "label": "Steel Production Order",
+    "fieldtype": "Link",
+    "insert_after": "custom_steel_reference",
+    "options": "Steel Production Order"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Stock Entry",
+    "fieldname": "custom_scrap_record",
+    "label": "Scrap Record",
+    "fieldtype": "Link",
+    "insert_after": "custom_steel_production_order",
+    "options": "Scrap Record"
+  }
+]

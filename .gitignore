@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 
 # Virtual environment
 .venv/
@@ -32,9 +33,11 @@ pip-delete-this-directory.txt
 # Pytest cache
 .pytest_cache/
 
-# local env files
+# Environment variables
 .env
 .env.*
+.env.local
+.env.production
 
 # SQLite database
 *.sqlite3
@@ -48,9 +51,18 @@ backend_core/data/
 temp_*.py
 check_*.py
 
-# Old project folders
-kbsteel-main/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Node
+node_modules/

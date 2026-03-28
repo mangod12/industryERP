@@ -1,0 +1,91 @@
+<?php
+
+namespace App\Http\Controllers\Quality;
+
+use Illuminate\Support\Facades\DB;
+use App\Services\SelectDataService;
+use App\Services\DocumentCodeGenerator;
+use App\Models\Quality\QualityDerogation;
+use App\Http\Requests\Quality\StoreQualityDerogationRequest;
+use App\Http\Requests\Quality\UpdateQualityDerogationRequest;
+
+class QualityDerogationController extends Controller
+{
+    
+    protected $SelectDataService;
+    protected $documentCodeGenerator;
+
+    public function __construct(SelectDataService $SelectDataService,
+                                DocumentCodeGenerator $documentCodeGenerator)
+    {
+        $this->SelectDataService = $SelectDataService;
+        $this->documentCodeGenerator = $documentCodeGenerator;
+    }
+    
+    /**
+     * @return \Illuminate\Contracts\View\View
+     */
+    public function index()
+    {
+
+        $userSelect = $this->SelectDataService->getUsers();
+        $NonConformitysSelect = $this->SelectDataService->getQualityNonConformity();
+        $QualityDerogations = QualityDerogation::orderBy('id')->paginate(10);
+        $LastDerogation = QualityDerogation::orderBy('id', 'desc')->first();
+        $codeDerogation = $LastDerogation ? $LastDerogation->id : 0;
+        $codeDerogation = $this->documentCodeGenerator->generateDocumentCode('derogation', $codeDerogation);
+
+        return view('quality/quality-derogations', [
+            'codeDerogation' =>  $codeDerogation,
+            'QualityDerogations' => $QualityDerogations,
+            'NonConformitysSelect' =>  $NonConformitysSelect,
+            'userSelect' => $userSelect,
+        ]);
+    }
+    
+    /**
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function store(StoreQualityDerogationRequest $request)
+    {
+        $Derogation =  QualityDerogation::create($request->only('code',
+                                                                'label', 
+                                                                'statu',
+                                                                'user_id',
+                                                                'pb_descp',  
+                                                                'proposal', 
+                                                                'reply', 
+                                                                'quality_non_conformitie_id',  
+                                                                'decision'));
+
+        if($request->type) $Derogation->type=1;
+        else $Derogation->type = 2;
+        $Derogation->save();
+
+        return redirect()->route('quality.derogation')->with('success', 'Successfully created derogation.');
+    }
+
+    /**
+    * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function update(UpdateQualityDerogationRequest $request)
+    {
+        $QualityDerogation = QualityDerogation::find($request->id);
+        $QualityDerogation->label=$request->label;
+        $QualityDerogation->statu=$request->statu;
+
+        if($request->type_update) $QualityDerogation->type=1;
+        else $QualityDerogation->type = 2;
+
+        $QualityDerogation->user_id=$request->user_id;
+        $QualityDerogation->pb_descp=$request->pb_descp;
+        $QualityDerogation->proposal=$request->proposal;
+        $QualityDerogation->reply=$request->reply;
+        $QualityDerogation->quality_non_conformitie_id=$request->quality_non_conformitie_id;
+        $QualityDerogation->decision=$request->decision;
+        $QualityDerogation->save();
+        return redirect()->route('quality.derogation')->with('success', 'Successfully updated derogation.');
+    }
+}

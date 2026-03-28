@@ -1,0 +1,77 @@
+[
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_dispatch_weighbridge",
+    "label": "Dispatch Weighbridge Details",
+    "fieldtype": "Section Break",
+    "insert_after": "customer_address"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_vehicle_number",
+    "label": "Vehicle Number",
+    "fieldtype": "Data",
+    "insert_after": "custom_dispatch_weighbridge"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_driver_name",
+    "label": "Driver Name",
+    "fieldtype": "Data",
+    "insert_after": "custom_vehicle_number"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_column_break_dispatch",
+    "fieldtype": "Column Break",
+    "insert_after": "custom_driver_name"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_gross_weight",
+    "label": "Gross Weight (kg)",
+    "fieldtype": "Float",
+    "insert_after": "custom_column_break_dispatch",
+    "precision": "3"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_tare_weight",
+    "label": "Tare Weight (kg)",
+    "fieldtype": "Float",
+    "insert_after": "custom_gross_weight",
+    "precision": "3"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_net_weight",
+    "label": "Net Weight (kg)",
+    "fieldtype": "Float",
+    "insert_after": "custom_tare_weight",
+    "precision": "3",
+    "read_only": 1
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_weighbridge_slip_no",
+    "label": "Weighbridge Slip No",
+    "fieldtype": "Data",
+    "insert_after": "custom_net_weight"
+  },
+  {
+    "doctype": "Custom Field",
+    "dt": "Delivery Note",
+    "fieldname": "custom_weighment_time",
+    "label": "Weighment Time",
+    "fieldtype": "Datetime",
+    "insert_after": "custom_weighbridge_slip_no"
+  }
+]
