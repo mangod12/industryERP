@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -7,6 +8,9 @@ import json
 
 from . import models, schemas
 from .deps import get_db, require_role, get_current_user
+from .services.deduction_service import DeductionService, InsufficientStockError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tracking", tags=["tracking"])
 
@@ -20,105 +24,35 @@ def _capitalize_stage(s: str) -> str:
 def _deduct_materials_for_fabrication(item: models.ProductionItem, db: Session, user_id: int) -> dict:
     """
     Automatically deduct raw materials from inventory when fabrication is completed.
-    This only happens ONCE per item (tracked via fabrication_deducted flag).
-    
+    Delegates to DeductionService for race-condition-safe, atomic deduction.
+
     Returns:
         dict with deduction details: {success: bool, deducted: [], skipped_reason: str}
     """
-    result = {"success": False, "deducted": [], "skipped_reason": None, "warnings": []}
-    
-    if item.fabrication_deducted:
-        result["skipped_reason"] = "Already deducted"
-        return result
-    
-    # Parse material requirements from JSON (set during Excel import)
-    material_reqs = []
-    if item.material_requirements:
-        try:
-            material_reqs = json.loads(item.material_requirements)
-        except json.JSONDecodeError:
-            result["warnings"].append("Invalid material_requirements JSON")
-    
-    # If no specific material requirements, try to auto-calculate based on item properties
-    if not material_reqs and item.section:
-        # Try to find matching inventory item by section/name
-        inv_item = db.query(models.Inventory).filter(
-            or_(
-                models.Inventory.name.ilike(f"%{item.section}%"),
-                models.Inventory.section.ilike(f"%{item.section}%") if hasattr(models.Inventory, 'section') else False
-            )
-        ).first()
-        
-        if inv_item:
-            # Calculate qty based on weight and quantity
-            qty = (item.quantity or 1) * (item.weight_per_unit or 0)
-            if qty > 0:
-                material_reqs = [{"material_id": inv_item.id, "qty": qty, "inventory_name": inv_item.name}]
-        else:
-            result["warnings"].append(f"No inventory match for section '{item.section}'")
-    
-    if not material_reqs:
-        result["skipped_reason"] = "No material requirements set and no auto-match found"
-        # Create notification for admin
-        notification = models.Notification(
-            role="Boss",
-            message=f"⚠️ Item '{item.item_name}' (Code: {item.item_code}) completed Fabrication but has no material link. No auto-deduction performed.",
-            level="warning"
+    try:
+        svc_result = DeductionService.deduct_materials_for_item(
+            db=db,
+            production_item_id=item.id,
+            user_id=user_id,
+            trigger="fabrication_complete",
         )
-        db.add(notification)
-        # Still mark as deducted to prevent retry
-        item.fabrication_deducted = True
-        db.add(item)
-        return result
-    
-    # Deduct materials from inventory
-    for req in material_reqs:
-        material_id = req.get("material_id")
-        qty = req.get("qty", 0)
-        
-        if material_id and qty > 0:
-            inv_item = db.query(models.Inventory).filter(models.Inventory.id == material_id).first()
-            if inv_item:
-                # Check if enough stock
-                available = (inv_item.total or 0) - (inv_item.used or 0)
-                if available < qty:
-                    result["warnings"].append(f"Low stock warning: {inv_item.name} needs {qty:.2f}, only {available:.2f} available")
-                    # Create low stock notification
-                    notification = models.Notification(
-                        role="Boss",
-                        message=f"⚠️ Low Stock Alert: '{inv_item.name}' - needed {qty:.2f} for item '{item.item_name}', only {available:.2f} available",
-                        level="warning"
-                    )
-                    db.add(notification)
-                
-                # Perform deduction (even if going negative - admin can adjust)
-                inv_item.used = (inv_item.used or 0) + qty
-                db.add(inv_item)
-                
-                # Log the material usage
-                usage = models.MaterialUsage(
-                    customer_id=item.customer_id,
-                    production_item_id=item.id,
-                    name=inv_item.name,
-                    qty=qty,
-                    unit=inv_item.unit,
-                    by=f"Auto-deducted on fabrication completion (user: {user_id})"
-                )
-                db.add(usage)
-                
-                result["deducted"].append({
-                    "material": inv_item.name,
-                    "qty": qty,
-                    "unit": inv_item.unit
-                })
-    
-    # Mark as deducted
-    item.fabrication_deducted = True
-    item.material_deducted = True  # Also set the alias flag
-    db.add(item)
-    
-    result["success"] = len(result["deducted"]) > 0
-    return result
+        return {
+            "success": svc_result.success,
+            "deducted": [
+                {"material": d.material_name, "qty": d.qty, "unit": d.unit}
+                for d in svc_result.deductions
+            ],
+            "skipped_reason": svc_result.skipped_reason,
+            "warnings": svc_result.warnings,
+        }
+    except InsufficientStockError as e:
+        logger.warning("Deduction failed for item %s: %s", item.item_code, e)
+        return {
+            "success": False,
+            "deducted": [],
+            "skipped_reason": str(e),
+            "warnings": [str(e)],
+        }
 
 
 @router.post("/start-stage", response_model=schemas.StageStatusOut)
@@ -485,7 +419,20 @@ def update_customer_stage_compat(customer_id: int, payload: dict, db: Session = 
                 db.commit()
                 db.refresh(row)
                 results.append(_serialize_stage(row))
-        except Exception:
+                # Add deduction for fabrication stage
+                if stage == 'fabrication':
+                    try:
+                        from .services.deduction_service import DeductionService
+                        DeductionService.deduct_materials_for_item(
+                            db=db,
+                            production_item_id=item.id,
+                            user_id=current_user.id,
+                            trigger="bulk_stage_complete",
+                        )
+                    except Exception as e:
+                        logger.warning("Bulk deduction failed for item %s: %s", item.id, e)
+        except Exception as e:
+            logger.error("Failed to update stage for item %s: %s", item.id, e)
             continue
     return {"updated": len(results), "details": [r.dict() for r in results]}
 
@@ -706,6 +653,24 @@ def get_dashboard_summary(
         else:
             fab_count += 1  # In fabrication by default
     
+    # BOM Assembly aggregation
+    try:
+        from .models_bom import Assembly, AssemblyStageTracking
+        bom_assemblies = db.query(Assembly).all()
+        bom_stage_data = db.query(AssemblyStageTracking).all()
+
+        bom_fab_pieces = sum(s.completed_pieces for s in bom_stage_data if s.stage == "fabrication")
+        bom_fab_total = sum(s.total_pieces for s in bom_stage_data if s.stage == "fabrication")
+        bom_paint_pieces = sum(s.completed_pieces for s in bom_stage_data if s.stage == "painting")
+        bom_paint_total = sum(s.total_pieces for s in bom_stage_data if s.stage == "painting")
+        bom_dispatch_pieces = sum(s.completed_pieces for s in bom_stage_data if s.stage == "dispatch")
+        bom_dispatch_total = sum(s.total_pieces for s in bom_stage_data if s.stage == "dispatch")
+    except Exception:
+        bom_assemblies = []
+        bom_fab_pieces = bom_fab_total = 0
+        bom_paint_pieces = bom_paint_total = 0
+        bom_dispatch_pieces = bom_dispatch_total = 0
+
     # Recent activity (last 10 stage changes)
     recent_stages = db.query(models.StageTracking).order_by(
         models.StageTracking.completed_at.desc().nullsfirst(),
@@ -763,7 +728,15 @@ def get_dashboard_summary(
                 "unit": item.unit
             }
             for item in inventory_items
-        ]
+        ],
+        "bom_summary": {
+            "total_assemblies": len(bom_assemblies),
+            "quantity_progress": {
+                "fabrication": {"total_pieces": bom_fab_total, "completed_pieces": bom_fab_pieces},
+                "painting": {"total_pieces": bom_paint_total, "completed_pieces": bom_paint_pieces},
+                "dispatch": {"total_pieces": bom_dispatch_total, "completed_pieces": bom_dispatch_pieces},
+            }
+        }
     }
 
 
@@ -831,8 +804,8 @@ def get_all_tracking_items(
         if item.checklist:
             try:
                 checklist = json.loads(item.checklist)
-            except:
-                pass
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("Invalid checklist JSON for item %s", item.id)
         
         result.append({
             "id": item.id,

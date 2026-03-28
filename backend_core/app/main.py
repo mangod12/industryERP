@@ -19,6 +19,7 @@ from .scrap import router as scrap_router
 from .routers.inventory_v2 import router as inventory_v2_router
 from .routers.grn import router as grn_router
 from .routers.dispatch import router as dispatch_router
+from .routers.bom import router as bom_router
 
 
 def get_cors_origins():
@@ -69,16 +70,22 @@ def create_app() -> FastAPI:
     app.include_router(inventory_v2_router)
     app.include_router(grn_router)
     app.include_router(dispatch_router)
+    app.include_router(bom_router)
 
     @app.on_event("startup")
     def on_startup():
-        print("[backend_core] Creating database tables at startup...")
-        create_db_and_tables()
-        # Also create v2 tables
-        from .models_v2 import Base as BaseV2
-        from .db import engine
-        BaseV2.metadata.create_all(bind=engine)
-        print("[backend_core] Database ready (v1 + v2 tables).")
+        env = os.getenv("ENVIRONMENT", "development")
+        if env != "production":
+            print("[backend_core] Creating database tables at startup (non-production)...")
+            create_db_and_tables()
+            # Also create v2 + BOM tables
+            from .db import engine
+            from . import models_v2, models_bom  # noqa: F401 — ensure models registered
+            from .db import Base as _Base
+            _Base.metadata.create_all(bind=engine)
+            print("[backend_core] Database ready (v1 + v2 + BOM tables).")
+        else:
+            print("[backend_core] Production mode — use 'alembic upgrade head' for migrations.")
 
     return app
 

@@ -133,7 +133,11 @@
         const data = await res.json();
         if(!res.ok){
           const detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
-          statusEl.innerHTML = `<div class='text-danger mt-2'>${detail || 'Login failed'}</div>`;
+          statusEl.textContent = '';
+          const errDiv = document.createElement('div');
+          errDiv.className = 'text-danger mt-2';
+          errDiv.textContent = detail || 'Login failed';
+          statusEl.appendChild(errDiv);
           return;
         }
         
@@ -145,10 +149,18 @@
           localStorage.setItem('kb_role', data.role || 'User');
         }
         
-        statusEl.innerHTML = `<div class='text-success mt-2'>Login successful! Redirecting...</div>`;
+        statusEl.textContent = '';
+        const successDiv = document.createElement('div');
+        successDiv.className = 'text-success mt-2';
+        successDiv.textContent = 'Login successful! Redirecting...';
+        statusEl.appendChild(successDiv);
         setTimeout(() => { window.location.href = 'index.html'; }, 500);
       }catch(err){
-        statusEl.innerHTML = `<div class='text-danger mt-2'>Login error: ${err.message}</div>`;
+        statusEl.textContent = '';
+        const catchDiv = document.createElement('div');
+        catchDiv.className = 'text-danger mt-2';
+        catchDiv.textContent = 'Login error: ' + err.message;
+        statusEl.appendChild(catchDiv);
       }
     });
   </script>

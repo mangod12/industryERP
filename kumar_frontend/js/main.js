@@ -44,12 +44,18 @@
     const toastEl = document.createElement('div');
     toastEl.className = `toast align-items-center text-bg-${type} border-0`;
     toastEl.setAttribute('role','alert');
-    toastEl.innerHTML = `
-      <div class="d-flex">
-        <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    `;
+    const flexDiv = document.createElement('div');
+    flexDiv.className = 'd-flex';
+    const bodyDiv = document.createElement('div');
+    bodyDiv.className = 'toast-body';
+    bodyDiv.textContent = message;
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn-close btn-close-white me-2 m-auto';
+    closeBtn.setAttribute('data-bs-dismiss', 'toast');
+    flexDiv.appendChild(bodyDiv);
+    flexDiv.appendChild(closeBtn);
+    toastEl.appendChild(flexDiv);
     container.appendChild(toastEl);
     try{
       const toast = new bootstrap.Toast(toastEl, { delay: 3000 });

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BOM - KBSteel ERP</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="css/main.css" rel="stylesheet" />
+</head>
+<body>
+  <div id="navbar-container"></div>
+
+  <div class="container-fluid mt-3">
+    <div class="row">
+      <!-- Left Panel: Assembly List -->
+      <div class="col-lg-4 col-md-5">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Assemblies</h5>
+            <button class="btn btn-sm btn-primary" data-role="Boss,Software Supervisor" onclick="showCreateModal()">
+              <i class="bi bi-plus"></i> New
+            </button>
+          </div>
+          <div class="card-body p-2">
+            <div class="row g-2 mb-2">
+              <div class="col-8">
+                <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search assemblies..." />
+              </div>
+              <div class="col-4">
+                <select class="form-select form-select-sm" id="customerFilter">
+                  <option value="">All Customers</option>
+                </select>
+              </div>
+            </div>
+            <div id="assemblyList" class="list-group list-group-flush" style="max-height:70vh;overflow-y:auto;">
+              <div class="text-center py-4 text-muted">Loading...</div>
+            </div>
+          </div>
+          <div class="card-footer text-center">
+            <div class="btn-group btn-group-sm">
+              <a href="#" class="btn btn-outline-secondary" onclick="downloadTemplate('csv')">
+                <i class="bi bi-download"></i> CSV Template
+              </a>
+              <label class="btn btn-outline-primary mb-0">
+                <i class="bi bi-upload"></i> Import CSV
+                <input type="file" class="d-none" accept=".csv" onchange="importCSV(this)" />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Assembly Detail -->
+      <div class="col-lg-8 col-md-7">
+        <div id="assemblyDetail" class="card">
+          <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-diagram-3 fs-1"></i>
+            <p class="mt-2">Select an assembly to view details</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Assembly Modal -->
+  <div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create Assembly</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form onsubmit="createAssembly(event)">
+          <div class="modal-body">
+            <div class="mb-2">
+              <label class="form-label">Customer</label>
+              <select class="form-select" id="createCustomerId" required></select>
+            </div>
+            <div class="row mb-2">
+              <div class="col-6">
+                <label class="form-label">Assembly Code</label>
+                <input type="text" class="form-control" id="createCode" required placeholder="HR110" />
+              </div>
+              <div class="col-6">
+                <label class="form-label">Lot Number</label>
+                <input type="text" class="form-control" id="createLot" placeholder="LOT-03" />
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">Assembly Name</label>
+              <input type="text" class="form-control" id="createName" required placeholder="Handrail Type A" />
+            </div>
+            <div class="row mb-2">
+              <div class="col-6">
+                <label class="form-label">Drawing Number</label>
+                <input type="text" class="form-control" id="createDrawing" />
+              </div>
+              <div class="col-6">
+                <label class="form-label">Ordered Qty</label>
+                <input type="number" class="form-control" id="createQty" value="1" min="1" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/modules/escapeHtml.js"></script>
+  <script src="js/modules/navbar.js"></script>
+  <script src="js/modules/debounce.js"></script>
+  <script src="js/modules/ui-components.js"></script>
+  <script src="js/modules/store.js"></script>
+  <script src="js/modules/error-handler.js"></script>
+  <script>
+    // Auth guard
+    if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
+
+    // Render navbar
+    KBNavbar.render('navbar-container', 'bom');
+    KBUI.initRoleBasedUI();
+
+    let selectedAssemblyId = null;
+
+    // Load customers for filter + create modal
+    async function loadCustomers() {
+      try {
+        const res = await KBApi.get('/customers');
+        if (!res.ok) return;
+        const customers = await res.json();
+        const filterSel = document.getElementById('customerFilter');
+        const createSel = document.getElementById('createCustomerId');
+        customers.forEach(function(c) {
+          var esc = window.escapeHtml || function(s){return s;};
+          filterSel.innerHTML += '<option value="' + c.id + '">' + esc(c.name) + '</option>';
+          createSel.innerHTML += '<option value="' + c.id + '">' + esc(c.name) + '</option>';
+        });
+      } catch(e) { KBError.handle(e, 'loadCustomers'); }
+    }
+
+    // Load assembly list
+    async function loadAssemblies() {
+      const params = {};
+      const cid = document.getElementById('customerFilter').value;
+      const search = document.getElementById('searchInput').value;
+      if (cid) params.customer_id = cid;
+      if (search) params.search = search;
+
+      try {
+        const res = await KBApi.get('/api/v2/bom/assemblies', params);
+        if (!res.ok) throw new Error('Failed to load assemblies');
+        const assemblies = await res.json();
+        renderAssemblyList(assemblies);
+      } catch(e) { KBError.handle(e, 'loadAssemblies'); }
+    }
+
+    function renderAssemblyList(assemblies) {
+      var esc = window.escapeHtml || function(s){return s;};
+      const container = document.getElementById('assemblyList');
+      if (!assemblies.length) {
+        container.innerHTML = KBComponents.emptyState('No assemblies found');
+        return;
+      }
+      container.innerHTML = assemblies.map(function(a) {
+        var active = a.id === selectedAssemblyId ? ' active' : '';
+        var weight = a.estimated_weight_kg ? parseFloat(a.estimated_weight_kg).toFixed(1) + ' kg' : '-';
+        return '<a href="#" class="list-group-item list-group-item-action' + active + '" onclick="selectAssembly(' + a.id + ')">' +
+          '<div class="d-flex justify-content-between">' +
+            '<strong>' + esc(a.assembly_code) + '</strong>' +
+            '<span class="badge bg-' + stageColor(a.current_stage) + '">' + esc(a.current_stage) + '</span>' +
+          '</div>' +
+          '<small class="text-muted">' + esc(a.assembly_name) + '</small>' +
+          (a.lot_number ? '<br><small class="text-info">' + esc(a.lot_number) + '</small>' : '') +
+          '<br><small>' + weight + ' | Qty: ' + a.ordered_qty + '</small>' +
+        '</a>';
+      }).join('');
+    }
+
+    function stageColor(stage) {
+      var map = {fabrication:'warning', painting:'info', dispatch:'primary', completed:'success'};
+      return map[stage] || 'secondary';
+    }
+
+    // Load assembly detail
+    async function selectAssembly(id) {
+      selectedAssemblyId = id;
+      loadAssemblies(); // Refresh active state
+
+      try {
+        const res = await KBApi.get('/api/v2/bom/assemblies/' + id);
+        if (!res.ok) throw new Error('Failed to load assembly');
+        const assembly = await res.json();
+
+        // Also load progress
+        const progRes = await KBApi.get('/api/v2/bom/assemblies/' + id + '/progress');
+        const progress = progRes.ok ? await progRes.json() : null;
+
+        renderAssemblyDetail(assembly, progress);
+      } catch(e) { KBError.handle(e, 'selectAssembly'); }
+    }
+
+    function renderAssemblyDetail(a, progress) {
+      var esc = window.escapeHtml || function(s){return s;};
+      var detail = document.getElementById('assemblyDetail');
+
+      // Stage progress bars
+      var progressHtml = '';
+      if (progress && progress.stages) {
+        progressHtml = '<div class="mb-3">' + progress.stages.map(function(s) {
+          return KBComponents.progressBar({
+            label: s.stage.charAt(0).toUpperCase() + s.stage.slice(1) + ' (' + s.completed_pieces + '/' + s.total_pieces + ')',
+            percentage: s.percentage,
+            color: stageColor(s.stage)
+          });
+        }).join('') + '</div>';
+      }
+
+      // Parts table
+      var partsHtml = '<table class="table table-sm table-hover">' +
+        '<thead><tr><th>Mark</th><th>Part Name</th><th>Section</th><th>Qty</th><th>Done</th><th>Weight</th></tr></thead><tbody>';
+      if (a.parts && a.parts.length) {
+        partsHtml += a.parts.map(function(p) {
+          var pct = p.total_qty > 0 ? Math.round(p.completed_qty / p.total_qty * 100) : 0;
+          return '<tr>' +
+            '<td><strong>' + esc(p.mark_number) + '</strong></td>' +
+            '<td>' + esc(p.part_name) + '</td>' +
+            '<td>' + esc(p.section || '-') + '</td>' +
+            '<td>' + p.total_qty + '</td>' +
+            '<td><span class="badge bg-' + (pct >= 100 ? 'success' : pct > 0 ? 'warning' : 'secondary') + '">' +
+              p.completed_qty + '/' + p.total_qty + '</span></td>' +
+            '<td>' + (p.weight_per_unit_kg ? parseFloat(p.weight_per_unit_kg).toFixed(2) : '-') + '</td>' +
+          '</tr>';
+        }).join('');
+      } else {
+        partsHtml += '<tr><td colspan="6" class="text-center text-muted">No parts added yet</td></tr>';
+      }
+      partsHtml += '</tbody></table>';
+
+      detail.innerHTML =
+        '<div class="card-header d-flex justify-content-between align-items-center">' +
+          '<div>' +
+            '<h5 class="mb-0">' + esc(a.assembly_code) + ' — ' + esc(a.assembly_name) + '</h5>' +
+            '<small class="text-muted">' +
+              (a.drawing_number ? 'Dwg: ' + esc(a.drawing_number) + ' | ' : '') +
+              (a.lot_number ? 'Lot: ' + esc(a.lot_number) + ' | ' : '') +
+              'Qty: ' + a.ordered_qty +
+              (a.estimated_weight_kg ? ' | ' + parseFloat(a.estimated_weight_kg).toFixed(1) + ' kg' : '') +
+            '</small>' +
+          '</div>' +
+          '<span class="badge bg-' + stageColor(a.current_stage) + ' fs-6">' + esc(a.current_stage) + '</span>' +
+        '</div>' +
+        '<div class="card-body">' +
+          progressHtml +
+          '<h6>Parts <span class="badge bg-secondary">' + (a.parts ? a.parts.length : 0) + '</span></h6>' +
+          partsHtml +
+        '</div>';
+    }
+
+    // Create assembly
+    async function createAssembly(e) {
+      e.preventDefault();
+      var data = {
+        customer_id: parseInt(document.getElementById('createCustomerId').value),
+        assembly_code: document.getElementById('createCode').value.trim(),
+        assembly_name: document.getElementById('createName').value.trim(),
+        drawing_number: document.getElementById('createDrawing').value.trim() || null,
+        lot_number: document.getElementById('createLot').value.trim() || null,
+        ordered_qty: parseInt(document.getElementById('createQty').value) || 1,
+      };
+      try {
+        var res = await KBApi.post('/api/v2/bom/assemblies', data);
+        if (!res.ok) { var err = await res.json(); throw new Error(err.detail); }
+        bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+        showToast('Assembly created', 'success');
+        loadAssemblies();
+      } catch(e) { KBError.handle(e, 'createAssembly'); }
+    }
+
+    function showCreateModal() {
+      new bootstrap.Modal(document.getElementById('createModal')).show();
+    }
+
+    // CSV import
+    async function importCSV(input) {
+      var file = input.files[0];
+      if (!file) return;
+      var cid = document.getElementById('customerFilter').value;
+      if (!cid) {
+        showToast('Select a customer filter first', 'warning');
+        input.value = '';
+        return;
+      }
+      var formData = new FormData();
+      formData.append('file', file);
+      try {
+        var res = await KBApi.upload('/api/v2/bom/import-csv/' + cid, formData);
+        if (!res.ok) { var err = await res.json(); throw new Error(err.detail); }
+        var result = await res.json();
+        showToast('Imported: ' + result.assemblies_created + ' assemblies, ' + result.parts_created + ' parts', 'success');
+        loadAssemblies();
+      } catch(e) { KBError.handle(e, 'importCSV'); }
+      input.value = '';
+    }
+
+    function downloadTemplate(type) {
+      window.open(KBConfig.API_BASE + '/api/v2/bom/templates/' + type, '_blank');
+    }
+
+    // Debounced search
+    document.getElementById('searchInput').addEventListener('input', debounce(loadAssemblies, 300));
+    document.getElementById('customerFilter').addEventListener('change', loadAssemblies);
+
+    // Init
+    loadCustomers();
+    loadAssemblies();
+  </script>
+</body>
+</html>

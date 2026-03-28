@@ -1,10 +1,19 @@
+"""
+Tracking API v2 — Checklist toggle and stage advance endpoints.
+
+Material deduction is delegated to DeductionService (no inline FIFO logic).
+"""
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from . import models, schemas
 from .deps import get_db, require_role
+from .services.deduction_service import DeductionService, InsufficientStockError
 from datetime import datetime
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/tracking", tags=["tracking_api"])
 
@@ -76,44 +85,20 @@ def update_tracking_item(item_id: int, payload: TrackingUpdateIn, db: Session = 
             st.is_checked = True
             db.add(st)
             try:
-                # Only attempt deduction for fabrication stage and if not already deducted on the item
                 if cur_stage == 'fabrication' and not getattr(item, 'material_deducted', False):
-                    # Begin nested transaction (savepoint) to allow safe rollback on partial failure
-                    with db.begin_nested():
-                        mu_rows = db.query(models.MaterialUsage).filter(models.MaterialUsage.production_item_id == item.id, models.MaterialUsage.applied == False).all()
-                        for mu in mu_rows:
-                            needed = float(mu.qty or 0)
-                            # FIFO: consume from oldest inventory rows first
-                            inv_rows = db.query(models.Inventory).filter(models.Inventory.name == mu.name).order_by(models.Inventory.created_at.asc(), models.Inventory.id.asc()).all()
-                            if not inv_rows:
-                                raise HTTPException(status_code=400, detail=f"Raw material '{mu.name}' not found in inventory; cannot check item")
-                            for inv in inv_rows:
-                                available = (inv.total or 0) - (inv.used or 0)
-                                if available <= 0:
-                                    continue
-                                take = min(available, needed)
-                                inv.used = (inv.used or 0) + float(take)
-                                # record consumption for audit
-                                cons = models.MaterialConsumption(material_usage_id=mu.id, inventory_id=inv.id, qty=float(take))
-                                db.add(inv)
-                                db.add(cons)
-                                needed -= take
-                                if needed <= 1e-9:
-                                    break
-                            if needed > 1e-9:
-                                raise HTTPException(status_code=400, detail=f"Insufficient stock for material '{mu.name}' (need {mu.qty}, available less)")
-                            mu.applied = True
-                            db.add(mu)
-                        # mark item as material deducted
-                        item.material_deducted = True
-                        db.add(item)
-                # commit transaction happens on context exit
+                    DeductionService.deduct_materials_fifo(
+                        db=db,
+                        production_item_id=item.id,
+                        user_id=current_user.id,
+                        trigger="checklist_complete",
+                    )
+            except InsufficientStockError as e:
+                raise HTTPException(status_code=400, detail=str(e))
             except HTTPException:
-                # Let HTTPExceptions bubble up unchanged
                 raise
             except Exception as e:
+                logger.error("Deduction failed on checklist for item %s: %s", item_id, e)
                 raise HTTPException(status_code=500, detail=f"Failed to apply material deductions on checklist: {e}")
-            # persist changes from nested transaction and staged updates
             db.commit()
         elif st.is_checked and not payload.is_checked:
             # allow un-checking at any time before completion
@@ -127,7 +112,6 @@ def update_tracking_item(item_id: int, payload: TrackingUpdateIn, db: Session = 
         # must be the next stage
         next_allowed = STAGE_FLOW.get(cur_stage)
         if next_allowed is None:
-            # already at final
             raise HTTPException(status_code=400, detail="Item is already at final stage")
         if requested != next_allowed:
             raise HTTPException(status_code=400, detail=f"Stage update must advance to '{next_allowed}'")
@@ -136,38 +120,21 @@ def update_tracking_item(item_id: int, payload: TrackingUpdateIn, db: Session = 
         if not st or not getattr(st, 'is_checked', False):
             raise HTTPException(status_code=400, detail="Checklist must be completed before advancing stage")
 
-        # perform material deduction if moving from fabrication -> painting (ensure only once)
+        # Delegate deduction to DeductionService (fabrication → painting only)
         try:
             if cur_stage == 'fabrication' and not getattr(item, 'material_deducted', False):
-                # Perform FIFO deduction across inventory rows for each pending MaterialUsage
-                with db.begin_nested():
-                    mu_rows = db.query(models.MaterialUsage).filter(models.MaterialUsage.production_item_id == item.id, models.MaterialUsage.applied == False).all()
-                    for mu in mu_rows:
-                        needed = float(mu.qty or 0)
-                        inv_rows = db.query(models.Inventory).filter(models.Inventory.name == mu.name).order_by(models.Inventory.created_at.asc(), models.Inventory.id.asc()).all()
-                        if not inv_rows:
-                            raise HTTPException(status_code=400, detail=f"Raw material '{mu.name}' not found in inventory; cannot advance")
-                        for inv in inv_rows:
-                            available = (inv.total or 0) - (inv.used or 0)
-                            if available <= 0:
-                                continue
-                            take = min(available, needed)
-                            inv.used = (inv.used or 0) + float(take)
-                            cons = models.MaterialConsumption(material_usage_id=mu.id, inventory_id=inv.id, qty=float(take))
-                            db.add(inv)
-                            db.add(cons)
-                            needed -= take
-                            if needed <= 1e-9:
-                                break
-                        if needed > 1e-9:
-                            raise HTTPException(status_code=400, detail=f"Insufficient stock for material '{mu.name}' (need {mu.qty}, available less)")
-                        mu.applied = True
-                        db.add(mu)
-                    item.material_deducted = True
-                    db.add(item)
+                DeductionService.deduct_materials_fifo(
+                    db=db,
+                    production_item_id=item.id,
+                    user_id=current_user.id,
+                    trigger="stage_advance_fabrication_to_painting",
+                )
+        except InsufficientStockError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         except HTTPException:
             raise
         except Exception as e:
+            logger.error("Deduction failed on stage advance for item %s: %s", item_id, e)
             raise HTTPException(status_code=500, detail=f"Failed to apply material deductions: {e}")
 
         # create/complete stage tracking rows and move item
@@ -188,12 +155,12 @@ def update_tracking_item(item_id: int, payload: TrackingUpdateIn, db: Session = 
         item.stage_updated_at = now
         item.stage_updated_by = current_user.id
         db.add(item)
-        # history
+        # history — log properly instead of silently swallowing errors
         try:
             hist = models.TrackingStageHistory(material_id=item.id, from_stage=cur_stage, to_stage=requested, changed_by=current_user.id, changed_at=now, remarks=None)
             db.add(hist)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("Failed to create stage history for item %s: %s", item_id, e)
         db.commit()
 
     # return updated item

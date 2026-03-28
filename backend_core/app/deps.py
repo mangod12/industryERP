@@ -1,3 +1,4 @@
+# CANONICAL get_db — all routers should import from here, not from security.py
 """
 Dependencies Module - Re-exports security functions for backward compatibility.
 The actual implementations are in security.py

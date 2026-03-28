@@ -130,26 +130,11 @@
 
   <!-- Auth JS -->
   <script>
-    // Dev helper: open /register.html?dev=1 to set a temporary dev token and Boss role
-    (function(){
-      try{
-        const params = new URLSearchParams(window.location.search);
-        if(params.get('dev') === '1'){
-          localStorage.setItem('kb_token', 'dev-token');
-          localStorage.setItem('kb_role', 'Boss');
-          // remove query param from URL without reloading
-          const clean = window.location.protocol + '//' + window.location.host + window.location.pathname;
-          history.replaceState({}, document.title, clean);
-        }
-      }catch(e){ /* ignore */ }
-    })();
-
     // Protect this page client-side: only Boss or Software Supervisor allowed
     (function(){
-      const role = localStorage.getItem('kb_role');
-      const token = localStorage.getItem('kb_token');
-      if(!token) return window.location.href = 'login.html';
-      if(!role || (role !== 'Boss' && role !== 'Software Supervisor')) return window.location.href = 'index.html';
+      if (!KBAuth.isAuthenticated()) return window.location.href = 'login.html';
+      var role = KBAuth.getRole();
+      if (role !== 'Boss' && role !== 'Software Supervisor') return window.location.href = 'index.html';
     })();
 
     document.getElementById("registerForm").addEventListener("submit", async function(e) {
@@ -175,10 +160,18 @@
         });
         const data = await res.json();
         if(!res.ok){
-          statusEl.innerHTML = `<div class='text-danger mt-2'>${data.detail || 'Registration failed'}</div>`;
+          statusEl.textContent = '';
+          const errDiv = document.createElement('div');
+          errDiv.className = 'text-danger mt-2';
+          errDiv.textContent = (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) || 'Registration failed';
+          statusEl.appendChild(errDiv);
           return;
         }
-        statusEl.innerHTML = `<div class='text-success mt-2'>User created successfully</div>`;
+        statusEl.textContent = '';
+        const successDiv = document.createElement('div');
+        successDiv.className = 'text-success mt-2';
+        successDiv.textContent = 'User created successfully';
+        statusEl.appendChild(successDiv);
         // If we set a development token earlier, clean it up so we don't leave a stray dev credential
         if(localStorage.getItem('kb_token') === 'dev-token'){
           localStorage.removeItem('kb_token');
@@ -186,7 +179,11 @@
         }
         setTimeout(()=> window.location.href = 'index.html', 900);
       }catch(err){
-        statusEl.innerHTML = `<div class='text-danger mt-2'>Error: ${err.message}</div>`;
+        statusEl.textContent = '';
+        const catchDiv = document.createElement('div');
+        catchDiv.className = 'text-danger mt-2';
+        catchDiv.textContent = 'Error: ' + err.message;
+        statusEl.appendChild(catchDiv);
       }
     });
   </script>

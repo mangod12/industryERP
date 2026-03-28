@@ -17,23 +17,7 @@
     </style>
   </head>
   <body>
-    <nav class="kb-navbar d-flex align-items-center justify-content-between">
-      <div class="d-flex align-items-center gap-3">
-        <div class="navbar-brand">KumarBrothers</div>
-          <div class="d-none d-lg-flex">
-          <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
-          <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
-          <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
-          <a class="nav-link text-white ms-3" href="queries.html">Queries</a>
-          <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
-          <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
-        </div>
-      </div>
-      <div class="d-flex align-items-center gap-3">
-        <div class="small-muted">Role:</div>
-        <div id="current-role" class="role-badge">Loading...</div>
-      </div>
-    </nav>
+    <div id="navbar-container"></div>
 
     <div class="container-fluid main-container">
       <!-- Page Header -->
@@ -281,8 +265,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/modules/escapeHtml.js"></script>
+    <script src="js/modules/navbar.js"></script>
+    <script src="js/modules/debounce.js"></script>
+    <script src="js/modules/store.js"></script>
+    <script src="js/modules/error-handler.js"></script>
+    <script src="js/modules/ui-components.js"></script>
+    <script src="js/modules/pagination.js"></script>
     <script>
       (function(){
+        if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
+        KBNavbar.render('navbar-container', 'tracking');
+
         const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
         const apiBase = `${API_BASE}/tracking/all-items`;
         const btn = document.getElementById('applyTrackingBtn');
@@ -390,8 +384,6 @@
           if(st.includes('pend')) return `<span class="badge bg-secondary stage-badge">Pending</span>`;
           return `<span class="badge bg-secondary stage-badge">${escapeHtml(s)}</span>`;
         }
-
-        function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
 
         // Edit Modal Functions
         window.openEditModal = async function(itemId) {

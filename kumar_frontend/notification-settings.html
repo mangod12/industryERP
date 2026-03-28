@@ -57,7 +57,9 @@
   </div>
 
   <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
   <script>
+    if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
     const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
     function showToast(msg, type='info'){
       const el = document.createElement('div'); el.className = `toast align-items-center text-bg-${type} border-0`; el.role='alert'; el.ariaLive='assertive'; el.ariaAtomic='true';

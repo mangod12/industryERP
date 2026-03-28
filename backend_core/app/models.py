@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float, CheckConstraint
 from sqlalchemy.orm import relationship
 from .db import Base
 
@@ -24,7 +24,9 @@ class Customer(Base):
     email = Column(String, nullable=True, index=True)
     phone = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     production_items = relationship("ProductionItem", back_populates="customer")
 
 
@@ -53,7 +55,14 @@ class ProductionItem(Base):
     fabrication_deducted = Column(Boolean, default=False)
     # Also use material_deducted as an alias for FIFO deduction tracking
     material_deducted = Column(Boolean, default=False)
+    # BOM link: nullable FK to assemblies table (backward compat bridge)
+    assembly_id = Column(Integer, ForeignKey("assemblies.id"), nullable=True)
+    # Per-piece completion tracking
+    completed_qty = Column(Integer, nullable=True, default=0)
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     customer = relationship("Customer", back_populates="production_items")
     stages = relationship("StageTracking", back_populates="production_item")
 
@@ -107,6 +116,9 @@ class MaterialUsage(Base):
 
 class Inventory(Base):
     __tablename__ = "inventory"
+    __table_args__ = (
+        CheckConstraint('used <= total', name='ck_inventory_used_lte_total'),
+    )
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     unit = Column(String, nullable=True)
@@ -116,7 +128,10 @@ class Inventory(Base):
     code = Column(String, nullable=True)
     section = Column(String, nullable=True)
     category = Column(String, nullable=True)
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Notification(Base):
@@ -200,8 +215,10 @@ class ScrapRecord(Base):
     notes = Column(Text, nullable=True)
     status = Column(String, default="pending")  # pending, returned_to_inventory, disposed, recycled, sold
     scrap_value = Column(Float, nullable=True)  # Sale value if sold
+    return_movement_id = Column(Integer, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class ReusableStock(Base):
@@ -222,4 +239,12 @@ class ReusableStock(Base):
     used_in_item_id = Column(Integer, ForeignKey("production_items.id"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+def active_only(query, model):
+    """Filter query to exclude soft-deleted records."""
+    if hasattr(model, 'is_deleted'):
+        query = query.filter(model.is_deleted == False)
+    return query
 

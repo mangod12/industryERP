@@ -261,12 +261,18 @@ class Permission:
     SETTINGS_VIEW = "settings:view"
     SETTINGS_UPDATE = "settings:update"
 
+    # BOM permissions
+    BOM_VIEW = "bom:view"
+    BOM_CREATE = "bom:create"
+    BOM_UPDATE = "bom:update"
+    BOM_DELETE = "bom:delete"
+
 
 # Role definitions with their permissions
 ROLE_PERMISSIONS: dict[str, Set[str]] = {
     "Boss": {
         # Full access
-        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE, 
+        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE,
         Permission.INVENTORY_UPDATE, Permission.INVENTORY_DELETE,
         Permission.INVENTORY_ADJUST,
         Permission.GRN_VIEW, Permission.GRN_CREATE, Permission.GRN_APPROVE,
@@ -277,10 +283,11 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.USER_VIEW, Permission.USER_CREATE, Permission.USER_UPDATE, Permission.USER_DELETE,
         Permission.REPORT_VIEW, Permission.REPORT_EXPORT,
         Permission.SETTINGS_VIEW, Permission.SETTINGS_UPDATE,
+        Permission.BOM_VIEW, Permission.BOM_CREATE, Permission.BOM_UPDATE, Permission.BOM_DELETE,
     },
     
     "Software Supervisor": {
-        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE, 
+        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE,
         Permission.INVENTORY_UPDATE, Permission.INVENTORY_ADJUST,
         Permission.GRN_VIEW, Permission.GRN_CREATE, Permission.GRN_APPROVE,
         Permission.DISPATCH_VIEW, Permission.DISPATCH_CREATE, Permission.DISPATCH_APPROVE,
@@ -288,6 +295,7 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.PRODUCTION_VIEW, Permission.PRODUCTION_UPDATE, Permission.PRODUCTION_CONSUME,
         Permission.REPORT_VIEW, Permission.REPORT_EXPORT,
         Permission.SETTINGS_VIEW,
+        Permission.BOM_VIEW, Permission.BOM_CREATE, Permission.BOM_UPDATE,
     },
     
     "Store Keeper": {
@@ -296,6 +304,7 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.DISPATCH_VIEW, Permission.DISPATCH_CREATE,
         Permission.PRODUCTION_VIEW, Permission.PRODUCTION_CONSUME,
         Permission.REPORT_VIEW,
+        Permission.BOM_VIEW,
     },
     
     "QA Inspector": {
@@ -304,6 +313,7 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.QA_VIEW, Permission.QA_INSPECT, Permission.QA_APPROVE,
         Permission.QA_REJECT, Permission.QA_HOLD,
         Permission.REPORT_VIEW,
+        Permission.BOM_VIEW,
     },
     
     "Dispatch Operator": {
@@ -311,6 +321,7 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.DISPATCH_VIEW, Permission.DISPATCH_CREATE,
         Permission.PRODUCTION_VIEW,
         Permission.REPORT_VIEW,
+        Permission.BOM_VIEW,
     },
     
     "User": {
@@ -319,6 +330,7 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.DISPATCH_VIEW,
         Permission.PRODUCTION_VIEW,
         Permission.REPORT_VIEW,
+        Permission.BOM_VIEW,
     },
 }
 

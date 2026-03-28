@@ -73,6 +73,15 @@ const KBAuth = {
    * Get the current user's role
    */
   getRole() {
+    const token = this.getToken();
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.role) return payload.role;
+      } catch (e) {
+        // Token malformed — fall through
+      }
+    }
     return localStorage.getItem(this.ROLE_KEY) || 'User';
   },
 

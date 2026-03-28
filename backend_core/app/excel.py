@@ -889,3 +889,45 @@ async def preview_stage_excel(
         "preview_rows": rows,
         "instructions": f"This will update items at the '{stage.capitalize()}' stage. Items are matched by Drawing No, Item Code, Assembly, or Item Name.",
     }
+
+
+# =============================================================================
+# CSV TEMPLATE DOWNLOADS
+# =============================================================================
+
+from .services import csv_template_service
+
+
+@router.get("/templates/tracking-csv")
+def download_tracking_csv_template(
+    current_user: models.User = Depends(get_current_user),
+):
+    """Download sample tracking import CSV template."""
+    return csv_template_service.tracking_template()
+
+
+@router.get("/templates/stage-csv/{stage}")
+def download_stage_csv_template(
+    stage: str,
+    current_user: models.User = Depends(get_current_user),
+):
+    """Download sample stage update CSV template."""
+    if stage not in ("fabrication", "painting", "dispatch"):
+        raise HTTPException(status_code=400, detail="Invalid stage")
+    return csv_template_service.stage_update_template(stage)
+
+
+@router.get("/templates/scrap-csv")
+def download_scrap_csv_template(
+    current_user: models.User = Depends(get_current_user),
+):
+    """Download sample scrap import CSV template."""
+    return csv_template_service.scrap_template()
+
+
+@router.get("/templates/inventory-csv")
+def download_inventory_csv_template(
+    current_user: models.User = Depends(get_current_user),
+):
+    """Download sample inventory import CSV template."""
+    return csv_template_service.inventory_template()

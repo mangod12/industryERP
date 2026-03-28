@@ -23,6 +23,7 @@ class UserOut(BaseModel):
     email: EmailStr
     username: str
     role: str
+    is_active: Optional[bool] = True
     created_at: datetime
 
     class Config:
@@ -61,7 +62,12 @@ class ProductionItemOut(BaseModel):
     checklist: Optional[str] = None
     notes: Optional[str] = None
     fabrication_deducted: Optional[bool] = False
+    current_stage: Optional[str] = None
+    material_deducted: Optional[bool] = False
+    assembly_id: Optional[int] = None
+    completed_qty: Optional[int] = 0
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -142,7 +148,7 @@ class DashboardSummary(BaseModel):
 class MaterialUsageCreate(BaseModel):
     production_item_id: Optional[int]
     name: str
-    qty: int
+    qty: float
     unit: Optional[str]
     by: Optional[str]
 
@@ -152,7 +158,7 @@ class MaterialUsageOut(BaseModel):
     customer_id: int
     production_item_id: Optional[int]
     name: str
-    qty: int
+    qty: float
     unit: Optional[str]
     by: Optional[str]
     ts: datetime
@@ -226,8 +232,8 @@ class InstructionOut(BaseModel):
 class InventoryIn(BaseModel):
     name: str
     unit: str | None = None
-    total: int = 0
-    used: int = 0
+    total: float = 0
+    used: float = 0
     code: str | None = None
     section: str | None = None
     category: str | None = None
@@ -237,8 +243,8 @@ class InventoryOut(BaseModel):
     id: int
     name: str
     unit: str | None = None
-    total: int
-    used: int
+    total: float
+    used: float
     code: str | None = None
     section: str | None = None
     category: str | None = None
