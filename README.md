@@ -1,34 +1,11 @@
 # KumarBrothers Steel ERP
-
-[![CI](https://github.com/mangod12/industryERP/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/ci.yml)
+(PRODUCTION READY)
 
 A comprehensive steel fabrication tracking and inventory management system with automatic material deduction, Excel import, and real-time dashboard.
-## 📸 System Screenshots
-
-### Dashboard
-<p align="center">
-  <img src="./dashboard.png" width="100%" />
-</p>
-
-### Raw Materials Inventory
-<p align="center">
-  <img src="./Raw_materials.png" width="100%" />
-</p>
-
-### Customers & Excel Upload
-<p align="center">
-  <img src="./customers_page.png" width="100%" />
-</p>
-
-### Production Tracking Board
-<p align="center">
-  <img src="./production_tracking.png" width="100%" />
-</p>
 
 ---
----
 
-## 📋 System Workflow (How It Works)
+## 📋 System Workflow
 
 ### Overview Diagram
 ```
@@ -73,165 +50,37 @@ A comprehensive steel fabrication tracking and inventory management system with 
 
 ---
 
-## 🔄 Step-by-Step Guide
+## 🔄 Core Features
 
-### STEP 1: Add Raw Materials (Admin)
-**Page: Raw Materials** → http://127.0.0.1:5500/raw_material.html
+### 1. Robust Tracking Architecture
+*   **Separation of Concerns**: Visibility logic is handled by optimized API endpoints (`/tracking/all-items`), preventing "N+1 query" lag even with thousands of items.
+*   **Transactional Production**: Stage transitions (Fabrication → Painting → Dispatch) are handled by a dedicated `TrackingService`, ensuring data integrity and correct inventory deduction.
+*   **Checklists**: Each tracking item has a checklist (e.g., "Cut", "Weld", "Clean") that must be completed before the stage moves forward.
 
-Before tracking can auto-deduct materials, you must add your steel profiles:
+### 2. Role-Based Access Control (RBAC)
+*   **Boss**: Full system access. Can create users, manage inventory, and override checks.
+*   **Software Supervisor**: Can manage inventory, production, and users (limited).
+*   **Store Keeper / QA / Dispatch**: Role-specific access.
+*   **Security**: Registration is restricted. Only **Boss** and **Software Supervisor** can create new accounts.
 
-| Field | Example Value | Description |
-|-------|---------------|-------------|
-| Name | UB203X133X25 | Profile name (must match Excel PROFILE column) |
-| Total | 5000 | Total quantity in kg |
-| Used | 0 | Already used (starts at 0) |
-| Unit | kg | Unit of measurement |
+### 3. Automatic Excel Import
+*   Upload client Excel files directly.
+*   Auto-detects columns: `Drawing no`, `PROFILE`, `QTY.`, `WT-(kg)`, `PAINT`, etc.
+*   Auto-links `PROFILE` column to your Inventory (Raw Materials).
 
-**Example Raw Materials to Add:**
-```
-UB203X133X25    - Universal Beam 203x133x25
-UB254X146X31    - Universal Beam 254x146x31
-ISMC250         - Indian Standard Medium Channel 250
-```
+### 4. Real-Time Dashboard
+*   Auto-refreshes every 10 seconds.
+*   Shows live counts for Fabrication, Painting, and Dispatch.
+*   Monitors Raw Material stock and alerts on Low Stock (<15%).
 
-> ⚠️ **Important:** The material NAME must match the PROFILE column in your tracking Excel/CSV file for auto-deduction to work.
-
----
-
-### STEP 2: Add Customer/Project (Admin)
-**Page: Customers** → http://127.0.0.1:5500/customers.html
-
-1. Click **"+ Add Customer"**
-2. Enter customer name and project details
-3. Save the customer
-
-Each customer can have multiple tracking Excel files uploaded.
+### 5. Notification Preferences
+*   Users can customize which notifications they receive in **Settings**.
+*   Categories include: Instructions from Boss, Stage Changes, Query Status, Low Stock Alerts, and Dispatch Completion.
+*   Filter logic is handled on the backend to reduce noise.
 
 ---
 
-### STEP 3: Upload Tracking Excel (Admin)
-**Page: Customers** → Click **"Upload Excel"** button on any customer
-
-#### Supported File Formats:
-- ✅ Excel (.xlsx)
-- ✅ CSV (.csv)
-
-#### Supported Column Names (Flexible):
-The system auto-detects these columns:
-
-| Excel Column | Maps To | Example |
-|--------------|---------|---------|
-| Drawing no | Item Code | TCI-SFD-49-02-11-07-000-01817 |
-| ASSEMBLY | Assembly | B1, B2, C1 |
-| NAME | Item Name | BEAM, COLUMN |
-| **PROFILE** | Section | **UB203X133X25** (links to Raw Material) |
-| QTY. | Quantity | 1, 2, 5 |
-| WT-(kg) | Weight | 45.6, 123.4 |
-| AR(m²) | Area | 1.23 |
-| PAINT | Paint Status | - |
-| LOT 1 | Lot Number | Lot tracking |
-
-#### What Happens on Upload:
-1. **Preview** shows which profiles match inventory (✅) vs unmatched (⚠️)
-2. **Auto-Link**: System links PROFILE column to Raw Materials
-3. **Import**: Creates tracking items in Fabrication stage
-4. **Notification**: Warns if any profiles need to be added to Raw Materials
-
----
-
-### STEP 4: Track Progress Through Stages
-**Page: Tracking** → http://127.0.0.1:5500/tracking.html
-
-All items follow this sequence (cannot skip stages):
-
-```
-FABRICATION → PAINTING → DISPATCH → COMPLETED
-```
-
-#### For Each Item:
-1. **Start Stage** → Status becomes "In Progress"
-2. **Complete Stage** → Status becomes "Completed", moves to next stage
-
-#### Special: Fabrication Completion
-When Fabrication is marked **Complete**:
-- ✅ System automatically deducts materials from inventory
-- ✅ Deduction = Weight (kg) × Quantity from Excel
-- ✅ Only happens ONCE per item (tracked by system)
-- ✅ Dashboard immediately shows updated stock
-
----
-
-### STEP 5: Monitor on Dashboard
-**Page: Dashboard** → http://127.0.0.1:5500/index.html
-
-Real-time display (auto-refreshes every 10 seconds):
-
-| Metric | Description |
-|--------|-------------|
-| **Total Stock (kg)** | Current available raw materials |
-| **Total Consumed (kg)** | Materials deducted by completed fabrication |
-| **Utilization %** | Consumed / Purchased ratio |
-| **Low Stock Alerts** | Items below 15% remaining |
-| **Stage Counts** | Jobs in Fabrication/Painting/Dispatch |
-
----
-
-## 📊 Example Workflow
-
-### Scenario: New Project "TCIL Building Structure"
-
-**1. Admin adds Raw Materials:**
-```
-UB203X133X25  - 5000 kg
-ISMC250       - 3000 kg
-```
-
-**2. Admin adds Customer:** "TCIL Corporation"
-
-**3. Admin uploads tracking CSV with 100 items:**
-```csv
-Drawing no,NAME,PROFILE,QTY.,WT-(kg)
-DWG-001,BEAM,UB203X133X25,1,45.6
-DWG-002,BEAM,UB203X133X25,2,91.2
-DWG-003,CHANNEL,ISMC250,1,38.5
-...
-```
-
-**4. System shows preview:**
-- ✅ UB203X133X25 → Matched to "UB203X133X25" (5000 kg available)
-- ✅ ISMC250 → Matched to "ISMC250" (3000 kg available)
-
-**5. Import creates 100 tracking items in Fabrication stage**
-
-**6. Worker completes fabrication for DWG-001:**
-- Click "Complete" on Fabrication
-- System deducts 45.6 kg from UB203X133X25
-- Item moves to Painting stage
-- Dashboard shows: UB203X133X25 = 4954.4 kg remaining
-
-**7. Dashboard shows:**
-- Fabrication: 99 jobs remaining
-- Painting: 1 job
-- Stock: 4954.4 kg (UB203X133X25)
-
----
-
-## 🎯 Key Features
-
-| Feature | Description |
-|---------|-------------|
-| **Flexible Excel Import** | Supports 40+ column name variations |
-| **Auto Material Linking** | PROFILE column auto-matches to inventory |
-| **Auto Deduction** | Materials deduct when Fabrication completes |
-| **Stage Enforcement** | Cannot skip stages (Fab → Paint → Dispatch) |
-| **Real-time Dashboard** | Updates every 10 seconds for all users |
-| **Low Stock Alerts** | Notifications when materials run low |
-| **Edit & Checklist** | Each item has edit and checklist features |
-| **Search & Filter** | Find items by name, code, customer, stage |
-
----
-
-## 🚀 Quick Start
+## 🚀 Quick Start (Production)
 
 ### Prerequisites
 - Python 3.10+
@@ -240,13 +89,15 @@ DWG-003,CHANNEL,ISMC250,1,38.5
 ### Step 1: Setup Environment
 
 ```powershell
-cd c:\Users\ansha\Downloads\next_project
+# 1. Open Terminal in project root
 
-# Create and activate virtual environment (optional but recommended)
+# 2. Create virtual environment
 python -m venv .venv
+
+# 3. Activate usage
 .venv\Scripts\Activate.ps1
 
-# Install dependencies
+# 4. Install dependencies
 pip install -r requirements.txt
 ```
 
@@ -256,181 +107,74 @@ pip install -r requirements.txt
 cd backend_core
 python -m uvicorn app.main:app --reload --port 8000
 ```
-
-Backend will be available at: **http://127.0.0.1:8000**
+*Backend is now running at: **http://127.0.0.1:8000***
 
 ### Step 3: Start Frontend Server
 
-Open a new terminal:
+Open a **new** terminal window:
 
 ```powershell
 cd kumar_frontend
 python -m http.server 5500
 ```
+*Frontend is now running at: **http://127.0.0.1:5500***
 
-Frontend will be available at: **http://127.0.0.1:5500**
+### Step 4: Login
 
-### Step 4: Access the Application
+Go to **http://127.0.0.1:5500/login.html**
 
-Open your browser and navigate to: **http://127.0.0.1:5500/login.html**
-
----
-
-## 🔐 Test Credentials
-
-| Username | Password | Role | Permissions |
-|----------|----------|------|-------------|
-| `admin` | `Admin@123` | Boss | Full access to all features |
-
-### Creating Additional Test Users
-
-After logging in as admin, you can create users with different roles:
-
-| Role | Description |
-|------|-------------|
-| **Boss** | Full system access |
-| **Software Supervisor** | Inventory, GRN, Dispatch management |
-| **Store Keeper** | Stock operations, GRN creation |
-| **QA Inspector** | Quality inspection and approval |
-| **Dispatch Operator** | Dispatch operations only |
-| **User** | View-only access |
+**Standard Admin Credentials:**
+*   Username: `admin` (or `Boss`)
+*   Password: *(Randomized on first run for securityized. Check console logs or use your set password)*
 
 ---
 
-## 📱 Available Pages
+## 📱 User Guide
 
-| Page | URL | Description |
-|------|-----|-------------|
-| Login | `/login.html` | User authentication |
-| Dashboard | `/index.html` | Overview and stats |
-| Raw Materials | `/raw_material.html` | Add/manage steel profiles |
-| Customers | `/customers.html` | Customer management + Excel upload |
-| Tracking | `/tracking.html` | Stage tracking (Fab/Paint/Dispatch) |
-| GRN | `/grn.html` | Goods Receipt Notes |
-| Dispatch | `/dispatch.html` | Outward dispatch management |
-| Settings | `/settings.html` | System settings |
+### 1. How to Register New Users
+> **Restricted**: Only "Boss" or "Software Supervisor" can do this.
+1.  Log in as Admin (Boss).
+2.  Navigate to `register.html` (or click "Register" if visible in settings).
+3.  Fill in details. **Note**: You cannot create an account with higher privileges than your own (Supervisor cannot create Boss).
 
----
+### 2. How to Upload Excel
+1.  Go to **Customers** page.
+2.  Add a Customer (e.g., "ABC Corp").
+3.  Click **"Upload Excel"**.
+4.  Select your file. The system will preview raw material matches.
+5.  Click **Import**.
 
-## 🔧 API Documentation
+### 3. How to Track Production
+1.  Go to **Tracking** page.
+2.  Use the **Kanban Board** to visualize flow.
+3.  Click item to view **Checklist**.
+4.  Check all items → Click **"Complete Fabrication"**.
+5.  *System auto-deducts material and moves item to Painting.*
 
-Once the backend is running, access the interactive API docs:
-
-- **Swagger UI**: http://127.0.0.1:8000/docs
-- **ReDoc**: http://127.0.0.1:8000/redoc
-
-### Key API Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /auth/login` | User authentication |
-| `GET /inventory/` | List all raw materials |
-| `GET /inventory/dashboard-data` | Dashboard statistics |
-| `POST /excel/preview-import/{customer_id}` | Preview Excel with material matching |
-| `POST /excel/import-tracking/{customer_id}` | Import tracking items |
-| `POST /tracking/complete-stage` | Complete a stage (triggers auto-deduction) |
-| `GET /tracking/all-items` | List all tracking items |
+### 4. Notification Settings
+1.  Click your username (top right) → **Settings**.
+2.  Navigate to **Notification Preferences**.
+3.  Toggle categories on/off and click **Save Preferences**.
 
 ---
 
-## 🏗️ Project Structure
+## 🔧 Technical Notes for Developers
 
-```
-next_project/
-├── backend_core/           # FastAPI Backend
-│   ├── app/
-│   │   ├── main.py         # App entry point
-│   │   ├── models.py       # Database models
-│   │   ├── excel.py        # Excel/CSV import with auto-linking
-│   │   ├── tracking.py     # Stage tracking with auto-deduction
-│   │   ├── inventory.py    # Raw materials & dashboard stats
-│   │   ├── security.py     # Authentication & RBAC
-│   │   ├── deps.py         # Dependencies
-│   │   └── routers/        # Additional API routers
-│   └── data/
-│       └── kumar_core.db   # SQLite database
-│
-├── kumar_frontend/         # Frontend (HTML/JS/CSS)
-│   ├── index.html          # Dashboard with grand totals
-│   ├── login.html          # Login page
-│   ├── raw_material.html   # Raw materials management
-│   ├── customers.html      # Customers + Excel upload
-│   ├── tracking.html       # Stage tracking
-│   ├── grn.html            # Goods Receipt Notes
-│   ├── dispatch.html       # Dispatch management
-│   ├── js/
-│   │   ├── config.js       # API config
-│   │   └── main.js         # Main application JS
-│   └── css/
-│       └── main.css        # Styles
-│
-├── scripts/
-│   └── create_admin.py     # Admin user creation script
-│
-└── requirements.txt        # Python dependencies
-```
+### Split-Brain Routing (Legacy vs New)
+*   **GET /tracking/all-items**: Optimized read endpoint for the Frontend table/board.
+*   **PUT /api/tracking/{id}**: New `TrackingService` endpoint for writing state changes.
 
----
+### Database
+*   Type: SQLite
+*   Path: `backend_core/data/kumar_core.db`
+*   **Resetting**: To wipe data, stop the backend, delete this file, and restart.
 
-## ❓ Frequently Asked Questions
-
-### Q: Why aren't materials being deducted automatically?
-**A:** Make sure:
-1. The PROFILE column in your Excel matches the material NAME in Raw Materials
-2. The item has WT-(kg) value in the Excel
-3. You clicked "Complete" on Fabrication stage (not just "Start")
-
-### Q: Can I upload different Excel formats?
-**A:** Yes! The system supports 40+ column name variations. It auto-detects columns like "Drawing no", "PROFILE", "QTY.", "WT-(kg)", etc. Column order doesn't matter.
-
-### Q: What happens if a profile is not in Raw Materials?
-**A:** The item will still be imported, but no auto-deduction will happen. You'll see a warning to add the missing profile.
-
-### Q: Can I skip the Painting stage?
-**A:** No, stages must be completed in order: Fabrication → Painting → Dispatch.
-
-### Q: How do I see all tracking items for a customer?
-**A:** Go to Tracking page and filter by customer name.
-
----
-
-## ⚙️ Environment Variables (Production)
-
-For production deployment, set these environment variables:
-
-```powershell
-$env:KUMAR_SECRET_KEY = "your-secure-64-char-secret-key"
-$env:ENVIRONMENT = "production"
-$env:CORS_ORIGINS = "https://yourdomain.com"
-```
-
----
-
-## 🐛 Troubleshooting
-
-### Port already in use
-```powershell
-# Find and kill process on port 8000
-netstat -ano | findstr :8000
-taskkill /PID <PID> /F
-```
-
-### Database reset
-```powershell
-# Delete database and restart server (will recreate tables)
-Remove-Item backend_core/data/kumar_core.db
-# Restart backend server
-# Run create_admin.py to create admin user again
-```
-
-### Create admin user manually
-```powershell
-cd c:\Users\ansha\Downloads\next_project
-python scripts/create_admin.py
-```
+### Key Files
+*   `backend_core/app/services/tracking_service.py`: Core logic for stage transitions.
+*   `backend_core/app/auth.py`: Login and Registration logic.
+*   `kumar_frontend/tracking_v2.js`: Frontend logic for Kanban and Pagination.
 
 ---
 
 ## 📞 Support
-
 For issues or questions, contact the development team.

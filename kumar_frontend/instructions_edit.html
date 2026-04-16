@@ -8,7 +8,22 @@
     <link href="css/main.css" rel="stylesheet">
   </head>
   <body>
-    <div id="navbar-container"></div>
+    <nav class="kb-navbar d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <div class="navbar-brand">KumarBrothers</div>
+        <div class="d-none d-lg-flex">
+          <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+          <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+          <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+          <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
+          <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="small-muted">Role:</div>
+        <div id="current-role" class="role-badge">Loading...</div>
+      </div>
+    </nav>
 
     <div class="container main-container py-4">
       <div class="row">
@@ -39,17 +54,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/main.js"></script>
-    <script src="js/modules/escapeHtml.js"></script>
-    <script src="js/modules/navbar.js"></script>
-    <script src="js/modules/debounce.js"></script>
-    <script src="js/modules/store.js"></script>
-    <script src="js/modules/error-handler.js"></script>
-    <script src="js/modules/ui-components.js"></script>
-    <script src="js/modules/pagination.js"></script>
     <script>
-      if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
-      KBNavbar.render('navbar-container', 'settings');
-
+      function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+      
       document.addEventListener('DOMContentLoaded', async ()=>{
         if(typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
         // only Boss allowed here - redirect otherwise

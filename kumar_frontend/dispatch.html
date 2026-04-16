@@ -512,7 +512,7 @@
     async function loadAvailableStock(materialId) {
       const container = document.getElementById('availableStockLots');
       try {
-        const res = await fetch(`${API_BASE}/api/v2/inventory/lots?material_id=${materialId}&qa_status=approved`);
+        const res = await fetch(`${API_BASE}/api/v2/inventory/stock?material_id=${materialId}&qa_status=approved`);
         if (!res.ok) throw new Error('Failed to load stock');
         const lots = await res.json();
         

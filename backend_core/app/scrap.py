@@ -14,7 +14,7 @@ from io import BytesIO
 from . import models
 from .deps import get_db, require_role, get_current_user
 
-router = APIRouter(prefix="/scrap", tags=["scrap"])
+router = APIRouter()
 
 
 # ============ Pydantic Schemas ============

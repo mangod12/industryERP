@@ -4,9 +4,13 @@
  */
 
 const KBConfig = {
-  // API Configuration - change this for different environments
-  API_BASE: 'http://127.0.0.1:8001',
-  
+  // API Configuration — auto-detect protocol and host
+  // If we are served from the same domain as the API (standard production), use current origin.
+  // If we are in local dev on separate ports, it falls back to :8000
+  API_BASE: window.location.port === '8000' || !window.location.port
+    ? window.location.origin
+    : `${window.location.protocol}//${window.location.hostname}:8000`,
+
   // Available roles in the system
   ROLES: Object.freeze({
     BOSS: 'Boss',
@@ -26,7 +30,11 @@ const KBConfig = {
       'dispatch:view', 'dispatch:create', 'dispatch:approve',
       'qa:view',
       'production:view', 'production:update', 'production:consume',
-      'report:view', 'report:export', 'settings:view'
+      'report:view', 'report:export', 'settings:view',
+      // Delete permissions for supervisors
+      'customers:delete', 'excel:delete',
+      // Allow creating users via UI
+      'users:create'
     ],
     'Store Keeper': [
       'inventory:view', 'inventory:create', 'inventory:update',
@@ -49,6 +57,15 @@ const KBConfig = {
     'User': [
       'inventory:view', 'grn:view', 'dispatch:view',
       'production:view', 'report:view'
+    ],
+    'Fabricator': [
+      'production:view', 'report:view'
+    ],
+    'Painter': [
+      'production:view', 'report:view'
+    ],
+    'Dispatch': [
+      'production:view', 'report:view', 'dispatch:view'
     ]
   }
 };
@@ -73,15 +90,6 @@ const KBAuth = {
    * Get the current user's role
    */
   getRole() {
-    const token = this.getToken();
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.role) return payload.role;
-      } catch (e) {
-        // Token malformed — fall through
-      }
-    }
     return localStorage.getItem(this.ROLE_KEY) || 'User';
   },
 
@@ -103,14 +111,28 @@ const KBAuth = {
   isAuthenticated() {
     const token = this.getToken();
     if (!token) return false;
-    
+
     // Check if token is expired (basic JWT decode)
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = this.getPayload();
+      if (!payload) return false;
       const exp = payload.exp * 1000; // Convert to milliseconds
       return Date.now() < exp;
     } catch (e) {
       return false;
+    }
+  },
+
+  /**
+   * Get decoded token payload
+   */
+  getPayload() {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (e) {
+      return null;
     }
   },
 
@@ -172,7 +194,7 @@ const KBApi = {
    */
   async request(endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${KBConfig.API_BASE}${endpoint}`;
-    
+
     // Set default headers
     const headers = {
       ...options.headers
@@ -271,7 +293,7 @@ const KBUI = {
    */
   initRoleBasedUI() {
     const role = KBAuth.getRole();
-    
+
     // Handle data-permission attributes
     document.querySelectorAll('[data-permission]').forEach(el => {
       const required = el.getAttribute('data-permission').split(',').map(p => p.trim());
@@ -328,3 +350,5 @@ window.KBConfig = KBConfig;
 window.KBAuth = KBAuth;
 window.KBApi = KBApi;
 window.KBUI = KBUI;
+// API_BASE globally accessible
+window.API_BASE = KBConfig.API_BASE;

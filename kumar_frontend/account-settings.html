@@ -1,120 +1,425 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KumarBrothers | Account</title>
+  <title>KumarBrothers | My Profile</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <style>
-    :root{--kb-bg:#f6f8fa;--kb-card:#fff;--kb-muted:#6c757d;--kb-accent:#0d6efd;--kb-danger:#b02a37}
-    body{background:var(--kb-bg);font-family:Inter,system-ui,Arial,sans-serif;color:#0f1724}
-    .card{max-width:900px;margin:28px auto;padding:22px;background:var(--kb-card);border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.06)}
-    h3{font-weight:700;margin:0}
-    #profileBox div{padding:6px 0;font-size:15px}
-    .form-label{font-size:13px;color:var(--kb-muted)}
-    .btn-primary{background:var(--kb-accent);border-color:var(--kb-accent)}
-    .danger-zone{border:1px solid #fde2e2;background:linear-gradient(180deg,#fff5f5,#fff);padding:14px;border-radius:10px}
-    .danger-zone h5{color:var(--kb-danger);margin:0 0 8px}
-    @media (max-width:767px){.card{margin:12px;padding:14px}}
+    :root {
+      --kb-bg: #f8fafc;
+      --kb-primary: #0f172a;
+      --kb-accent: #3b82f6;
+      --kb-danger: #ef4444;
+      --kb-success: #22c55e;
+      --kb-surface: #ffffff;
+      --kb-text: #334155;
+      --kb-muted: #64748b;
+    }
+
+    body {
+      background-color: var(--kb-bg);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: var(--kb-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .profile-container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      width: 100%;
+    }
+
+    .kb-card {
+      background: var(--kb-surface);
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .card-header-custom {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      padding: 30px;
+      color: white;
+      position: relative;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .back-btn:hover {
+      color: white;
+    }
+
+    .profile-avatar-placeholder {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      color: white;
+      margin-bottom: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .user-identity h2 {
+      font-weight: 700;
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .user-identity p {
+      margin: 0;
+      opacity: 0.8;
+      font-size: 0.95rem;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-top: 10px;
+    }
+
+    .role-badge.boss {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .role-badge.supervisor {
+      background: #e0f2fe;
+      color: #075985;
+    }
+
+    .role-badge.user {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .card-body-custom {
+      padding: 30px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      color: var(--kb-muted);
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .detail-value {
+      font-weight: 600;
+      color: var(--kb-primary);
+    }
+
+    .security-section {
+      margin-top: 10px;
+    }
+
+    .form-control {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border-color: #cbd5e1;
+    }
+
+    .form-control:focus {
+      border-color: var(--kb-accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .btn-save {
+      background: var(--kb-primary);
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .btn-save:hover {
+      background: #1e293b;
+    }
+
+    .logout-btn-wrapper {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .btn-logout {
+      color: var(--kb-danger);
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      font-size: 0.9rem;
+      padding: 8px 16px;
+      border-radius: 8px;
+    }
+
+    .btn-logout:hover {
+      background: #fee2e2;
+    }
   </style>
 </head>
+
 <body>
-  <div class="card">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h3>Account & Security</h3>
-      <a href="settings.html" class="btn btn-sm btn-outline-secondary">Back</a>
+
+  <div class="profile-container">
+
+    <div class="kb-card">
+      <div class="card-header-custom">
+        <a href="settings.html" class="back-btn"><i class="bi bi-arrow-left"></i> Back to Settings</a>
+
+        <div class="d-flex align-items-center gap-4">
+          <div class="profile-avatar-placeholder">
+            <i class="bi bi-person"></i>
+          </div>
+          <div class="user-identity">
+            <h2 id="pf-username">Loading...</h2>
+            <p id="pf-email">...</p>
+            <span id="pf-role" class="role-badge user">...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body-custom">
+        <h5 class="mb-4 text-muted small text-uppercase fw-bold"><i class="bi bi-info-circle me-2"></i>Profile Details
+        </h5>
+
+        <div class="detail-row">
+          <span class="detail-label">Username</span>
+          <span class="detail-value" id="detail-username">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Email Address</span>
+          <span class="detail-value" id="detail-email">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Company / Organization</span>
+          <span class="detail-value" id="detail-company">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Account Role</span>
+          <span class="detail-value" id="detail-role">—</span>
+        </div>
+      </div>
     </div>
 
-    <div id="profileBox" class="mb-3">
-      <div><strong>Full Name:</strong> <span id="pf-fullname">—</span></div>
-      <div><strong>Username:</strong> <span id="pf-username">—</span></div>
-      <div><strong>Email:</strong> <span id="pf-email">—</span></div>
-      <div><strong>Role:</strong> <span id="pf-role">—</span></div>
+    <!-- Security Card -->
+    <div class="kb-card">
+      <div class="card-body-custom">
+        <h5 class="mb-4 text-muted small text-uppercase fw-bold"><i class="bi bi-shield-lock me-2"></i>Security</h5>
+
+        <p class="text-muted small mb-3">Ensure your account is using a long, random password to stay secure.</p>
+
+        <form id="changePwForm" class="security-section">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Current Password</label>
+              <div class="input-group">
+                <input type="password" id="oldPw" class="form-control" placeholder="••••••••" required>
+                <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">New Password</label>
+              <div class="input-group">
+                <input type="password" id="newPw" class="form-control" placeholder="New secure password" required
+                  minlength="8">
+                <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-bold">Confirm New</label>
+              <div class="input-group">
+                <input type="password" id="confirmPw" class="form-control" placeholder="Repeat password" required
+                  minlength="8">
+                <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <div id="pwStatus" class="small"></div>
+            <button class="btn btn-save text-white" type="submit">Update Password</button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <hr>
-    <h6>Change Password</h6>
-    <form id="changePwForm">
-      <div class="mb-2">
-        <label class="form-label">Old password</label>
-        <input type="password" id="oldPw" class="form-control" required minlength="1">
-      </div>
-      <div class="mb-2">
-        <label class="form-label">New password</label>
-        <input type="password" id="newPw" class="form-control" required minlength="6">
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Confirm new password</label>
-        <input type="password" id="confirmPw" class="form-control" required minlength="6">
-      </div>
-      <div id="pwStatus"></div>
-      <button class="btn btn-primary btn-sm" type="submit">Change password</button>
-    </form>
+    <div class="logout-btn-wrapper">
+      <button id="manualLogout" class="btn btn-logout"><i class="bi bi-box-arrow-right me-2"></i>Sign Out of
+        Session</button>
+    </div>
+
+  </div>
 
   <script src="js/config.js"></script>
-  <script src="js/main.js"></script>
   <script>
-    if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
     const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
-    function showToast(msg, type='info'){
-      const el = document.createElement('div'); el.className = `toast align-items-center text-bg-${type} border-0`; el.role='alert'; el.ariaLive='assertive'; el.ariaAtomic='true';
-      el.style.position='fixed'; el.style.right='20px'; el.style.top='20px'; el.style.zIndex=9999; el.style.padding='10px'; el.innerText = msg;
-      document.body.appendChild(el); setTimeout(()=>el.remove(),3000);
+
+    function showToast(msg, type = 'info') {
+      const el = document.createElement('div');
+      el.className = `toast align-items-center text-bg-${type} border-0 show`;
+      el.role = 'alert';
+      el.style.position = 'fixed'; el.style.right = '20px'; el.style.top = '20px'; el.style.zIndex = 9999; el.style.padding = '12px 20px'; el.style.borderRadius = '8px';
+      el.innerHTML = `<div class="d-flex"><div class="toast-body">${msg}</div></div>`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
     }
 
-    async function apiFetch(path, opts={}){
+    async function apiFetch(path, opts = {}) {
       opts.headers = opts.headers || {};
-      const token = (typeof KBAuth !== 'undefined') ? KBAuth.getToken() : localStorage.getItem('kb_token');
-      if(token) opts.headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetch(API_BASE + path, opts);
-      return res;
+      const token = localStorage.getItem('kb_token');
+      if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+      try {
+        const res = await fetch(API_BASE + path, opts);
+        if (res.status === 401) {
+          localStorage.removeItem('kb_token');
+          window.location.href = 'login.html';
+          return null;
+        }
+        return res;
+      } catch (e) {
+        console.error("Network error:", e);
+        throw e;
+      }
     }
 
-    async function loadProfile(){
-      try{
+    async function loadProfile() {
+      try {
         const r = await apiFetch('/users/me');
-        if(!r.ok){ showToast('Failed to load profile', 'danger'); return; }
+        if (!r || !r.ok) { showToast('Failed to load profile', 'danger'); return; }
+
         const p = await r.json();
-        document.getElementById('pf-fullname').innerText = p.full_name || '';
-        document.getElementById('pf-username').innerText = p.username || '';
-        document.getElementById('pf-email').innerText = p.email || '';
-        document.getElementById('pf-role').innerText = p.role || '';
-      }catch(err){ showToast('Profile error: '+err.message, 'danger'); }
+
+        // Header
+        document.getElementById('pf-username').innerText = p.username || 'User';
+        document.getElementById('pf-email').innerText = p.email || 'No email';
+
+        // Badge logic
+        const roleEl = document.getElementById('pf-role');
+        const role = (p.role || 'user').toLowerCase();
+        roleEl.className = `role-badge ${role.includes('boss') ? 'boss' : role.includes('super') ? 'supervisor' : 'user'}`;
+        roleEl.innerText = p.role || 'User';
+
+        // Details Table
+        document.getElementById('detail-username').innerText = p.username || '—';
+        document.getElementById('detail-email').innerText = p.email || '—';
+        document.getElementById('detail-company').innerText = p.company || 'Not Assigned';
+        document.getElementById('detail-role').innerText = p.role || 'User';
+
+      } catch (err) {
+        console.error(err);
+        showToast('Connection error', 'danger');
+      }
     }
 
-    document.getElementById('changePwForm').addEventListener('submit', async function(e){
+    document.getElementById('changePwForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       const oldPw = document.getElementById('oldPw').value.trim();
       const newPw = document.getElementById('newPw').value.trim();
       const confirmPw = document.getElementById('confirmPw').value.trim();
-      const status = document.getElementById('pwStatus'); status.innerHTML = '';
-      if(newPw !== confirmPw){ status.innerHTML = '<div class="text-danger small">New passwords do not match</div>'; return; }
-      try{
-        const r = await apiFetch('/users/change-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ old_password: oldPw, new_password: newPw }) });
+      const status = document.getElementById('pwStatus');
+
+      status.innerHTML = '<span class="text-secondary"><span class="spinner-border spinner-border-sm me-2"></span>Updating...</span>';
+
+      if (newPw !== confirmPw) {
+        status.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i> New passwords do not match</span>';
+        return;
+      }
+
+      if (newPw.length < 8) {
+        status.innerHTML = '<span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i> Password must be 8+ chars</span>';
+        return;
+      }
+
+      try {
+        const r = await apiFetch('/users/me/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ old_password: oldPw, new_password: newPw })
+        });
+
+        if (!r) return;
         const j = await r.json();
-        if(!r.ok){ status.innerHTML = `<div class='text-danger small'>${j.detail || j.message || 'Failed'}</div>`; return; }
-        status.innerHTML = `<div class='text-success small'>${j.message || 'Password changed'}</div>`;
-      }catch(err){ status.innerHTML = `<div class='text-danger small'>Error: ${err.message}</div>`; }
+
+        if (!r.ok) {
+          status.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i> ${j.detail || 'Failed to update'}</span>`;
+          if (j.detail && j.detail.includes("Old password")) document.getElementById('oldPw').focus();
+          return;
+        }
+
+        status.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle me-1"></i> Password updated successfully</span>`;
+        document.getElementById('changePwForm').reset();
+        showToast('Your password has been updated.', 'success');
+
+      } catch (err) {
+        status.innerHTML = `<span class="text-danger">Error: ${err.message}</span>`;
+      }
     });
 
-    // Logout actions
-    document.getElementById('manualLogout').addEventListener('click', ()=>{
-      localStorage.removeItem('kb_token');
-      showToast('Local token cleared', 'warning');
-    });
-    document.getElementById('logoutBtnTop').addEventListener('click', ()=>{
-      localStorage.removeItem('kb_token');
-      localStorage.removeItem('kb_role');
-      window.location.href = 'login.html';
-    });
-    document.getElementById('logoutBtn')?.addEventListener('click', ()=>{
-      localStorage.removeItem('kb_token');
-      localStorage.removeItem('kb_role');
-      window.location.href = 'login.html';
+    document.getElementById('manualLogout').addEventListener('click', () => {
+      if (confirm('Are you sure you want to sign out?')) {
+        localStorage.removeItem('kb_token');
+        localStorage.removeItem('kb_role');
+        window.location.href = 'login.html';
+      }
     });
 
-    // init
+    // Init
+    // Password visibility toggle
+    document.querySelectorAll('.pw-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = btn.closest('.input-group').querySelector('input');
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+          input.type = 'password';
+          icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+      });
+    });
+
     loadProfile();
   </script>
 </body>
+
 </html>

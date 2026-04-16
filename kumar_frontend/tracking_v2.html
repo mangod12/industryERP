@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,118 +9,338 @@
   <link href="css/main.css" rel="stylesheet">
   <style>
     /* Kanban Board Styles */
-    .kanban-board { display: flex; gap: 16px; min-height: calc(100vh - 300px); }
-    .kanban-column { flex: 1; min-width: 300px; background: #f8f9fa; border-radius: 8px; padding: 12px; }
-    .kanban-column-header { 
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; color: white; font-weight: 600;
+    .kanban-board {
+      display: flex;
+      gap: 16px;
+      min-height: calc(100vh - 300px);
     }
-    .fabrication-header { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .painting-header { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-    .dispatch-header { background: linear-gradient(135deg, #10b981, #059669); }
-    .completed-header { background: linear-gradient(135deg, #6b7280, #4b5563); }
-    
-    .kanban-cards { max-height: calc(100vh - 380px); overflow-y: auto; }
-    
+
+    .kanban-column {
+      flex: 1;
+      min-width: 300px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .kanban-column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      color: white;
+      font-weight: 600;
+    }
+
+    .fabrication-header {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .painting-header {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+    }
+
+    .dispatch-header {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .completed-header {
+      background: linear-gradient(135deg, #6b7280, #4b5563);
+    }
+
+    .kanban-cards {
+      max-height: calc(100vh - 380px);
+      overflow-y: auto;
+    }
+
     .tracking-card {
-      background: white; border-radius: 8px; padding: 12px; margin-bottom: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #e5e7eb;
       transition: all 0.2s ease;
     }
-    .tracking-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
-    .tracking-card.fabrication { border-left-color: #f59e0b; }
-    .tracking-card.painting { border-left-color: #3b82f6; }
-    .tracking-card.dispatch { border-left-color: #10b981; }
-    .tracking-card.completed { border-left-color: #6b7280; }
-    
-    .card-title { font-weight: 600; font-size: 0.9rem; color: #1f2937; margin-bottom: 4px; }
-    .card-code { font-size: 0.75rem; color: #6b7280; }
-    .card-meta { font-size: 0.75rem; color: #9ca3af; margin-top: 6px; }
-    
+
+    .tracking-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .tracking-card.fabrication {
+      border-left-color: #f59e0b;
+    }
+
+    .tracking-card.painting {
+      border-left-color: #3b82f6;
+    }
+
+    .tracking-card.dispatch {
+      border-left-color: #10b981;
+    }
+
+    .tracking-card.completed {
+      border-left-color: #6b7280;
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+
+    .card-code {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .card-meta {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 6px;
+    }
+
     /* Inline Checklist */
-    .checklist-inline { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; }
-    .checklist-item { 
-      display: flex; align-items: center; gap: 6px; padding: 3px 0;
-      font-size: 0.8rem; cursor: pointer;
+    .checklist-inline {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #e5e7eb;
     }
-    .checklist-item input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; }
-    .checklist-item.done label { text-decoration: line-through; color: #9ca3af; }
-    .checklist-add { 
-      display: flex; gap: 4px; margin-top: 6px;
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 0;
+      font-size: 0.8rem;
+      cursor: pointer;
     }
-    .checklist-add input { 
-      flex: 1; padding: 4px 8px; font-size: 0.75rem; 
-      border: 1px solid #d1d5db; border-radius: 4px;
+
+    .checklist-item input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
     }
-    .checklist-add button { 
-      padding: 4px 8px; font-size: 0.7rem; 
-      background: #e5e7eb; border: none; border-radius: 4px; cursor: pointer;
+
+    .checklist-item.done label {
+      text-decoration: line-through;
+      color: #9ca3af;
     }
-    
+
+    .checklist-add {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .checklist-add input {
+      flex: 1;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+    }
+
+    .checklist-add button {
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      background: #e5e7eb;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
     /* Action Button */
     .complete-btn {
-      width: 100%; margin-top: 10px; padding: 8px 12px;
-      font-size: 0.8rem; font-weight: 500; border: none; border-radius: 6px;
-      cursor: pointer; transition: all 0.2s;
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .complete-btn.fabrication { background: #fef3c7; color: #92400e; }
-    .complete-btn.fabrication:hover { background: #fde68a; }
-    .complete-btn.painting { background: #dbeafe; color: #1e40af; }
-    .complete-btn.painting:hover { background: #bfdbfe; }
-    .complete-btn.dispatch { background: #d1fae5; color: #065f46; }
-    .complete-btn.dispatch:hover { background: #a7f3d0; }
-    .complete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    
+
+    .complete-btn.fabrication {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .complete-btn.fabrication:hover {
+      background: #fde68a;
+    }
+
+    .complete-btn.painting {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .complete-btn.painting:hover {
+      background: #bfdbfe;
+    }
+
+    .complete-btn.dispatch {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .complete-btn.dispatch:hover {
+      background: #a7f3d0;
+    }
+
+    .complete-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     /* Material Deduction Badge */
-    .deducted-badge { 
-      display: inline-block; padding: 2px 6px; font-size: 0.65rem;
-      background: #dbeafe; color: #1e40af; border-radius: 4px; margin-left: 6px;
+    .deducted-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 0.65rem;
+      background: #dbeafe;
+      color: #1e40af;
+      border-radius: 4px;
+      margin-left: 6px;
     }
-    
+
     /* Search & Filter Bar */
-    .filter-bar { 
-      background: white; border-radius: 8px; padding: 16px; margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    .filter-bar {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-    
+
     /* Summary Stats */
-    .stage-stats { display: flex; gap: 12px; margin-bottom: 16px; }
-    .stat-pill {
-      padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 500;
+    .stage-stats {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
     }
-    .stat-pill.fabrication { background: #fef3c7; color: #92400e; }
-    .stat-pill.painting { background: #dbeafe; color: #1e40af; }
-    .stat-pill.dispatch { background: #d1fae5; color: #065f46; }
-    .stat-pill.completed { background: #f3f4f6; color: #4b5563; }
-    
+
+    .stat-pill {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .stat-pill.fabrication {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .stat-pill.painting {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .stat-pill.dispatch {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .stat-pill.completed {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
     /* Toast Notification */
-    .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
-    
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
     /* Last Updated */
-    .last-updated { font-size: 0.75rem; color: #9ca3af; }
-    
+    .last-updated {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
     /* Loading Overlay */
     .loading-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(255,255,255,0.8); display: none;
-      justify-content: center; align-items: center; z-index: 9998;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9998;
     }
-    .loading-overlay.show { display: flex; }
+
+    .loading-overlay.show {
+      display: flex;
+    }
   </style>
 </head>
+
 <body>
-  <div id="navbar-container"></div>
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
+
+        <div class="d-none d-lg-flex">
+          <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+          <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+          <a class="nav-link text-white ms-3" href="scrap.html">Scrap</a>
+          <a class="nav-link text-white ms-3" href="reusable.html">Reusable</a>
+          <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+          <a class="nav-link text-white ms-3" href="tracking_v2.html">Tracking</a>
+          <a class="nav-link text-white ms-3" href="queries.html">Querys</a>
+          <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
+          <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
+          <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="small-muted">Role:</div>
+        <div id="current-role" class="role-badge">Loading...</div>
+      </div>
+  </nav>
 
   <div class="container-fluid main-container">
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
+        <!-- Tracking Tabs -->
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item">
+            <button class="nav-link active" id="tab-active" onclick="showActiveTab()">
+              Active
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="tab-completed" onclick="showCompletedTab()">
+              Completed
+            </button>
+          </li>
+        </ul>
+
         <h2 class="fw-bold mb-0">Production Tracking</h2>
         <small class="text-muted">Fabrication → Painting → Dispatch</small>
       </div>
       <div class="d-flex align-items-center gap-3">
         <span class="last-updated">Last updated: <span id="lastUpdate">-</span></span>
         <button class="btn btn-outline-primary btn-sm" onclick="loadTrackingData()">🔄 Refresh</button>
+        <button class="btn btn-success btn-sm" onclick="downloadDispatchReport()">
+          📥 Dispatch Report
+        </button>
+        <!-- Pagination Controls -->
+        <div id="pagination" class="ms-3"></div>
       </div>
     </div>
 
@@ -161,37 +382,39 @@
     </div>
 
     <!-- Kanban Board View -->
-    <div id="kanbanView" class="kanban-board">
-      <div class="kanban-column">
-        <div class="kanban-column-header fabrication-header">
-          <span>🔧 Fabrication</span>
-          <span class="badge bg-white text-dark" id="fabCount">0</span>
+    <div id="activeTracking">
+      <div id="kanbanView" class="kanban-board">
+        <div class="kanban-column">
+          <div class="kanban-column-header fabrication-header">
+            <span>🔧 Fabrication</span>
+            <span class="badge bg-white text-dark" id="fabCount">0</span>
+          </div>
+          <div class="kanban-cards" id="fabCards"></div>
         </div>
-        <div class="kanban-cards" id="fabCards"></div>
-      </div>
-      
-      <div class="kanban-column">
-        <div class="kanban-column-header painting-header">
-          <span>🎨 Painting</span>
-          <span class="badge bg-white text-dark" id="paintCount">0</span>
+
+        <div class="kanban-column">
+          <div class="kanban-column-header painting-header">
+            <span>🎨 Painting</span>
+            <span class="badge bg-white text-dark" id="paintCount">0</span>
+          </div>
+          <div class="kanban-cards" id="paintCards"></div>
         </div>
-        <div class="kanban-cards" id="paintCards"></div>
-      </div>
-      
-      <div class="kanban-column">
-        <div class="kanban-column-header dispatch-header">
-          <span>🚚 Dispatch</span>
-          <span class="badge bg-white text-dark" id="dispatchCount">0</span>
+
+        <div class="kanban-column">
+          <div class="kanban-column-header dispatch-header">
+            <span>🚚 Dispatch</span>
+            <span class="badge bg-white text-dark" id="dispatchCount">0</span>
+          </div>
+          <div class="kanban-cards" id="dispatchCards"></div>
         </div>
-        <div class="kanban-cards" id="dispatchCards"></div>
-      </div>
-      
-      <div class="kanban-column">
-        <div class="kanban-column-header completed-header">
-          <span>✅ Completed</span>
-          <span class="badge bg-white text-dark" id="completeCount">0</span>
+
+        <div class="kanban-column">
+          <div class="kanban-column-header completed-header">
+            <span>✅ Completed</span>
+            <span class="badge bg-white text-dark" id="completeCount">0</span>
+          </div>
+          <div class="kanban-cards" id="completeCards"></div>
         </div>
-        <div class="kanban-cards" id="completeCards"></div>
       </div>
     </div>
 
@@ -246,27 +469,57 @@
       </div>
     </div>
   </div>
+  <!-- COMPLETED TRACKING -->
+  <div id="completedTracking" style="display:none;">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Completed Production Items</h5>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm">
+            <thead class="table-light">
+              <tr>
+                <th>Customer</th>
+                <th>Item Code</th>
+                <th>Item Name</th>
+                <th>Section</th>
+                <th>Quantity</th>
+                <th>Stage</th>
+                <th>Completed At</th>
+              </tr>
+            </thead>
+            <tbody id="completedTableBody"></tbody>
+          </table>
+        </div>
+
+        <button class="btn btn-success btn-sm mt-2" onclick="downloadDispatchReport()">
+          📥 Download Dispatch Report
+        </button>
+      </div>
+    </div>
+  </div>
+
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/main.js"></script>
-  <script src="js/modules/escapeHtml.js"></script>
-  <script src="js/modules/navbar.js"></script>
-  <script src="js/modules/debounce.js"></script>
-  <script src="js/modules/store.js"></script>
-  <script src="js/modules/error-handler.js"></script>
-  <script src="js/modules/ui-components.js"></script>
-  <script src="js/modules/pagination.js"></script>
+  <script src="js/tracking_v2.js"></script>
   <script>
-    if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
-    KBNavbar.render('navbar-container', 'tracking');
-
     const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
 
     let allItems = [];
     let filteredItems = [];
     let customers = [];
     let pendingDeductionItem = null;
+
+    // Pagination state (managed by tracking_v2.js)
+    let currentPage = 1;
+    let totalItems = 0;
+
+    // ===== Utility Functions =====
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
 
     function showToast(message, type = 'success') {
       const toast = document.createElement('div');
@@ -281,21 +534,69 @@
     }
 
     // ===== Data Loading =====
-    async function loadTrackingData() {
+    async function loadTrackingData(page = currentPage) {
       showLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/tracking/all-items`);
-        if (!res.ok) throw new Error('Failed to load tracking data');
-        allItems = await res.json();
-        
-        // Also load customers for filter dropdown
-        const custRes = await fetch(`${API_BASE}/tracking/customers`);
-        if (custRes.ok) {
-          customers = await custRes.json();
-          populateCustomerFilter();
+        // Initialize customers if needed (fetch first to support persistence)
+        if (customers.length === 0) {
+          try {
+            const custRes = await apiFetch(`/tracking/customers`);
+            if (custRes.ok) {
+              customers = await custRes.json();
+              populateCustomerFilter();
+            }
+          } catch (e) { console.warn('Failed to load customers', e); }
         }
-        
-        applyFilters();
+
+        // Build paginated URL
+        const params = new URLSearchParams();
+        params.set('page', page);
+        // Read page size from selector if present (fallback to 50)
+        const pageSizeEl = document.getElementById('kb-page-size');
+        const pageSizeVal = pageSizeEl ? parseInt(pageSizeEl.value, 10) || 50 : 50;
+        console.log(`[HTML Debug] Loading Page ${page}, detected PageSize: ${pageSizeVal}`);
+        params.set('page_size', pageSizeVal);
+
+        // If a customer filter is selected (by id), send company_id
+        const custSelect = document.getElementById('filterCustomer');
+        const custVal = custSelect ? custSelect.value : '';
+        if (custVal) {
+          // Options use customer id values when populated
+          params.set('company_id', custVal);
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        const searchVal = searchInput ? searchInput.value.trim() : '';
+        if (searchVal) {
+          params.set('search', searchVal);
+        }
+
+        const url = `/tracking/all-items?${params.toString()}`;
+        const res = await apiFetch(url);
+        if (!res.ok) throw new Error('Failed to load tracking data');
+
+        const pageData = await res.json();
+        totalItems = pageData.total || 0;
+        currentPage = pageData.page || page;
+
+        // pageData.items now contains full item objects (no N+1 fetches required)
+        allItems = pageData.items || [];
+        if (allItems.length > 0) {
+          console.log('[DEBUG] First Item Weight:', allItems[0].weight_per_unit, allItems[0]);
+        }
+
+
+
+        // Synchronize filteredItems with data from server
+        filteredItems = [...allItems];
+        renderView();
+
+        // Use tracking module to render pagination if available
+        if (typeof window.trackingV2 !== 'undefined' && window.trackingV2.renderPagination) {
+          window.trackingV2.renderPagination(currentPage, pageSizeVal, totalItems);
+        } else {
+          renderPagination(currentPage, pageSizeVal, totalItems);
+        }
         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
       } catch (err) {
         console.error('Load error:', err);
@@ -307,30 +608,29 @@
 
     function populateCustomerFilter() {
       const select = document.getElementById('filterCustomer');
+      const savedVal = localStorage.getItem('kb_filter_customer') || '';
+
       select.innerHTML = '<option value="">All Customers</option>';
-      const uniqueCustomers = [...new Set(allItems.map(it => it.customer_name))].filter(Boolean).sort();
-      uniqueCustomers.forEach(name => {
-        select.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+      (customers || []).forEach(c => {
+        const isSelected = String(c.id) === savedVal ? 'selected' : '';
+        select.innerHTML += `<option value="${c.id}" ${isSelected}>${escapeHtml(c.name)}</option>`;
       });
+      // Ensure element value is sync'd
+      select.value = savedVal;
     }
 
     function applyFilters() {
-      const search = document.getElementById('searchInput').value.toLowerCase().trim();
-      const customer = document.getElementById('filterCustomer').value;
-      
-      filteredItems = allItems.filter(item => {
-        if (customer && item.customer_name !== customer) return false;
-        if (search) {
-          const searchIn = [item.item_name, item.item_code, item.customer_name, item.section].join(' ').toLowerCase();
-          if (!searchIn.includes(search)) return false;
-        }
-        return true;
-      });
-      
-      renderView();
+      // Save filter preference
+      const custVal = document.getElementById('filterCustomer').value;
+      localStorage.setItem('kb_filter_customer', custVal);
+
+      // Reset to page 1 for any fresh search/filter
+      currentPage = 1;
+      loadTrackingData(1);
     }
 
     function clearFilters() {
+      localStorage.removeItem('kb_filter_customer');
       document.getElementById('searchInput').value = '';
       document.getElementById('filterCustomer').value = '';
       applyFilters();
@@ -341,27 +641,70 @@
       const viewMode = document.getElementById('viewMode').value;
       document.getElementById('kanbanView').style.display = viewMode === 'kanban' ? 'flex' : 'none';
       document.getElementById('tableView').style.display = viewMode === 'table' ? 'block' : 'none';
-      
+
       if (viewMode === 'kanban') {
         renderKanban();
       } else {
         renderTable();
       }
-      
+
       updateStats();
     }
 
+    // ===== Pagination Controls (delegated to tracking_v2.js) =====
+    function renderPagination(page, pageSize, total) {
+      if (typeof window.trackingV2 !== 'undefined' && window.trackingV2.renderPagination) {
+        window.trackingV2.renderPagination(page, pageSize, total);
+        return;
+      }
+      // Fallback simple renderer
+      const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
+      const el = document.getElementById('pagination');
+      if (!el) return;
+
+      el.innerHTML = `
+        <div class="d-flex align-items-center">
+          <button class="btn btn-sm btn-outline-secondary me-2" ${page <= 1 ? 'disabled' : ''} onclick="prevPage()">Prev</button>
+          <div class="small-muted">Page ${page} of ${totalPages}</div>
+          <button class="btn btn-sm btn-outline-secondary ms-2" ${page >= totalPages ? 'disabled' : ''} onclick="nextPage()">Next</button>
+        </div>
+      `;
+    }
+
+    function nextPage() {
+      if (typeof window.trackingV2 !== 'undefined' && window.trackingV2.nextPage) {
+        window.trackingV2.nextPage();
+        return;
+      }
+      const totalPages = Math.max(1, Math.ceil((totalItems || 0) / (document.getElementById('kb-page-size') ? parseInt(document.getElementById('kb-page-size').value, 10) : 50)));
+      if (currentPage < totalPages) {
+        currentPage++;
+        loadTrackingData(currentPage);
+      }
+    }
+
+    function prevPage() {
+      if (typeof window.trackingV2 !== 'undefined' && window.trackingV2.prevPage) {
+        window.trackingV2.prevPage();
+        return;
+      }
+      if (currentPage > 1) {
+        currentPage--;
+        loadTrackingData(currentPage);
+      }
+    }
+
     function updateStats() {
-      const fab = filteredItems.filter(it => getStage(it) === 'fabrication').length;
-      const paint = filteredItems.filter(it => getStage(it) === 'painting').length;
-      const dispatch = filteredItems.filter(it => getStage(it) === 'dispatch').length;
-      const complete = filteredItems.filter(it => getStage(it) === 'completed').length;
-      
+      const fab = filteredItems.filter(it => getStage(it) === 'fabrication').reduce((sum, it) => sum + (it.quantity || 1), 0);
+      const paint = filteredItems.filter(it => getStage(it) === 'painting').reduce((sum, it) => sum + (it.quantity || 1), 0);
+      const dispatch = filteredItems.filter(it => getStage(it) === 'dispatch').reduce((sum, it) => sum + (it.quantity || 1), 0);
+      const complete = filteredItems.filter(it => getStage(it) === 'completed').reduce((sum, it) => sum + (it.quantity || 1), 0);
+
       document.getElementById('countFab').textContent = fab;
       document.getElementById('countPaint').textContent = paint;
       document.getElementById('countDispatch').textContent = dispatch;
       document.getElementById('countComplete').textContent = complete;
-      
+
       document.getElementById('fabCount').textContent = fab;
       document.getElementById('paintCount').textContent = paint;
       document.getElementById('dispatchCount').textContent = dispatch;
@@ -369,7 +712,9 @@
     }
 
     function getStage(item) {
-      // Determine current stage from status fields
+      // Prefer explicit current_stage returned by backend when available
+      if (item.current_stage) return (item.current_stage || 'fabrication').toLowerCase();
+      // Fallback to legacy status fields
       if (item.dispatch_status === 'completed') return 'completed';
       if (item.dispatch_status === 'in_progress' || item.painting_status === 'completed') return 'dispatch';
       if (item.painting_status === 'in_progress' || item.fabrication_status === 'completed') return 'painting';
@@ -388,10 +733,10 @@
         dispatch: document.getElementById('dispatchCards'),
         completed: document.getElementById('completeCards')
       };
-      
+
       // Clear all
       Object.values(containers).forEach(c => c.innerHTML = '');
-      
+
       // Sort and distribute items
       filteredItems.forEach(item => {
         const stage = getStage(item);
@@ -400,7 +745,7 @@
           containers[stage].appendChild(card);
         }
       });
-      
+
       // Show empty state if no items
       Object.entries(containers).forEach(([stage, container]) => {
         if (container.children.length === 0) {
@@ -413,58 +758,112 @@
       const card = document.createElement('div');
       card.className = `tracking-card ${stage}`;
       card.dataset.itemId = item.id;
-      
+
       const checklist = item.checklist || [];
       const checklistDone = checklist.filter(c => c.done).length;
       const checklistTotal = checklist.length;
-      
+
       const nextStage = getNextStage(stage);
-      const showCompleteBtn = stage !== 'completed';
-      
-      const deductedBadge = item.fabrication_deducted 
-        ? '<span class="deducted-badge">✓ Deducted</span>' 
+
+      // Role-based visibility
+      const userRole = localStorage.getItem('kb_role');
+      let isVisibleAction = true;
+      let actionTooltip = "";
+
+      if (userRole === "Fabricator" && stage !== "fabrication") {
+        isVisibleAction = false;
+        actionTooltip = " title='Fabricator can only update fabrication stage' ";
+      } else if (userRole === "Painter" && stage !== "painting") {
+        isVisibleAction = false;
+        actionTooltip = " title='Painter can only update painting stage' ";
+      } else if (userRole === "Dispatch" && stage !== "dispatch") {
+        isVisibleAction = false;
+        actionTooltip = " title='Dispatch can only update dispatch stage' ";
+      }
+
+      const showCompleteBtn = stage !== 'completed' && isVisibleAction;
+      const canComplete = checklistTotal === 0 ? true : (checklistDone === checklistTotal);
+
+      const weight = item.weight_per_unit || 0;
+      const initialQty = item.quantity || 1;
+
+      const deductedBadge = item.fabrication_deducted
+        ? '<span class="deducted-badge">✓ Deducted</span>'
         : '';
-      
+
       card.innerHTML = `
-        <div class="card-title">${escapeHtml(item.item_name)} ${stage === 'fabrication' ? deductedBadge : ''}</div>
-        <div class="card-code">${escapeHtml(item.item_code)} • ${escapeHtml(item.customer_name)}</div>
+        <div class="card-title">${escapeHtml(item.item_code)} ${stage === 'fabrication' ? deductedBadge : ''}</div>
+        <div class="card-code">${escapeHtml(item.item_name)} • ${escapeHtml(item.customer_name)}</div>
+        
         <div class="card-meta">
           ${item.section ? `Section: ${escapeHtml(item.section)} • ` : ''}
-          Qty: ${item.quantity || 1} ${escapeHtml(item.unit || '')}
+          <div class="qty-control mt-2">
+             <label class="small me-2">Quantity to move:</label>
+             <div class="input-group input-group-sm" style="width: 120px;" ${actionTooltip}>
+                <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, -1, ${initialQty})" ${!isVisibleAction ? 'disabled' : ''}>-</button>
+                <input type="number" class="form-control text-center" id="qty-${item.id}" value="${initialQty}" min="1" max="${initialQty}" readonly>
+                <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, 1, ${initialQty})" ${!isVisibleAction ? 'disabled' : ''}>+</button>
+             </div>
+             <div class="small text-muted mt-1" id="weight-info-${item.id}">
+                Weight: ${weight.toFixed(3)} kg | Total: ${(initialQty * weight).toFixed(3)} kg
+             </div>
+          </div>
         </div>
         
-        <div class="checklist-inline" id="checklist-${item.id}">
+        <div class="checklist-inline mt-3" id="checklist-${item.id}" ${actionTooltip}>
           ${checklist.map((c, idx) => `
-            <div class="checklist-item ${c.done ? 'done' : ''}" onclick="toggleChecklistItem(${item.id}, ${idx})">
-              <input type="checkbox" ${c.done ? 'checked' : ''} onclick="event.stopPropagation(); toggleChecklistItem(${item.id}, ${idx})">
+            <div class="checklist-item ${c.done ? 'done' : ''}" onclick="${isVisibleAction ? `toggleChecklistItem(${item.id}, ${idx})` : ''}" style="${!isVisibleAction ? 'cursor: not-allowed;' : ''}">
+              <input type="checkbox" ${c.done ? 'checked' : ''} onclick="event.stopPropagation(); ${isVisibleAction ? `toggleChecklistItem(${item.id}, ${idx})` : 'return false;'}">
               <label>${escapeHtml(c.item)}</label>
             </div>
           `).join('')}
-          <div class="checklist-add">
+          <div class="checklist-add" style="${!isVisibleAction ? 'display: none;' : ''}">
             <input type="text" placeholder="Add checklist item..." id="newCheck-${item.id}" onkeypress="if(event.key==='Enter') addChecklistItem(${item.id})">
             <button onclick="addChecklistItem(${item.id})">+</button>
           </div>
         </div>
         
-        ${showCompleteBtn ? `
-          <button class="complete-btn ${stage}" onclick="completeStage(${item.id}, '${stage}')">
-            ✓ Complete ${stage.charAt(0).toUpperCase() + stage.slice(1)}
-          </button>
-        ` : '<div class="text-center mt-2 text-success small">✅ Fully Completed</div>'}
+        ${stage === 'completed'
+          ? '<div class="text-center mt-2 text-success small">✅ Fully Completed</div>'
+          : (showCompleteBtn
+            ? `
+                  <button class="complete-btn ${stage}" ${!canComplete ? 'disabled' : ''} onclick="advanceStage(${item.id}, '${stage}')">
+                    ✓ Complete ${stage.charAt(0).toUpperCase() + stage.slice(1)}
+                  </button>
+                `
+            : `<div class="text-center mt-2 text-muted small" ${actionTooltip}>🔒 View Only</div>`
+          )
+        }
       `;
-      
+
       return card;
+    }
+
+    function updateQty(itemId, delta, maxQty) {
+      const input = document.getElementById(`qty-${itemId}`);
+      const info = document.getElementById(`weight-info-${itemId}`);
+      if (!input) return;
+
+      let val = parseInt(input.value) + delta;
+      if (val < 1) val = 1;
+      if (val > maxQty) val = maxQty;
+      input.value = val;
+
+      const item = filteredItems.find(i => i.id === itemId);
+      if (item && item.weight_per_unit) {
+        info.innerHTML = `Weight: ${item.weight_per_unit.toFixed(3)} kg | Total: ${(val * item.weight_per_unit).toFixed(3)} kg`;
+      }
     }
 
     function renderTable() {
       const tbody = document.getElementById('tableBody');
       tbody.innerHTML = '';
-      
+
       filteredItems.forEach(item => {
         const stage = getStage(item);
         const checklist = item.checklist || [];
         const checklistDone = checklist.filter(c => c.done).length;
-        
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${escapeHtml(item.customer_name)}</td>
@@ -478,7 +877,7 @@
           <td>${checklistDone}/${checklist.length}</td>
           <td>
             ${stage !== 'completed' ? `
-              <button class="btn btn-sm btn-outline-success" onclick="completeStage(${item.id}, '${stage}')">
+              <button class="btn btn-sm btn-outline-success" onclick="advanceStage(${item.id}, '${stage}')">
                 Complete
               </button>
             ` : '✅'}
@@ -496,19 +895,22 @@
     async function toggleChecklistItem(itemId, index) {
       const item = allItems.find(it => it.id === itemId);
       if (!item) return;
-      
+
       const checklist = item.checklist || [];
       if (checklist[index]) {
         checklist[index].done = !checklist[index].done;
       }
-      
+
       try {
-        await fetch(`${API_BASE}/tracking/items/${itemId}/checklist`, {
+        // Sync checklist to main item DB via PUT /tracking/items/{id}/checklist
+        const res = await apiFetch(`/tracking/items/${itemId}/checklist`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(checklist)
         });
-        
+
+        if (!res.ok) throw new Error('Sync failed');
+
         // Update local state and re-render card
         item.checklist = checklist;
         const card = document.querySelector(`[data-item-id="${itemId}"]`);
@@ -517,6 +919,19 @@
           const newCard = createTrackingCard(item, stage);
           card.replaceWith(newCard);
         }
+
+        // Sync checklist completion to StageTracking.is_checked
+        try {
+          const total = checklist.length || 0;
+          const done = checklist.filter(c => c.done).length;
+          if (total > 0 && done === total) {
+            // fully complete -> notify backend stage tracking
+            await syncStageChecklist(itemId, true);
+          } else {
+            // partially/unchecked -> clear flag
+            await syncStageChecklist(itemId, false);
+          }
+        } catch (e) { console.warn('Checklist sync failed', e); }
       } catch (err) {
         console.error('Checklist update failed:', err);
         showToast('Failed to update checklist', 'danger');
@@ -527,23 +942,26 @@
       const input = document.getElementById(`newCheck-${itemId}`);
       const text = input.value.trim();
       if (!text) return;
-      
+
       const item = allItems.find(it => it.id === itemId);
       if (!item) return;
-      
+
       const checklist = item.checklist || [];
       checklist.push({ item: text, done: false });
-      
+
       try {
-        await fetch(`${API_BASE}/tracking/items/${itemId}/checklist`, {
+        // Sync checklist to main item DB via PUT /tracking/items/{id}/checklist
+        const res = await apiFetch(`/tracking/items/${itemId}/checklist`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(checklist)
         });
-        
+
+        if (!res.ok) throw new Error('Sync failed');
+
         item.checklist = checklist;
         input.value = '';
-        
+
         // Re-render card
         const card = document.querySelector(`[data-item-id="${itemId}"]`);
         if (card) {
@@ -551,6 +969,8 @@
           const newCard = createTrackingCard(item, stage);
           card.replaceWith(newCard);
         }
+        // New item added -> ensure stage checklist flag is false until completed
+        try { await syncStageChecklist(itemId, false); } catch (e) { console.warn('Checklist sync failed', e); }
       } catch (err) {
         console.error('Add checklist failed:', err);
         showToast('Failed to add checklist item', 'danger');
@@ -561,19 +981,19 @@
     async function completeStage(itemId, currentStage) {
       const item = allItems.find(it => it.id === itemId);
       if (!item) return;
-      
+
       // If completing fabrication, show deduction preview first
       if (currentStage === 'fabrication' && !item.fabrication_deducted) {
         showDeductionPreview(item);
         return;
       }
-      
+
       await performStageCompletion(itemId, currentStage);
     }
 
     function showDeductionPreview(item) {
       pendingDeductionItem = item;
-      
+
       let previewHtml = '';
       if (item.material_requirements) {
         try {
@@ -589,14 +1009,14 @@
       } else {
         previewHtml = '<p class="mb-0 text-warning">⚠️ No material requirements linked. No deduction will occur.</p>';
       }
-      
+
       document.getElementById('deductionPreview').innerHTML = previewHtml;
       new bootstrap.Modal(document.getElementById('deductionModal')).show();
     }
 
     document.getElementById('confirmDeductionBtn').addEventListener('click', async () => {
       if (!pendingDeductionItem) return;
-      
+
       bootstrap.Modal.getInstance(document.getElementById('deductionModal')).hide();
       await performStageCompletion(pendingDeductionItem.id, 'fabrication');
       pendingDeductionItem = null;
@@ -604,44 +1024,120 @@
 
     async function performStageCompletion(itemId, currentStage) {
       showLoading(true);
-      
       try {
-        // Start stage if not already started
-        await fetch(`${API_BASE}/tracking/start-stage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ production_item_id: itemId, stage: currentStage })
-        });
-        
-        // Complete stage
-        const res = await fetch(`${API_BASE}/tracking/complete-stage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ production_item_id: itemId, stage: currentStage })
-        });
-        
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || 'Failed to complete stage');
+        // Redundant ensureStageStarted call removed to prevent 405/409 errors. 
+        // Backend TrackingService.advance_stage handles internal lifecycle.
+
+        // Verify checklist completeness locally and sync to StageTracking if applicable
+        const item = allItems.find(it => it.id === itemId) || {};
+        const checklist = item.checklist || [];
+        const total = checklist.length || 0;
+        const done = checklist.filter(c => c.done).length;
+
+        if (total > 0 && done !== total) {
+          throw new Error('Checklist not complete');
         }
-        
+
+        // Always mark stage as checked before advancing (required by backend)
+        await syncChecklistToBackend(itemId, true);
+
+        // Advance stage via authoritative PUT endpoint
         const nextStage = getNextStage(currentStage);
+        if (!nextStage) throw new Error('No next stage available');
+
+        const qtyInput = document.getElementById(`qty-${itemId}`);
+        const move_quantity = qtyInput ? parseInt(qtyInput.value) : null;
+
+        const res = await apiFetch(`/api/tracking/${itemId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stage: nextStage,
+            move_quantity: move_quantity
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          throw new Error((err && err.detail) || `Failed to advance to ${nextStage}`);
+        }
+
         showToast(`✅ ${currentStage.charAt(0).toUpperCase() + currentStage.slice(1)} completed! ${currentStage === 'fabrication' ? 'Materials deducted.' : ''}`);
-        
-        // Reload data
         await loadTrackingData();
-        
+
       } catch (err) {
         console.error('Stage completion error:', err);
-        showToast(err.message, 'danger');
+        showToast(err.message || 'Stage completion failed', 'danger');
       } finally {
         showLoading(false);
       }
     }
 
+    // Helper: sync checklist completion flag to StageTracking via PUT /tracking/{id}
+    // New helper that talks to the authoritative tracking API to set StageTracking.is_checked
+    async function syncChecklistToBackend(itemId, checked) {
+      const res = await apiFetch(`/api/tracking/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_checked: !!checked })
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        throw new Error((j && (j.detail || j.message)) || 'Failed to sync checklist');
+      }
+      return res;
+    }
+
+    // Backwards-compatible alias used elsewhere in the file
+    async function syncStageChecklist(itemId, checked) {
+      try { return await syncChecklistToBackend(itemId, checked); } catch (e) { console.warn('syncStageChecklist failed', e); }
+    }
+
+    // Helper: ensure the stage row exists and is marked started (best-effort)
+    async function ensureStageStarted(itemId, stage) {
+      try {
+        await apiFetch(`/api/tracking/start-stage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ production_item_id: itemId, stage: stage })
+        });
+      } catch (e) {
+        // Best-effort; ignore failures here and allow authoritative PUT to surface errors
+        console.warn('ensureStageStarted failed', e);
+      }
+    }
+
+    // New explicit advanceStage wrapper that follows required contract:
+    // 1) sync checklist completion to backend
+    // 2) advance stage via authoritative PUT
+    async function advanceStage(itemId, currentStage) {
+      const item = allItems.find(it => it.id === itemId);
+      if (!item) return;
+
+      const checklist = item.checklist || [];
+      const total = checklist.length || 0;
+      const done = checklist.filter(c => c.done).length;
+
+      try {
+        if (total > 0 && done === total) {
+          await syncChecklistToBackend(itemId, true);
+          showToast('Checklist completed', 'success');
+        } else if (total > 0 && done !== total) {
+          showToast('Checklist must be completed before advancing stage', 'warning');
+          return;
+        }
+
+        // proceed to advance
+        await performStageCompletion(itemId, currentStage);
+      } catch (e) {
+        console.error('advanceStage failed', e);
+        showToast(e.message || 'Stage advance failed', 'danger');
+      }
+    }
+
     // ===== View Mode Change =====
     document.getElementById('viewMode').addEventListener('change', renderView);
-    
+
     // ===== Search on Enter =====
     document.getElementById('searchInput').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') applyFilters();
@@ -649,6 +1145,104 @@
 
     // ===== Initial Load =====
     loadTrackingData();
+    async function downloadDispatchReport() {
+      try {
+        const res = await apiFetch('/api/tracking/export/dispatch');
+
+        if (!res.ok) {
+          alert('You are not authorized or report not available');
+          return;
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dispatch_report.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Download failed: ' + err.message);
+      }
+    }
+
+    async function apiFetch(path, opts = {}) {
+      opts.headers = opts.headers || {};
+
+      const token =
+        (typeof KBAuth !== 'undefined' && KBAuth.getToken)
+          ? KBAuth.getToken()
+          : localStorage.getItem('kb_token') || localStorage.getItem('access_token');
+
+      if (token) {
+        opts.headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(path.startsWith('http') ? path : API_BASE + path, opts);
+      if (!res.ok) {
+        try {
+          const j = await res.json().catch(() => null);
+          if (j && j.detail) showToast(j.detail, 'danger');
+          else showToast(`Request failed (${res.status})`, 'danger');
+        } catch (e) {
+          showToast(`Request failed (${res.status})`, 'danger');
+        }
+      }
+      return res;
+    }
+    function showActiveTab() {
+      document.getElementById("activeTracking").style.display = "block";
+      document.getElementById("completedTracking").style.display = "none";
+
+      document.getElementById("tab-active").classList.add("active");
+      document.getElementById("tab-completed").classList.remove("active");
+    }
+
+    function showCompletedTab() {
+      document.getElementById("activeTracking").style.display = "none";
+      document.getElementById("completedTracking").style.display = "block";
+
+      document.getElementById("tab-active").classList.remove("active");
+      document.getElementById("tab-completed").classList.add("active");
+
+      loadCompletedItems();
+    }
+    async function loadCompletedItems() {
+      try {
+        const res = await apiFetch('/api/tracking/completed');
+        if (!res.ok) {
+          alert("Failed to load completed items");
+          return;
+        }
+
+        const data = await res.json();
+        const tbody = document.getElementById("completedTableBody");
+        tbody.innerHTML = "";
+
+        data.forEach(item => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+        <td>${item.customer?.name || ''}</td>
+        <td>${item.item_code}</td>
+        <td>${item.item_name}</td>
+        <td>${item.section || ''}</td>
+        <td>${item.quantity || ''}</td>
+        <td>${item.current_stage}</td>
+        <td>${item.stage_updated_at ? new Date(item.stage_updated_at).toLocaleString() : ''}</td>
+      `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        alert("Error loading completed items: " + err.message);
+      }
+    }
+
+
   </script>
 </body>
+
 </html>

@@ -1,19 +1,39 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float, CheckConstraint
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float
 from sqlalchemy.orm import relationship
 from .db import Base
+from sqlalchemy.sql import func
+
+
 
 
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    role = Column(String, nullable=False)
-    is_active = Column(Boolean, default=True)  # Account status
-    created_at = Column(DateTime, default=datetime.utcnow)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+
+    #STRICT ROLE CONTROL
+    role = Column(
+        String,
+        nullable=False,
+        default="user"  # default safe role
+    )
+
+    company = Column(String, nullable=True)
+
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    @property
+    def password_hash(self):
+        return self.hashed_password
+
+    @password_hash.setter
+    def password_hash(self, value):
+        self.hashed_password = value
 
 
 class Customer(Base):
@@ -24,9 +44,11 @@ class Customer(Base):
     email = Column(String, nullable=True, index=True)
     phone = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
-    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Order-level status: ACTIVE | COMPLETED | ARCHIVED
+    order_status = Column(String, default="ACTIVE")
+    # Soft-delete flag for customers (do NOT hard delete customers)
+    is_deleted = Column(Boolean, default=False)
     production_items = relationship("ProductionItem", back_populates="customer")
 
 
@@ -55,16 +77,18 @@ class ProductionItem(Base):
     fabrication_deducted = Column(Boolean, default=False)
     # Also use material_deducted as an alias for FIFO deduction tracking
     material_deducted = Column(Boolean, default=False)
-    # BOM link: nullable FK to assemblies table (backward compat bridge)
-    assembly_id = Column(Integer, ForeignKey("assemblies.id"), nullable=True)
-    # Per-piece completion tracking
-    completed_qty = Column(Integer, nullable=True, default=0)
-    is_deleted = Column(Boolean, default=False)
-    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     customer = relationship("Customer", back_populates="production_items")
     stages = relationship("StageTracking", back_populates="production_item")
+    is_completed = Column(Boolean, default=False)
+    # Soft-archive flag for completed items. Additive change, safe default False.
+    is_archived = Column(Boolean, default=False)
+    # Parent link for split items (nullable). Additive, safe.
+    parent_item_id = Column(Integer, ForeignKey("production_items.id"), nullable=True)
+    # Optional link to originating Excel upload (nullable)
+    excel_upload_id = Column(Integer, ForeignKey("excel_uploads.id"), nullable=True)
+    FINAL_STAGE = "dispatch"
+
 
 
 class StageTracking(Base):
@@ -83,13 +107,34 @@ class StageTracking(Base):
 class Query(Base):
     __tablename__ = "queries"
     id = Column(Integer, primary_key=True, index=True)
-    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    # Backwards-compatible fields (existing application data)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     production_item_id = Column(Integer, ForeignKey("production_items.id"), nullable=True)
     stage = Column(String, nullable=True)
-    description = Column(Text, nullable=False)
+    # New fields for user-facing queries
+    title = Column(String, nullable=True)
+    message = Column(Text, nullable=True)
+    # Keep legacy description/image_path for compatibility
+    description = Column(Text, nullable=True)
     image_path = Column(String, nullable=True)
-    status = Column(String, nullable=False, default="open")
-    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Who created the query (users.id)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    status = Column(
+        String,
+        default="OPEN",  # OPEN | IN_PROGRESS | CLOSED
+        nullable=False
+    )
+
+    admin_reply = Column(Text, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now()
+    )
 
 
 class Instruction(Base):
@@ -116,9 +161,6 @@ class MaterialUsage(Base):
 
 class Inventory(Base):
     __tablename__ = "inventory"
-    __table_args__ = (
-        CheckConstraint('used <= total', name='ck_inventory_used_lte_total'),
-    )
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     unit = Column(String, nullable=True)
@@ -128,10 +170,7 @@ class Inventory(Base):
     code = Column(String, nullable=True)
     section = Column(String, nullable=True)
     category = Column(String, nullable=True)
-    is_deleted = Column(Boolean, default=False)
-    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Notification(Base):
@@ -140,9 +179,32 @@ class Notification(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     role = Column(String, nullable=True)  # target role (optional)
     message = Column(Text, nullable=False)
+    # Backwards-compatible title property (no DB column) - derived from message
+    @property
+    def title(self):
+        if self.message:
+            return (self.message[:100] + "...") if len(self.message) > 100 else self.message
+        return ""
     level = Column(String, nullable=False, default="info")
+    category = Column(String, nullable=True) # e.g. "stage_changes", "instr_from_boss"
     read = Column(Boolean, default=False)
+
+    @property
+    def is_read(self):
+        return bool(self.read)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ActivityLog(Base):
+    """
+    Generic activity log for system-wide events (e.g., inventory resets).
+    """
+    __tablename__ = "activity_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String, nullable=False) # e.g. "RESET_CONSUMED"
+    description = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
 
 
 class NotificationSetting(Base):
@@ -160,6 +222,15 @@ class NotificationSetting(Base):
     low_inventory = Column(Boolean, default=True)
     dispatch_completed = Column(Boolean, default=True)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ExcelUpload(Base):
+    __tablename__ = "excel_uploads"
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String, nullable=False)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    is_deleted = Column(Boolean, default=False)
 
 
 class MaterialConsumption(Base):
@@ -215,10 +286,8 @@ class ScrapRecord(Base):
     notes = Column(Text, nullable=True)
     status = Column(String, default="pending")  # pending, returned_to_inventory, disposed, recycled, sold
     scrap_value = Column(Float, nullable=True)  # Sale value if sold
-    return_movement_id = Column(Integer, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class ReusableStock(Base):
@@ -239,12 +308,16 @@ class ReusableStock(Base):
     used_in_item_id = Column(Integer, ForeignKey("production_items.id"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
-def active_only(query, model):
-    """Filter query to exclude soft-deleted records."""
-    if hasattr(model, 'is_deleted'):
-        query = query.filter(model.is_deleted == False)
-    return query
+class MaterialMapping(Base):
+    """Link Excel product/profile names to specific inventory materials"""
+    __tablename__ = "material_mappings"
+    id = Column(Integer, primary_key=True, index=True)
+    excel_name = Column(String, unique=True, nullable=False, index=True)
+    material_id = Column(Integer, ForeignKey("inventory.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship to Inventory
+    material = relationship("Inventory")
 

@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 
 # Virtual environment
 .venv/
@@ -33,11 +32,9 @@ pip-delete-this-directory.txt
 # Pytest cache
 .pytest_cache/
 
-# Environment variables
+# local env files
 .env
 .env.*
-.env.local
-.env.production
 
 # SQLite database
 *.sqlite3
@@ -51,25 +48,9 @@ backend_core/data/
 temp_*.py
 check_*.py
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# Old project folders
+kbsteel-main/
 
 # OS files
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# Node
-node_modules/
-
-# Third-party projects (do not commit)
-erpnext-develop/
-erpnext-docker/
-WebErpMesv2-WEM-2.0/
-steel_erp/
-kbsteel-main/

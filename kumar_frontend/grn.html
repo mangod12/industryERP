@@ -524,8 +524,9 @@
         document.getElementById('detailTareWeight').textContent = `${((grn.tare_weight_kg || 0) / 1000).toFixed(3)} MT`;
         document.getElementById('detailNetWeight').textContent = `${((grn.total_net_weight_kg || 0) / 1000).toFixed(3)} MT`;
 
-        // Extract line items from the GRN detail response
-        const items = grn.line_items || [];
+        // Load line items
+        const itemsRes = await fetch(`${API_BASE}/api/v2/grn/${id}/items`);
+        const items = itemsRes.ok ? await itemsRes.json() : [];
         
         const itemsBody = document.getElementById('lineItemsBody');
         if (items.length === 0) {

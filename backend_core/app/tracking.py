@@ -1,18 +1,14 @@
 from datetime import datetime
-import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from sqlalchemy import select, exists, and_, or_, func
 import json
 
 from . import models, schemas
 from .deps import get_db, require_role, get_current_user
-from .services.deduction_service import DeductionService, InsufficientStockError
 
-logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/tracking", tags=["tracking"])
+router = APIRouter()
 
 STAGE_ORDER = ["fabrication", "painting", "dispatch"]
 
@@ -21,124 +17,45 @@ def _capitalize_stage(s: str) -> str:
     return s.capitalize() if s else s
 
 
-def _deduct_materials_for_fabrication(item: models.ProductionItem, db: Session, user_id: int) -> dict:
-    """
-    Automatically deduct raw materials from inventory when fabrication is completed.
-    Delegates to DeductionService for race-condition-safe, atomic deduction.
+def _get_or_create_stage(db: Session, item_id: int, stage: str, user_id: int):
+    """Return existing StageTracking row for (item_id, stage) or create an in_progress one.
 
-    Returns:
-        dict with deduction details: {success: bool, deducted: [], skipped_reason: str}
+    Best-effort: adds the row to the session but does not commit.
     """
-    try:
-        svc_result = DeductionService.deduct_materials_for_item(
-            db=db,
-            production_item_id=item.id,
-            user_id=user_id,
-            trigger="fabrication_complete",
+    row = db.query(models.StageTracking).filter(
+        models.StageTracking.production_item_id == item_id,
+        models.StageTracking.stage == stage
+    ).first()
+
+    if not row:
+        row = models.StageTracking(
+            production_item_id=item_id,
+            stage=stage,
+            status="in_progress",
+            started_at=datetime.utcnow(),
+            updated_by=user_id
         )
-        return {
-            "success": svc_result.success,
-            "deducted": [
-                {"material": d.material_name, "qty": d.qty, "unit": d.unit}
-                for d in svc_result.deductions
-            ],
-            "skipped_reason": svc_result.skipped_reason,
-            "warnings": svc_result.warnings,
-        }
-    except InsufficientStockError as e:
-        logger.warning("Deduction failed for item %s: %s", item.item_code, e)
-        return {
-            "success": False,
-            "deducted": [],
-            "skipped_reason": str(e),
-            "warnings": [str(e)],
-        }
+        db.add(row)
+    return row
+
+
+
 
 
 @router.post("/start-stage", response_model=schemas.StageStatusOut)
 def start_stage(action: schemas.StageAction, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor"))):
-    item = db.query(models.ProductionItem).filter(models.ProductionItem.id == action.production_item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Production item not found")
-    stage = action.stage
-    if stage not in STAGE_ORDER:
-        raise HTTPException(status_code=400, detail="Invalid stage")
-
-    idx = STAGE_ORDER.index(stage)
-    if idx > 0:
-        prev = STAGE_ORDER[idx - 1]
-        prev_row = db.query(models.StageTracking).filter(models.StageTracking.production_item_id == item.id, models.StageTracking.stage == prev, models.StageTracking.status == "completed").first()
-        if not prev_row:
-            raise HTTPException(status_code=400, detail=f"Previous stage '{prev}' must be completed before starting '{stage}'")
-
-    inprog = db.query(models.StageTracking).filter(models.StageTracking.production_item_id == item.id, models.StageTracking.status == "in_progress").first()
-    if inprog:
-        raise HTTPException(status_code=400, detail="Another stage is already in progress for this item")
-
-    row = db.query(models.StageTracking).filter(models.StageTracking.production_item_id == item.id, models.StageTracking.stage == stage).first()
-    now = datetime.utcnow()
-    if row:
-        row.status = "in_progress"
-        row.started_at = now
-        row.updated_by = current_user.id
-    else:
-        row = models.StageTracking(production_item_id=item.id, stage=stage, status="in_progress", started_at=now, updated_by=current_user.id)
-        db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row
+    raise HTTPException(
+        status_code=409,
+        detail="Stage updates are managed via Tracking V2 system"
+    )
 
 
 @router.post("/complete-stage", response_model=schemas.StageStatusOut)
 def complete_stage(action: schemas.StageAction, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor"))):
-    item = db.query(models.ProductionItem).filter(models.ProductionItem.id == action.production_item_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Production item not found")
-    stage = action.stage
-    if stage not in STAGE_ORDER:
-        raise HTTPException(status_code=400, detail="Invalid stage")
-
-    row = db.query(models.StageTracking).filter(models.StageTracking.production_item_id == item.id, models.StageTracking.stage == stage).first()
-    if not row or row.status != "in_progress":
-        raise HTTPException(status_code=400, detail="Stage is not in progress")
-    row.status = "completed"
-    row.completed_at = datetime.utcnow()
-    row.updated_by = current_user.id
-    
-    deduction_result = None
-    
-    # AUTO-DEDUCTION: When fabrication is completed, deduct raw materials
-    if stage == "fabrication":
-        deduction_result = _deduct_materials_for_fabrication(item, db, current_user.id)
-    
-    # Update item's current_stage to next stage
-    stage_idx = STAGE_ORDER.index(stage)
-    if stage_idx < len(STAGE_ORDER) - 1:
-        next_stage = STAGE_ORDER[stage_idx + 1]
-        item.current_stage = next_stage
-    else:
-        item.current_stage = "completed"
-    
-    item.stage_updated_at = datetime.utcnow()
-    item.stage_updated_by = current_user.id
-    db.add(item)
-    
-    # Log stage change history
-    history = models.TrackingStageHistory(
-        material_id=item.id,
-        from_stage=stage,
-        to_stage=item.current_stage,
-        changed_by=current_user.id,
-        remarks=f"Stage '{stage}' completed"
+    raise HTTPException(
+        status_code=409,
+        detail="Stage updates are managed via Tracking V2 system"
     )
-    db.add(history)
-    
-    db.commit()
-    db.refresh(row)
-    
-    # Return with deduction info (not in response model, but useful for API consumers)
-    # The standard response_model will filter this out, but logs can use it
-    return row
 
 
 def _serialize_stage(row: models.StageTracking) -> schemas.StageStatusOut:
@@ -161,13 +78,14 @@ def _serialize_item_with_stages(item: models.ProductionItem, db: Session) -> sch
         checklist=item.checklist,
         notes=item.notes,
         fabrication_deducted=item.fabrication_deducted,
+        current_stage=item.current_stage,
         stages=[_serialize_stage(s) for s in stages],
     )
 
 
 @router.get("/customer/{customer_id}", response_model=schemas.CustomerTrackingOut)
 def get_customer_tracking(customer_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor", "User"))):
-    cust = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
+    cust = db.query(models.Customer).filter(models.Customer.id == customer_id, models.Customer.is_deleted == False).first()
     if not cust:
         raise HTTPException(status_code=404, detail="Customer not found")
 
@@ -254,7 +172,7 @@ def list_customers_compat(
     When no item/stage filters are provided it behaves exactly as before.
     All provided filters are combined with AND logic.
     """
-    cust_query = db.query(models.Customer)
+    cust_query = db.query(models.Customer).filter(models.Customer.is_deleted == False)
     if name:
         cust_query = cust_query.filter(models.Customer.name.ilike(f"%{name}%"))
     if project:
@@ -358,7 +276,7 @@ def list_customers_compat(
         mu_ids = [r[0] for r in mu_q.all()]
         matching_cust_ids = [cid for cid in matching_cust_ids if cid in mu_ids]
 
-    selected_customers = db.query(models.Customer).filter(models.Customer.id.in_(matching_cust_ids)).all()
+    selected_customers = db.query(models.Customer).filter(models.Customer.id.in_(matching_cust_ids), models.Customer.is_deleted == False).all()
     out = []
     for c in selected_customers:
         out.append({"id": c.id, "name": c.name, "current_stage": compute_current_stage_for_customer(c)})
@@ -377,7 +295,7 @@ def update_customer_stage_compat(customer_id: int, payload: dict, db: Session = 
     action = payload.get('action')
     if stage not in STAGE_ORDER:
         raise HTTPException(status_code=400, detail='Invalid stage')
-    cust = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
+    cust = db.query(models.Customer).filter(models.Customer.id == customer_id, models.Customer.is_deleted == False).first()
     if not cust:
         raise HTTPException(status_code=404, detail='Customer not found')
 
@@ -419,27 +337,14 @@ def update_customer_stage_compat(customer_id: int, payload: dict, db: Session = 
                 db.commit()
                 db.refresh(row)
                 results.append(_serialize_stage(row))
-                # Add deduction for fabrication stage
-                if stage == 'fabrication':
-                    try:
-                        from .services.deduction_service import DeductionService
-                        DeductionService.deduct_materials_for_item(
-                            db=db,
-                            production_item_id=item.id,
-                            user_id=current_user.id,
-                            trigger="bulk_stage_complete",
-                        )
-                    except Exception as e:
-                        logger.warning("Bulk deduction failed for item %s: %s", item.id, e)
-        except Exception as e:
-            logger.error("Failed to update stage for item %s: %s", item.id, e)
+        except Exception:
             continue
     return {"updated": len(results), "details": [r.dict() for r in results]}
 
 
 @router.post("/customers/{customer_id}/material-usage", response_model=schemas.MaterialUsageOut)
 def post_material_usage(customer_id: int, mu: schemas.MaterialUsageCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor", "User"))):
-    cust = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
+    cust = db.query(models.Customer).filter(models.Customer.id == customer_id, models.Customer.is_deleted == False).first()
     if not cust:
         raise HTTPException(status_code=404, detail='Customer not found')
     m = models.MaterialUsage(customer_id=customer_id, production_item_id=mu.production_item_id, name=mu.name, qty=mu.qty, unit=mu.unit, by=mu.by)
@@ -466,7 +371,11 @@ def search_production_items(
     Search production items across all customers with optional filters.
     Returns items with their current stage status.
     """
-    query = db.query(models.ProductionItem)
+    # Only include live (non-archived) production items for main tracking list
+    query = db.query(models.ProductionItem).join(models.Customer).filter(
+        models.Customer.is_deleted == False,
+        models.ProductionItem.is_archived == False
+    )
     
     if search:
         search_term = f"%{search}%"
@@ -616,8 +525,16 @@ def get_dashboard_summary(
     total_value = sum((item.total - item.used) for item in inventory_items)
     low_stock = sum(1 for item in inventory_items if item.total > 0 and (item.total - item.used) / item.total < 0.15)
     
-    # Get all production items
-    all_items = db.query(models.ProductionItem).all()
+    # Get all production items belonging to non-deleted customers and not archived
+    all_items = (
+        db.query(models.ProductionItem)
+        .join(models.Customer, models.ProductionItem.customer_id == models.Customer.id)
+        .filter(
+            models.Customer.is_deleted == False,
+            models.ProductionItem.is_archived == False
+        )
+        .all()
+    )
     
     # Count items by stage
     fab_count = 0
@@ -631,46 +548,30 @@ def get_dashboard_summary(
             models.StageTracking.production_item_id == item.id
         ).all()
         
+        qty = item.quantity or 1.0
+        
         if not stages:
-            pending_count += 1
+            pending_count += qty
             continue
         
         stage_statuses = {s.stage: s.status for s in stages}
         
         # Check if dispatch is completed
         if stage_statuses.get('dispatch') == 'completed':
-            completed_count += 1
+            completed_count += qty
         elif stage_statuses.get('dispatch') == 'in_progress':
-            dispatch_count += 1
+            dispatch_count += qty
         elif stage_statuses.get('painting') == 'in_progress':
-            paint_count += 1
+            paint_count += qty
         elif stage_statuses.get('painting') == 'completed':
-            dispatch_count += 1  # Ready for dispatch
+            dispatch_count += qty  # Ready for dispatch
         elif stage_statuses.get('fabrication') == 'in_progress':
-            fab_count += 1
+            fab_count += qty
         elif stage_statuses.get('fabrication') == 'completed':
-            paint_count += 1  # Ready for painting
+            paint_count += qty  # Ready for painting
         else:
-            fab_count += 1  # In fabrication by default
+            fab_count += qty  # In fabrication by default
     
-    # BOM Assembly aggregation
-    try:
-        from .models_bom import Assembly, AssemblyStageTracking
-        bom_assemblies = db.query(Assembly).all()
-        bom_stage_data = db.query(AssemblyStageTracking).all()
-
-        bom_fab_pieces = sum(s.completed_pieces for s in bom_stage_data if s.stage == "fabrication")
-        bom_fab_total = sum(s.total_pieces for s in bom_stage_data if s.stage == "fabrication")
-        bom_paint_pieces = sum(s.completed_pieces for s in bom_stage_data if s.stage == "painting")
-        bom_paint_total = sum(s.total_pieces for s in bom_stage_data if s.stage == "painting")
-        bom_dispatch_pieces = sum(s.completed_pieces for s in bom_stage_data if s.stage == "dispatch")
-        bom_dispatch_total = sum(s.total_pieces for s in bom_stage_data if s.stage == "dispatch")
-    except Exception:
-        bom_assemblies = []
-        bom_fab_pieces = bom_fab_total = 0
-        bom_paint_pieces = bom_paint_total = 0
-        bom_dispatch_pieces = bom_dispatch_total = 0
-
     # Recent activity (last 10 stage changes)
     recent_stages = db.query(models.StageTracking).order_by(
         models.StageTracking.completed_at.desc().nullsfirst(),
@@ -680,15 +581,23 @@ def get_dashboard_summary(
     recent_activity = []
     for stage in recent_stages:
         item = db.query(models.ProductionItem).filter(
-            models.ProductionItem.id == stage.production_item_id
+            models.ProductionItem.id == stage.production_item_id,
+            models.ProductionItem.is_archived == False
         ).first()
-        customer = db.query(models.Customer).filter(
-            models.Customer.id == item.customer_id
-        ).first() if item else None
-        
+        customer = None
+        if item:
+            customer = db.query(models.Customer).filter(
+                models.Customer.id == item.customer_id,
+                models.Customer.is_deleted == False
+            ).first()
+
+        # Skip activity for archived items or deleted customers
+        if not item or not customer:
+            continue
+
         recent_activity.append({
-            "item_name": item.item_name if item else "Unknown",
-            "customer_name": customer.name if customer else "Unknown",
+            "item_name": item.item_name,
+            "customer_name": customer.name,
             "stage": stage.stage.capitalize(),
             "status": stage.status,
             "timestamp": (stage.completed_at or stage.started_at).isoformat() if (stage.completed_at or stage.started_at) else None
@@ -728,103 +637,126 @@ def get_dashboard_summary(
                 "unit": item.unit
             }
             for item in inventory_items
-        ],
-        "bom_summary": {
-            "total_assemblies": len(bom_assemblies),
-            "quantity_progress": {
-                "fabrication": {"total_pieces": bom_fab_total, "completed_pieces": bom_fab_pieces},
-                "painting": {"total_pieces": bom_paint_total, "completed_pieces": bom_paint_pieces},
-                "dispatch": {"total_pieces": bom_dispatch_total, "completed_pieces": bom_dispatch_pieces},
-            }
-        }
+        ]
     }
 
 
-@router.get("/all-items", response_model=List[dict])
+@router.get("/all-items", response_model=dict)
 def get_all_tracking_items(
     search: Optional[str] = Query(None),
     stage: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    company_id: Optional[int] = Query(None),
+    page: int = Query(1),
+    page_size: int = Query(50),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
-):
+) -> dict:
     """
     Get all production items with their tracking status for the main tracking view.
     Returns flattened list suitable for table display.
+    OPTIMIZED: Uses eager loading to avoid N+1 queries.
     """
-    query = db.query(models.ProductionItem)
-    
-    if search:
-        search_term = f"%{search}%"
-        query = query.filter(
-            or_(
-                models.ProductionItem.item_name.ilike(search_term),
-                models.ProductionItem.item_code.ilike(search_term),
-                models.ProductionItem.section.ilike(search_term),
+    try:
+        from sqlalchemy.orm import joinedload, selectinload
+
+        # Eagerly load customer and stages to prevent N+1
+        query = db.query(models.ProductionItem).join(models.Customer).options(
+            joinedload(models.ProductionItem.customer),
+            selectinload(models.ProductionItem.stages)
+        ).filter(
+            models.Customer.is_deleted == False,
+            models.ProductionItem.is_archived == False
+        ).order_by(models.ProductionItem.id.asc())
+        
+        if company_id:
+            query = query.filter(models.ProductionItem.customer_id == company_id)
+
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    models.ProductionItem.item_name.ilike(search_term),
+                    models.ProductionItem.item_code.ilike(search_term),
+                    models.ProductionItem.section.ilike(search_term),
+                    models.Customer.name.ilike(search_term)
+                )
             )
-        )
-    
-    items = query.all()
-    result = []
-    
-    for item in items:
-        customer = db.query(models.Customer).filter(models.Customer.id == item.customer_id).first()
-        stages = db.query(models.StageTracking).filter(
-            models.StageTracking.production_item_id == item.id
-        ).all()
         
-        stage_map = {s.stage: s.status for s in stages}
+        items = query.all()
+        result = []
         
-        fab_status = stage_map.get('fabrication', 'pending')
-        paint_status = stage_map.get('painting', 'pending')
-        disp_status = stage_map.get('dispatch', 'pending')
+        for item in items:
+            # Determine current stage from loaded stages
+            stages = item.stages
+            stage_map = {s.stage: s.status for s in stages}
         
-        # Determine current stage
-        if disp_status == 'completed':
-            current_stage = 'Completed'
-        elif disp_status == 'in_progress' or paint_status == 'completed':
-            current_stage = 'Dispatch'
-        elif paint_status == 'in_progress' or fab_status == 'completed':
-            current_stage = 'Painting'
-        else:
-            current_stage = 'Fabrication'
-        
-        # Apply stage filter
-        if stage and current_stage.lower() != stage.lower():
-            continue
-        
-        # Apply status filter
-        if status:
-            current_status = stage_map.get(current_stage.lower(), 'pending')
-            if current_status != status:
+            fab_status = stage_map.get('fabrication', 'pending')
+            paint_status = stage_map.get('painting', 'pending')
+            disp_status = stage_map.get('dispatch', 'pending')
+            
+            # Determine current stage logic
+            if disp_status == 'completed':
+                current_stage = 'Completed'
+            elif disp_status == 'in_progress' or paint_status == 'completed':
+                current_stage = 'Dispatch'
+            elif paint_status == 'in_progress' or fab_status == 'completed':
+                current_stage = 'Painting'
+            else:
+                current_stage = 'Fabrication'
+            
+            # Apply stage filter (in memory)
+            if stage and current_stage.lower() != stage.lower():
                 continue
+            
+            # Apply status filter (in memory)
+            if status:
+                current_status = stage_map.get(current_stage.lower(), 'pending')
+                if current_status != status:
+                    continue
+            
+            # Parse checklist
+            checklist = []
+            if item.checklist:
+                try:
+                    checklist = json.loads(item.checklist)
+                except:
+                    pass
+
+            result.append({
+                "id": item.id,
+                "customer_id": item.customer_id,
+                "customer_name": item.customer.name if item.customer else "Unknown",
+                "item_code": item.item_code,
+                "item_name": item.item_name,
+                "section": item.section,
+                "length_mm": item.length_mm,
+                "quantity": item.quantity or 1,
+                "unit": item.unit,
+                "current_stage": current_stage,
+                "weight_per_unit": item.weight_per_unit,
+                "fabrication_status": fab_status,
+                "painting_status": paint_status,
+                "dispatch_status": disp_status,
+                "checklist": checklist,
+                "notes": item.notes,
+                "fabrication_deducted": item.fabrication_deducted,
+                "material_requirements": item.material_requirements,
+            })
+        # Apply pagination (in memory for now as it handles complex stage logic)
+        total = len(result)
+        start = (page - 1) * page_size
+        end = start + page_size
+        paginated_items = result[start:end]
         
-        # Parse checklist
-        checklist = []
-        if item.checklist:
-            try:
-                checklist = json.loads(item.checklist)
-            except (json.JSONDecodeError, TypeError):
-                logger.warning("Invalid checklist JSON for item %s", item.id)
+        return {
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "items": paginated_items
+        }
         
-        result.append({
-            "id": item.id,
-            "customer_id": item.customer_id,
-            "customer_name": customer.name if customer else "Unknown",
-            "item_code": item.item_code,
-            "item_name": item.item_name,
-            "section": item.section,
-            "length_mm": item.length_mm,
-            "quantity": item.quantity or 1,
-            "unit": item.unit,
-            "current_stage": current_stage,
-            "fabrication_status": fab_status,
-            "painting_status": paint_status,
-            "dispatch_status": disp_status,
-            "checklist": checklist,
-            "notes": item.notes,
-            "fabrication_deducted": item.fabrication_deducted,
-            "material_requirements": item.material_requirements,
-        })
-    
-    return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))

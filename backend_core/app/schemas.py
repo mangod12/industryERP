@@ -1,6 +1,7 @@
 ﻿from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel, EmailStr
+from typing import Literal
 
 
 class Token(BaseModel):
@@ -9,12 +10,29 @@ class Token(BaseModel):
     role: str = "User"
 
 
-class UserCreate(BaseModel):
-    full_name: str
-    email: EmailStr
+class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+
+class UserBase(BaseModel):
+    username: str
+    email: str
+    company: str | None = None
+
+
+class UserCreate(UserBase):
+    password: str
     role: str
+
+
+class UserResponse(UserBase):
+    id: int
+    role: str
+
+    class Config:
+        from_attributes = True
 
 
 class UserOut(BaseModel):
@@ -23,7 +41,6 @@ class UserOut(BaseModel):
     email: EmailStr
     username: str
     role: str
-    is_active: Optional[bool] = True
     created_at: datetime
 
     class Config:
@@ -62,12 +79,8 @@ class ProductionItemOut(BaseModel):
     checklist: Optional[str] = None
     notes: Optional[str] = None
     fabrication_deducted: Optional[bool] = False
-    current_stage: Optional[str] = None
-    material_deducted: Optional[bool] = False
-    assembly_id: Optional[int] = None
-    completed_qty: Optional[int] = 0
+    current_stage: Optional[str] = "fabrication"
     created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -103,6 +116,7 @@ class ProductionItemWithStages(BaseModel):
     checklist: Optional[str] = None
     notes: Optional[str] = None
     fabrication_deducted: Optional[bool] = False
+    current_stage: Optional[str] = "fabrication"
     stages: List["StageStatusOut"] = []
 
     class Config:
@@ -194,14 +208,30 @@ class StageStatusOut(BaseModel):
 
 
 class QueryCreate(BaseModel):
-    customer_id: int
-    production_item_id: Optional[int]
-    stage: Optional[str]
-    description: str
-    image_path: Optional[str]
+    title: str
+    message: str
 
 
-class QueryOut(BaseModel):
+class QueryResponse(BaseModel):
+    id: int
+    title: str
+    message: str
+    status: str
+    admin_reply: str | None = None
+    created_by: int | None = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class QueryReply(BaseModel):
+    reply: str
+    status: str  # IN_PROGRESS or CLOSED
+
+
+# Legacy schema kept for backward-compat if needed
+class QueryOutLegacy(BaseModel):
     id: int
     customer_id: int
     production_item_id: Optional[int]
@@ -213,6 +243,7 @@ class QueryOut(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 
 class InstructionCreate(BaseModel):
@@ -232,8 +263,8 @@ class InstructionOut(BaseModel):
 class InventoryIn(BaseModel):
     name: str
     unit: str | None = None
-    total: float = 0
-    used: float = 0
+    total: float = 0.0
+    used: float = 0.0
     code: str | None = None
     section: str | None = None
     category: str | None = None
@@ -260,7 +291,19 @@ class NotificationOut(BaseModel):
     role: str | None = None
     message: str
     level: str
+    category: str | None = None
     read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class NotificationResponse(BaseModel):
+    id: int
+    title: str
+    message: str
+    is_read: bool
     created_at: datetime
 
     class Config:
@@ -313,4 +356,24 @@ class RoleNotificationSettingIn(NotificationSettingIn):
 class ChangePasswordIn(BaseModel):
     old_password: str
     new_password: str
+
+
+# Backwards-compatible alias
+PasswordChange = ChangePasswordIn
+
+
+class MaterialMappingBase(BaseModel):
+    excel_name: str
+    material_id: int
+
+class MaterialMappingCreate(MaterialMappingBase):
+    pass
+
+class MaterialMappingOut(MaterialMappingBase):
+    id: int
+    created_at: datetime
+    material: Optional[InventoryOut] = None
+
+    class Config:
+        from_attributes = True
 

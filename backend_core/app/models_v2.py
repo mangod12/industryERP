@@ -91,16 +91,6 @@ class DocumentStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class UserRole(str, Enum):
-    """System roles matching security.py ROLE_PERMISSIONS"""
-    BOSS = "Boss"
-    SOFTWARE_SUPERVISOR = "Software Supervisor"
-    STORE_KEEPER = "Store Keeper"
-    QA_INSPECTOR = "QA Inspector"
-    DISPATCH_OPERATOR = "Dispatch Operator"
-    USER = "User"
-
-
 # =============================================================================
 # USER & ACCESS CONTROL
 # =============================================================================
@@ -640,25 +630,6 @@ class MaterialConsumptionV2(Base):
     # Relationships
     production_item = relationship("ProductionItemV2", back_populates="material_consumption")
     stock_lot = relationship("StockLot")
-
-
-class ChecklistItem(Base):
-    """Normalized checklist items — replaces JSON blob in ProductionItem.checklist."""
-    __tablename__ = "checklist_items"
-
-    id = Column(Integer, primary_key=True, index=True)
-    production_item_id = Column(Integer, ForeignKey("production_items.id"), nullable=True)
-    assembly_id = Column(Integer, nullable=True)  # FK added after Assembly model exists
-    item_text = Column(String(500), nullable=False)
-    is_done = Column(Boolean, default=False)
-    done_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    done_at = Column(DateTime, nullable=True)
-    sort_order = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    __table_args__ = (
-        Index('ix_checklist_production_item', 'production_item_id'),
-    )
 
 
 # =============================================================================

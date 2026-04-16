@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,414 +8,549 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   <style>
-    .stat-card { transition: transform 0.2s; }
-    .stat-card:hover { transform: translateY(-2px); }
-    .low-stock-alert { background-color: #fff3cd; border-left: 4px solid #ffc107; }
-    .refresh-indicator { font-size: 0.75rem; color: #6c757d; }
-    .activity-item { border-left: 3px solid #0d6efd; padding-left: 10px; margin-bottom: 8px; }
+    .stat-card {
+      transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .low-stock-alert {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+    }
+
+    .refresh-indicator {
+      font-size: 0.75rem;
+      color: #6c757d;
+    }
+
+    .activity-item {
+      border-left: 3px solid #0d6efd;
+      padding-left: 10px;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
+
 <body>
 
-<div id="navbar-container"></div>
+  <!-- NAVBAR (shared markup used across pages) -->
+  <nav class="kb-navbar d-flex align-items-center justify-content-between" role="navigation"
+    aria-label="Main navigation">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
+        <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+        <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+        <a class="nav-link text-white ms-3" href="scrap.html">Scrap</a>
+        <a class="nav-link text-white ms-3" href="reusable.html">Reusable</a>
+        <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+        <a class="nav-link text-white ms-3" href="tracking_v2.html">Tracking</a>
+        <a class="nav-link text-white ms-3" href="queries.html">Querys</a>
+        <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
+        <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
+        <a class="nav-link text-white ms-3" href="register.html" data-permission="users:create">Register</a>
+        <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <!-- Notification Bell -->
+      <div class="dropdown">
+        <button class="btn btn-link text-white position-relative p-0 me-2" type="button" data-bs-toggle="dropdown">
+          <span style="font-size: 1.2rem;">🔔</span>
+          <span id="notifBadge"
+            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+            style="font-size: 0.6rem;">
+            0
+          </span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" id="notifDropdownList"
+          style="width: 300px; max-height: 400px; overflow-y: auto;">
+          <li><span class="dropdown-item text-muted">Loading...</span></li>
+        </ul>
+      </div>
 
-<div class="container-fluid main-container">
-  <!-- Dashboard Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="fw-bold mb-0">Dashboard</h2>
-      <small class="text-muted">Real-time overview of operations</small>
+      <div class="small-muted" aria-hidden="true">Role:</div>
+      <div id="current-role" class="role-badge" aria-live="polite">Loading...</div>
     </div>
-    <div>
-      <span class="refresh-indicator me-2">Last updated: <span id="lastUpdate">-</span></span>
-      <button class="btn btn-sm btn-outline-primary" onclick="refreshDashboard()">🔄 Refresh</button>
-    </div>
-  </div>
+  </nav>
 
-  <!-- Raw Materials Summary -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-3">
-      <div class="card p-3 stat-card">
-        <small class="text-muted">Total Raw Materials</small>
-        <h4 id="totalMaterials">0 Items</h4>
+  <div class="container-fluid main-container">
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Dashboard</h2>
+        <small class="text-muted">Real-time overview of operations</small>
+      </div>
+      <div>
+        <span class="refresh-indicator me-2">Last updated: <span id="lastUpdate">-</span></span>
+        <button class="btn btn-sm btn-outline-primary" onclick="refreshDashboard()">🔄 Refresh</button>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card p-3 stat-card">
-        <small class="text-muted">Total Stock (kg)</small>
-        <h4 id="totalStockValue">0</h4>
-        <small class="text-success" id="stockPurchased">Purchased: 0 kg</small>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card p-3 stat-card">
-        <small class="text-muted">Total Consumed (kg)</small>
-        <h4 id="totalConsumed" class="text-danger">0</h4>
-        <small class="text-muted" id="utilizationPct">Utilization: 0%</small>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card p-3 stat-card">
-        <small class="text-muted">Low Stock Alerts</small>
-        <h4 id="lowStockCount" class="text-warning">0 Items</h4>
-      </div>
-    </div>
-  </div>
 
-  <!-- Stage Summary Cards -->
-  <div class="row g-3 mb-3">
-    <div class="col-md-3">
-      <div class="card p-3 stat-card" style="border-left: 4px solid #ffc107;">
-        <small class="text-muted">Fabrication</small>
-        <h4 id="stageFabrication">0 Jobs</h4>
-        <small class="text-muted">Items in fabrication stage</small>
+    <!-- Raw Materials Summary -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card p-3 stat-card">
+          <small class="text-muted">Total Raw Materials</small>
+          <h4 id="totalMaterials">0 Items</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 stat-card">
+          <small class="text-muted">Total Stock (kg)</small>
+          <h4 id="totalStockValue">0</h4>
+          <small class="text-success" id="stockPurchased">Purchased: 0 kg</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 stat-card">
+          <small class="text-muted">Total Consumed (kg)</small>
+          <h4 id="totalConsumed" class="text-danger">0</h4>
+          <small class="text-muted" id="utilizationPct">Utilization: 0%</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 stat-card">
+          <small class="text-muted">Low Stock Alerts</small>
+          <h4 id="lowStockCount" class="text-warning">0 Items</h4>
+        </div>
       </div>
     </div>
-    <div class="col-md-3">
-      <div class="card p-3 stat-card" style="border-left: 4px solid #17a2b8;">
-        <small class="text-muted">Painting</small>
-        <h4 id="stagePainting">0 Jobs</h4>
-        <small class="text-muted">Items in painting stage</small>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card p-3 stat-card" style="border-left: 4px solid #28a745;">
-        <small class="text-muted">Dispatch</small>
-        <h4 id="stageDispatch">0 Jobs</h4>
-        <small class="text-muted">Ready for dispatch</small>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card p-3 stat-card" style="border-left: 4px solid #6c757d;">
-        <small class="text-muted">Completed</small>
-        <h4 id="stageCompleted">0 Jobs</h4>
-        <small class="text-muted">Fully dispatched</small>
-      </div>
-    </div>
-  </div>
 
-  <!-- Loss Analytics Section -->
-  <div class="row g-3 mb-4">
-    <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-semibold mb-0">📊 Loss Analytics (Last 30 Days)</h5>
-            <div>
-              <a href="scrap.html" class="btn btn-sm btn-outline-warning me-2">View Scrap →</a>
-              <a href="reusable.html" class="btn btn-sm btn-outline-success">View Reusable →</a>
-            </div>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-2">
-              <div class="text-center p-3 bg-light rounded">
-                <small class="text-muted d-block">Scrap Rate</small>
-                <h4 id="scrapRate" class="text-danger mb-0">0%</h4>
+    <!-- Stage Summary Cards -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-3">
+        <div class="card p-3 stat-card" style="border-left: 4px solid #ffc107;">
+          <small class="text-muted">Fabrication</small>
+          <h4 id="stageFabrication">0 Jobs</h4>
+          <small class="text-muted">Items in fabrication stage</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 stat-card" style="border-left: 4px solid #17a2b8;">
+          <small class="text-muted">Painting</small>
+          <h4 id="stagePainting">0 Jobs</h4>
+          <small class="text-muted">Items in painting stage</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 stat-card" style="border-left: 4px solid #28a745;">
+          <small class="text-muted">Dispatch</small>
+          <h4 id="stageDispatch">0 Jobs</h4>
+          <small class="text-muted">Ready for dispatch</small>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 stat-card" style="border-left: 4px solid #6c757d;">
+          <small class="text-muted">Completed</small>
+          <h4 id="stageCompleted">0 Jobs</h4>
+          <small class="text-muted">Fully dispatched</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loss Analytics Section -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-semibold mb-0">📊 Loss Analytics (Last 30 Days)</h5>
+              <div>
+                <a href="scrap.html" class="btn btn-sm btn-outline-warning me-2">View Scrap →</a>
+                <a href="reusable.html" class="btn btn-sm btn-outline-success">View Reusable →</a>
               </div>
             </div>
-            <div class="col-md-2">
-              <div class="text-center p-3 bg-light rounded">
-                <small class="text-muted d-block">Total Scrap</small>
-                <h4 id="totalScrap" class="text-warning mb-0">0 kg</h4>
+            <div class="row g-3">
+              <div class="col-md-2">
+                <div class="text-center p-3 bg-light rounded">
+                  <small class="text-muted d-block">Scrap Rate</small>
+                  <h4 id="scrapRate" class="text-danger mb-0">0%</h4>
+                </div>
               </div>
-            </div>
-            <div class="col-md-2">
-              <div class="text-center p-3 bg-light rounded">
-                <small class="text-muted d-block">Reusable Stock</small>
-                <h4 id="reusableStock" class="text-success mb-0">0 kg</h4>
+              <div class="col-md-2">
+                <div class="text-center p-3 bg-light rounded">
+                  <small class="text-muted d-block">Total Scrap</small>
+                  <h4 id="totalScrap" class="text-warning mb-0">0 kg</h4>
+                </div>
               </div>
-            </div>
-            <div class="col-md-2">
-              <div class="text-center p-3 bg-light rounded">
-                <small class="text-muted d-block">Recovery Rate</small>
-                <h4 id="recoveryRate" class="text-info mb-0">0%</h4>
+              <div class="col-md-2">
+                <div class="text-center p-3 bg-light rounded">
+                  <small class="text-muted d-block">Reusable Stock</small>
+                  <h4 id="reusableStock" class="text-success mb-0">0 kg</h4>
+                </div>
               </div>
-            </div>
-            <div class="col-md-2">
-              <div class="text-center p-3 bg-light rounded">
-                <small class="text-muted d-block">Pending Review</small>
-                <h4 id="pendingScrap" class="text-warning mb-0">0 kg</h4>
+              <div class="col-md-2">
+                <div class="text-center p-3 bg-light rounded">
+                  <small class="text-muted d-block">Recovery Rate</small>
+                  <h4 id="recoveryRate" class="text-info mb-0">0%</h4>
+                </div>
               </div>
-            </div>
-            <div class="col-md-2">
-              <div class="text-center p-3 bg-light rounded">
-                <small class="text-muted d-block">Est. Loss Value</small>
-                <h4 id="lossValue" class="text-danger mb-0">₹0</h4>
+              <div class="col-md-2">
+                <div class="text-center p-3 bg-light rounded">
+                  <small class="text-muted d-block">Pending Review</small>
+                  <h4 id="pendingScrap" class="text-warning mb-0">0 kg</h4>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <div class="text-center p-3 bg-light rounded">
+                  <small class="text-muted d-block">Est. Loss Value</small>
+                  <h4 id="lossValue" class="text-danger mb-0">₹0</h4>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Mid Section: Inventory + Alerts -->
-  <div class="row g-4 mb-3">
-    <div class="col-md-8">
-      <div class="card p-4 kb-card">
-        <h6 class="kb-section-title">Raw Materials Overview</h6>
-        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-          <table class="table table-sm">
-            <thead>
+    <!-- Mid Section: Inventory + Alerts -->
+    <div class="row g-4 mb-3">
+      <div class="col-md-8">
+        <div class="card p-4 kb-card">
+          <h6 class="kb-section-title">Raw Materials Overview</h6>
+          <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th>Total</th>
+                  <th>Used</th>
+                  <th>Available</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryOverview">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-4 kb-card">
+          <h6 class="kb-section-title">Alerts & Notifications</h6>
+          <div id="alertsContainer">
+            <div class="text-muted">Loading alerts...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Production Status -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-semibold mb-0">Live Production Status</h5>
+          <a href="tracking.html" class="btn btn-sm btn-outline-primary">View All Tracking →</a>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead class="table-light">
               <tr>
-                <th>Material</th>
-                <th>Total</th>
-                <th>Used</th>
-                <th>Available</th>
-                <th>Status</th>
+                <th>Customer</th>
+                <th>Item</th>
+                <th>Fabrication</th>
+                <th>Painting</th>
+                <th>Dispatch</th>
               </tr>
             </thead>
-            <tbody id="inventoryOverview">
-              <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+            <tbody id="liveProductionBody">
+              <tr>
+                <td colspan="5" class="text-center text-muted">Loading...</td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card p-4 kb-card">
-        <h6 class="kb-section-title">Alerts & Notifications</h6>
-        <div id="alertsContainer">
-          <div class="text-muted">Loading alerts...</div>
+
+    <!-- Recent Activity -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body">
+        <h5 class="fw-semibold mb-3">Recent Activity</h5>
+        <div id="recentActivity">
+          <div class="text-muted">Loading recent activity...</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Live Production Status -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-semibold mb-0">Live Production Status</h5>
-        <a href="tracking.html" class="btn btn-sm btn-outline-primary">View All Tracking →</a>
-      </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
 
-      <div class="table-responsive">
-        <table class="table align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Customer</th>
-              <th>Item</th>
-              <th>Fabrication</th>
-              <th>Painting</th>
-              <th>Dispatch</th>
-            </tr>
-          </thead>
-          <tbody id="liveProductionBody">
-            <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    function authHeaders() {
+      const token = (typeof KBAuth !== 'undefined') ? KBAuth.getToken() : localStorage.getItem('kb_token');
+      return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
 
-  <!-- Recent Activity -->
-  <div class="card shadow-sm border-0 mb-4">
-    <div class="card-body">
-      <h5 class="fw-semibold mb-3">Recent Activity</h5>
-      <div id="recentActivity">
-        <div class="text-muted">Loading recent activity...</div>
-      </div>
-    </div>
-  </div>
-</div>
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/config.js"></script>
-<script src="js/main.js"></script>
-<script src="js/modules/escapeHtml.js"></script>
-<script src="js/modules/navbar.js"></script>
-<script src="js/modules/debounce.js"></script>
-<script src="js/modules/store.js"></script>
-<script src="js/modules/error-handler.js"></script>
-<script src="js/modules/ui-components.js"></script>
-<script src="js/modules/pagination.js"></script>
-<script>
-  if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
-  KBNavbar.render('navbar-container', 'dashboard');
+    function statusBadge(status) {
+      const s = String(status || '').toLowerCase();
+      if (s === 'completed') return '<span class="badge bg-success">Completed</span>';
+      if (s === 'in_progress') return '<span class="badge bg-warning text-dark">In Progress</span>';
+      return '<span class="badge bg-secondary">Pending</span>';
+    }
 
-  const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+    async function refreshDashboard() {
+      try {
+        // Use the new dashboard-data endpoint for comprehensive data
+        const res = await fetch(`${API_BASE}/inventory/dashboard-data`, {
+          headers: authHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to load dashboard data');
+        const data = await res.json();
 
-  function statusBadge(status) {
-    const s = String(status || '').toLowerCase();
-    if(s === 'completed') return '<span class="badge bg-success">Completed</span>';
-    if(s === 'in_progress') return '<span class="badge bg-warning text-dark">In Progress</span>';
-    return '<span class="badge bg-secondary">Pending</span>';
-  }
+        // Update inventory stats with grand totals
+        const inv = data.inventory;
+        document.getElementById('totalMaterials').textContent = `${inv.total_materials} Items`;
+        document.getElementById('totalStockValue').textContent = `${inv.current_stock_kg.toLocaleString()} kg`;
+        document.getElementById('stockPurchased').textContent = `Purchased: ${inv.total_purchased_kg.toLocaleString()} kg`;
+        document.getElementById('totalConsumed').textContent = `${inv.total_consumed_kg.toLocaleString()} kg`;
+        document.getElementById('utilizationPct').textContent = `Utilization: ${inv.total_purchased_kg > 0 ? ((inv.total_consumed_kg / inv.total_purchased_kg) * 100).toFixed(1) : 0}%`;
+        document.getElementById('lowStockCount').textContent = `${inv.low_stock_count} Items`;
 
-  async function refreshDashboard() {
-    try {
-      // Use the new dashboard-data endpoint for comprehensive data
-      const res = await fetch(`${API_BASE}/inventory/dashboard-data`);
-      if(!res.ok) throw new Error('Failed to load dashboard data');
-      const data = await res.json();
+        // Update stage counts from tracking data
+        const tracking = data.tracking;
+        document.getElementById('stageFabrication').textContent = `${tracking.fabrication.pending || 0} Jobs`;
+        document.getElementById('stagePainting').textContent = `${tracking.painting.pending || 0} Jobs`;
+        document.getElementById('stageDispatch').textContent = `${tracking.dispatch.pending || 0} Jobs`;
+        document.getElementById('stageCompleted').textContent = `${tracking.fully_completed || 0} Jobs`;
 
-      // Update inventory stats with grand totals
-      const inv = data.inventory;
-      document.getElementById('totalMaterials').textContent = `${inv.total_materials} Items`;
-      document.getElementById('totalStockValue').textContent = `${inv.current_stock_kg.toLocaleString()} kg`;
-      document.getElementById('stockPurchased').textContent = `Purchased: ${inv.total_purchased_kg.toLocaleString()} kg`;
-      document.getElementById('totalConsumed').textContent = `${inv.total_consumed_kg.toLocaleString()} kg`;
-      document.getElementById('utilizationPct').textContent = `Utilization: ${inv.total_purchased_kg > 0 ? ((inv.total_consumed_kg / inv.total_purchased_kg) * 100).toFixed(1) : 0}%`;
-      document.getElementById('lowStockCount').textContent = `${inv.low_stock_count} Items`;
+        // Fetch full inventory for overview table
+        const invRes = await fetch(`${API_BASE}/inventory/`, {
+          headers: authHeaders()
+        });
+        if (invRes.ok) {
+          const invItems = await invRes.json();
+          const invBody = document.getElementById('inventoryOverview');
+          invBody.innerHTML = '';
 
-      // Update stage counts from tracking data
-      const tracking = data.tracking;
-      document.getElementById('stageFabrication').textContent = `${tracking.fabrication.pending || 0} Jobs`;
-      document.getElementById('stagePainting').textContent = `${tracking.painting.pending || 0} Jobs`;
-      document.getElementById('stageDispatch').textContent = `${tracking.dispatch.pending || 0} Jobs`;
-      document.getElementById('stageCompleted').textContent = `${tracking.fully_completed || 0} Jobs`;
+          if (invItems.length > 0) {
+            invItems.slice(0, 15).forEach(item => {
+              const remaining = (item.total || 0) - (item.used || 0);
+              const pct = item.total > 0 ? (remaining / item.total * 100) : 0;
+              let statusClass = 'bg-success';
+              let statusText = 'OK';
+              if (pct < 15) { statusClass = 'bg-danger'; statusText = 'Low'; }
+              else if (pct < 30) { statusClass = 'bg-warning text-dark'; statusText = 'Medium'; }
 
-      // Fetch full inventory for overview table
-      const invRes = await fetch(`${API_BASE}/inventory/`);
-      if(invRes.ok) {
-        const invItems = await invRes.json();
-        const invBody = document.getElementById('inventoryOverview');
-        invBody.innerHTML = '';
-        
-        if(invItems.length > 0) {
-          invItems.slice(0, 15).forEach(item => {
-            const remaining = (item.total || 0) - (item.used || 0);
-            const pct = item.total > 0 ? (remaining / item.total * 100) : 0;
-            let statusClass = 'bg-success';
-            let statusText = 'OK';
-            if(pct < 15) { statusClass = 'bg-danger'; statusText = 'Low'; }
-            else if(pct < 30) { statusClass = 'bg-warning text-dark'; statusText = 'Medium'; }
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
               <td>${escapeHtml(item.name)}</td>
               <td>${(item.total || 0).toFixed(2)} ${escapeHtml(item.unit || '')}</td>
               <td>${(item.used || 0).toFixed(2)}</td>
               <td>${remaining.toFixed(2)}</td>
               <td><span class="badge ${statusClass}">${statusText}</span></td>
             `;
-            invBody.appendChild(tr);
+              invBody.appendChild(tr);
+            });
+          } else {
+            invBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No materials found. <a href="raw_material.html">Add Raw Materials</a></td></tr>';
+          }
+        }
+
+        // Update low stock alerts
+        const alertsContainer = document.getElementById('alertsContainer');
+        alertsContainer.innerHTML = '';
+        if (inv.low_stock_items && inv.low_stock_items.length > 0) {
+          inv.low_stock_items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'alert low-stock-alert py-2 mb-2';
+            div.innerHTML = `<strong>⚠️ Low Stock:</strong> ${escapeHtml(item.name)} - Only ${item.available.toFixed(2)} remaining`;
+            alertsContainer.appendChild(div);
           });
         } else {
-          invBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No materials found. <a href="raw_material.html">Add Raw Materials</a></td></tr>';
+          alertsContainer.innerHTML = '<div class="text-success">✓ All materials are at healthy stock levels</div>';
         }
-      }
 
-      // Update low stock alerts
-      const alertsContainer = document.getElementById('alertsContainer');
-      alertsContainer.innerHTML = '';
-      if(inv.low_stock_items && inv.low_stock_items.length > 0) {
-        inv.low_stock_items.forEach(item => {
-          const div = document.createElement('div');
-          div.className = 'alert low-stock-alert py-2 mb-2';
-          div.innerHTML = `<strong>⚠️ Low Stock:</strong> ${escapeHtml(item.name)} - Only ${item.available.toFixed(2)} remaining`;
-          alertsContainer.appendChild(div);
-        });
-      } else {
-        alertsContainer.innerHTML = '<div class="text-success">✓ All materials are at healthy stock levels</div>';
-      }
-
-      // Update recent activity
-      const activityContainer = document.getElementById('recentActivity');
-      activityContainer.innerHTML = '';
-      if(data.recent_activity && data.recent_activity.length > 0) {
-        data.recent_activity.forEach(act => {
-          const div = document.createElement('div');
-          div.className = 'activity-item';
-          div.innerHTML = `
+        // Update recent activity
+        const activityContainer = document.getElementById('recentActivity');
+        activityContainer.innerHTML = '';
+        if (data.recent_activity && data.recent_activity.length > 0) {
+          data.recent_activity.forEach(act => {
+            const div = document.createElement('div');
+            div.className = 'activity-item';
+            div.innerHTML = `
             <strong>${escapeHtml(act.item_name)}</strong>
             <br><small class="text-muted">${act.stage} - ${act.status} ${act.timestamp ? '• ' + new Date(act.timestamp).toLocaleString() : ''}</small>
           `;
-          activityContainer.appendChild(div);
-        });
-      } else {
-        activityContainer.innerHTML = '<div class="text-muted">No recent activity</div>';
-      }
+            activityContainer.appendChild(div);
+          });
+        } else {
+          activityContainer.innerHTML = '<div class="text-muted">No recent activity</div>';
+        }
 
-      // Fetch live production items
-      const trackRes = await fetch(`${API_BASE}/tracking/all-items`);
-      if(trackRes.ok) {
-        const items = await trackRes.json();
-        const prodBody = document.getElementById('liveProductionBody');
-        prodBody.innerHTML = '';
-        
-        // Show first 10 items
-        const displayItems = items.slice(0, 10);
-        if(displayItems.length > 0) {
-          displayItems.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+        // Fetch live production items
+        const trackRes = await fetch(`${API_BASE}/tracking/all-items`, {
+          headers: authHeaders()
+        });
+        if (trackRes.ok) {
+          const items = await trackRes.json();
+          const prodBody = document.getElementById('liveProductionBody');
+          prodBody.innerHTML = '';
+
+          // Show first 10 items
+          const displayItems = items.slice(0, 10);
+          if (displayItems.length > 0) {
+            displayItems.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
               <td>${escapeHtml(item.customer_name)}</td>
               <td>${escapeHtml(item.item_name)}</td>
               <td>${statusBadge(item.fabrication_status)}</td>
               <td>${statusBadge(item.painting_status)}</td>
               <td>${statusBadge(item.dispatch_status)}</td>
             `;
-            prodBody.appendChild(tr);
-          });
-        } else {
-          prodBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No production items. <a href="customers.html">Upload tracking Excel for a customer</a></td></tr>';
+              prodBody.appendChild(tr);
+            });
+          } else {
+            prodBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No production items. <a href="customers.html">Upload tracking Excel for a customer</a></td></tr>';
+          }
+        }
+
+        // Update last refresh time
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+
+        // Load loss analytics
+        await loadLossAnalytics();
+
+      } catch (err) {
+        console.error('Dashboard refresh error:', err);
+        // Fallback: try the old endpoint
+        try {
+          await refreshDashboardLegacy();
+        } catch (e) {
+          console.error('Legacy dashboard also failed:', e);
         }
       }
+    }
 
-      // Update last refresh time
-      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-
-      // Load loss analytics
-      await loadLossAnalytics();
-
-    } catch(err) {
-      console.error('Dashboard refresh error:', err);
-      // Fallback: try the old endpoint
+    // Load loss analytics from scrap API
+    async function loadLossAnalytics() {
       try {
-        await refreshDashboardLegacy();
-      } catch(e) {
-        console.error('Legacy dashboard also failed:', e);
+        const [analytics, summary] = await Promise.all([
+          fetch(`${API_BASE}/scrap/analytics?days=30`, { headers: authHeaders() }).then(r => r.ok ? r.json() : null),
+          fetch(`${API_BASE}/scrap/summary`, { headers: authHeaders() }).then(r => r.ok ? r.json() : null),
+        ]);
+
+        if (analytics) {
+          document.getElementById('scrapRate').textContent = `${analytics.scrap_rate_pct}%`;
+          document.getElementById('totalScrap').textContent = `${analytics.total_scrap_kg} kg`;
+          document.getElementById('reusableStock').textContent = `${analytics.total_reusable_kg} kg`;
+          document.getElementById('recoveryRate').textContent = `${analytics.recovery_rate_pct}%`;
+          document.getElementById('lossValue').textContent = `₹${analytics.estimated_loss_value.toLocaleString()}`;
+        }
+
+        if (summary) {
+          document.getElementById('pendingScrap').textContent = `${summary.scrap_pending_kg} kg`;
+        }
+      } catch (e) {
+        console.error('Loss analytics error:', e);
       }
     }
-  }
 
-  // Load loss analytics from scrap API
-  async function loadLossAnalytics() {
-    try {
-      const [analytics, summary] = await Promise.all([
-        fetch(`${API_BASE}/scrap/analytics?days=30`).then(r => r.ok ? r.json() : null),
-        fetch(`${API_BASE}/scrap/summary`).then(r => r.ok ? r.json() : null),
-      ]);
+    // Legacy refresh for backwards compatibility
+    async function refreshDashboardLegacy() {
+      const res = await fetch(`${API_BASE}/tracking/dashboard/summary`, {
+        headers: authHeaders()
+      });
 
-      if(analytics) {
-        document.getElementById('scrapRate').textContent = `${analytics.scrap_rate_pct}%`;
-        document.getElementById('totalScrap').textContent = `${analytics.total_scrap_kg} kg`;
-        document.getElementById('reusableStock').textContent = `${analytics.total_reusable_kg} kg`;
-        document.getElementById('recoveryRate').textContent = `${analytics.recovery_rate_pct}%`;
-        document.getElementById('lossValue').textContent = `₹${analytics.estimated_loss_value.toLocaleString()}`;
-      }
 
-      if(summary) {
-        document.getElementById('pendingScrap').textContent = `${summary.scrap_pending_kg} kg`;
-      }
-    } catch(e) {
-      console.error('Loss analytics error:', e);
+
+      if (!res.ok) return;
+      const data = await res.json();
+
+      document.getElementById('totalMaterials').textContent = `${data.total_raw_materials || 0} Items`;
+      document.getElementById('totalStockValue').textContent = (data.total_inventory_value || 0).toFixed(2);
+      document.getElementById('lowStockCount').textContent = `${data.low_stock_count || 0} Items`;
+
+      document.getElementById('stageFabrication').textContent = `${data.fabrication_jobs || 0} Jobs`;
+      document.getElementById('stagePainting').textContent = `${data.painting_jobs || 0} Jobs`;
+      document.getElementById('stageDispatch').textContent = `${data.dispatch_jobs || 0} Jobs`;
+      document.getElementById('stageCompleted').textContent = `${data.completed_jobs || 0} Jobs`;
     }
-  }
 
-  // Legacy refresh for backwards compatibility
-  async function refreshDashboardLegacy() {
-    const res = await fetch(`${API_BASE}/tracking/dashboard/summary`);
-    if(!res.ok) return;
-    const data = await res.json();
+    // Initial load
+    refreshDashboard();
+    loadNotifications();
 
-    document.getElementById('totalMaterials').textContent = `${data.total_raw_materials || 0} Items`;
-    document.getElementById('totalStockValue').textContent = (data.total_inventory_value || 0).toFixed(2);
-    document.getElementById('lowStockCount').textContent = `${data.low_stock_count || 0} Items`;
+    // Auto-refresh every 30 seconds for real-time updates
+    setInterval(refreshDashboard, 30000);
+    setInterval(loadNotifications, 60000); // Check notifications every minute
 
-    document.getElementById('stageFabrication').textContent = `${data.fabrication_jobs || 0} Jobs`;
-    document.getElementById('stagePainting').textContent = `${data.painting_jobs || 0} Jobs`;
-    document.getElementById('stageDispatch').textContent = `${data.dispatch_jobs || 0} Jobs`;
-    document.getElementById('stageCompleted').textContent = `${data.completed_jobs || 0} Jobs`;
-  }
+    // --- Notification Logic ---
+    async function loadNotifications() {
+      try {
+        const res = await fetch(`${API_BASE}/notifications`, { headers: authHeaders() });
+        if (!res.ok) return;
+        const notifs = await res.json();
 
-  // Initial load
-  refreshDashboard();
+        // Update Badge
+        const unread = notifs.filter(n => !n.read).length;
+        const badge = document.getElementById('notifBadge');
+        if (badge) {
+          badge.textContent = unread > 0 ? unread : '';
+          badge.classList.toggle('d-none', unread === 0);
+        }
 
-  // Auto-refresh every 30 seconds for real-time updates
-  setInterval(refreshDashboard, 30000);
-</script>
+        // Update Dashboard Widget
+        const container = document.getElementById('alertsContainer');
+        if (container) {
+          if (notifs.length === 0) {
+            container.innerHTML = '<div class="text-muted small">No new alerts</div>';
+          } else {
+            container.innerHTML = notifs.slice(0, 5).map(n => `
+              <div class="alert alert-light border mb-2 p-2">
+                <div class="d-flex justify-content-between">
+                  <strong class="text-${n.level === 'error' ? 'danger' : (n.level === 'warning' ? 'warning' : 'primary')}">
+                    ${n.level.toUpperCase()}
+                  </strong>
+                  <small class="text-muted">${new Date(n.created_at).toLocaleDateString()}</small>
+                </div>
+                <div class="small mt-1">${escapeHtml(n.message)}</div>
+              </div>
+            `).join('');
+          }
+        }
+
+        // Update Navbar Dropdown (if exists)
+        const dropList = document.getElementById('notifDropdownList');
+        if (dropList) {
+          dropList.innerHTML = notifs.length ? notifs.slice(0, 5).map(n => `
+                <li><a class="dropdown-item" href="#">
+                    <small class="fw-bold text-${n.level === 'error' ? 'danger' : 'primary'}">${n.level.toUpperCase()}</small><br>
+                    <span class="small">${escapeHtml(n.message).substring(0, 40)}...</span>
+                </a></li>
+             `).join('') : '<li><span class="dropdown-item text-muted">No notifications</span></li>';
+        }
+
+      } catch (e) {
+        console.error('Notification fetch error:', e);
+      }
+    }
+
+    function authHeaders() {
+      const t = (typeof KBAuth !== 'undefined') ? KBAuth.getToken() : localStorage.getItem('kb_token');
+      return t ? { 'Authorization': `Bearer ${t}` } : {};
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+  </script>
 </body>
+
 </html>

@@ -8,10 +8,11 @@ from datetime import datetime
 from . import models, schemas
 from .deps import get_db, require_role, get_current_user
 
-router = APIRouter(prefix="/inventory", tags=["inventory"])
+router = APIRouter()
 
 
 @router.get("/", response_model=List[schemas.InventoryOut])
+@router.get("", response_model=List[schemas.InventoryOut], include_in_schema=False)
 def list_inventory(
     material_name: Optional[str] = Query(None, alias="material_name"),
     material_code: Optional[str] = Query(None, alias="material_code"),
@@ -25,6 +26,7 @@ def list_inventory(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    print("DEBUG: list_inventory hit!")
     """
     List inventory with optional filters (all filters via query params).
     Empty / missing params return the full list.
@@ -84,6 +86,7 @@ def list_inventory(
 
 
 @router.post("/", response_model=schemas.InventoryOut)
+@router.post("", response_model=schemas.InventoryOut, include_in_schema=False)
 def create_item(item_in: schemas.InventoryIn, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor"))):
     """
     Create a new inventory item.
@@ -102,6 +105,14 @@ def create_item(item_in: schemas.InventoryIn, db: Session = Depends(get_db), cur
         raise HTTPException(
             status_code=400,
             detail="Quantities cannot be negative"
+        )
+
+    # Prevent duplicate material names
+    existing = db.query(models.Inventory).filter(models.Inventory.name == item_in.name.strip()).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Material '{item_in.name.strip()}' already exists in inventory"
         )
     
     # Only include optional fields if the DB table actually has those columns
@@ -178,8 +189,18 @@ def update_item(item_id: int, item_in: schemas.InventoryIn, db: Session = Depend
     
     i.name = item_in.name.strip() if item_in.name else i.name
     i.unit = item_in.unit.strip() if item_in.unit else i.unit
+    
+    # Validation: Restrict manual 'used' updates to Boss only (Audit)
+    if i.used != item_in.used:
+        if current_user.role != "Boss":
+            raise HTTPException(
+                status_code=403, 
+                detail="Manual consumption adjustment is restricted to Boss (Audit only). Normal consumption is automatic via Production."
+            )
+        i.used = item_in.used
+    
+    # 'total' can be updated (Add Stock) by authorized roles
     i.total = item_in.total
-    i.used = item_in.used
     
     try:
         inspector = inspect(db.bind)
@@ -308,6 +329,50 @@ def get_inventory_stats(
     }
 
 
+@router.post("/reset-consumed", status_code=200)
+def reset_consumed(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss", "Software Supervisor"))
+):
+    """
+    Reset 'used' quantity to 0 for ALL inventory items.
+    """
+    # Reset used amount
+    db.query(models.Inventory).update({models.Inventory.used: 0})
+    
+    # Log activity
+    log = models.ActivityLog(
+        action="RESET_CONSUMED",
+        description="Reset Total Consumed (kg) for all items",
+        user_id=current_user.id
+    )
+    db.add(log)
+    db.commit()
+    return {"message": "Total consumed quantity reset successfully"}
+
+
+@router.post("/reset-stock", status_code=200)
+def reset_stock(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss", "Software Supervisor"))
+):
+    """
+    Reset 'total' and 'used' quantity to 0 for ALL inventory items.
+    Effectively clears the stock counts but keeps the item names.
+    """
+    db.query(models.Inventory).update({models.Inventory.total: 0, models.Inventory.used: 0})
+    
+    # Log activity
+    log = models.ActivityLog(
+        action="RESET_STOCK",
+        description="Reset Total Stock (kg) for all items",
+        user_id=current_user.id
+    )
+    db.add(log)
+    db.commit()
+    return {"message": "Total stock quantity reset successfully"}
+
+
 @router.get("/dashboard-data")
 def get_dashboard_data(
     db: Session = Depends(get_db),
@@ -324,38 +389,48 @@ def get_dashboard_data(
     total_purchased = sum((item.total or 0) for item in inventory_items)
     total_consumed = sum((item.used or 0) for item in inventory_items)
     
-    # Tracking stats by stage
+    # Tracking stats by stage (sum quantities for job counts)
     stage_counts = {}
     for stage in ["fabrication", "painting", "dispatch"]:
-        # Count items with this stage in_progress or pending (not completed)
-        pending = db.query(models.StageTracking).filter(
+        # Sum quantities for items with this stage pending/in_progress
+        pending_sum = db.query(func.coalesce(func.sum(models.ProductionItem.quantity), 0)).join(models.StageTracking).join(models.Customer).filter(
             models.StageTracking.stage == stage,
-            models.StageTracking.status.in_(["pending", "in_progress"])
-        ).count()
+            models.StageTracking.status.in_(["pending", "in_progress"]),
+            models.ProductionItem.is_archived == False,
+            models.Customer.is_deleted == False
+        ).scalar()
         
-        completed = db.query(models.StageTracking).filter(
+        completed_sum = db.query(func.coalesce(func.sum(models.ProductionItem.quantity), 0)).join(models.StageTracking).join(models.Customer).filter(
             models.StageTracking.stage == stage,
-            models.StageTracking.status == "completed"
-        ).count()
+            models.StageTracking.status == "completed",
+            models.ProductionItem.is_archived == False,
+            models.Customer.is_deleted == False
+        ).scalar()
         
         stage_counts[stage] = {
-            "pending": pending,
-            "completed": completed,
-            "total": pending + completed
+            "pending": int(pending_sum),
+            "completed": int(completed_sum),
+            "total": int(pending_sum) + int(completed_sum)
         }
     
-    # Total completed (all 3 stages done)
-    # An item is fully completed when dispatch is completed
-    fully_completed = db.query(models.StageTracking).filter(
+    # Total completed (dispatch stage done) - sum quantities
+    fully_completed = db.query(func.coalesce(func.sum(models.ProductionItem.quantity), 0)).join(models.StageTracking).join(models.Customer).filter(
         models.StageTracking.stage == "dispatch",
-        models.StageTracking.status == "completed"
-    ).count()
+        models.StageTracking.status == "completed",
+        models.ProductionItem.is_archived == False,
+        models.Customer.is_deleted == False
+    ).scalar()
+    fully_completed = int(fully_completed)
     
-    # Total items
-    total_items = db.query(models.ProductionItem).count()
+    # Total items (sum of quantities, active only)
+    total_items = db.query(func.coalesce(func.sum(models.ProductionItem.quantity), 0)).join(models.Customer).filter(
+        models.ProductionItem.is_archived == False,
+        models.Customer.is_deleted == False
+    ).scalar()
+    total_items = int(total_items)
     
-    # Customers count
-    customer_count = db.query(models.Customer).count()
+    # Customers count (exclude soft-deleted)
+    customer_count = db.query(models.Customer).filter(models.Customer.is_deleted == False).count()
     
     # Low stock items
     low_stock = []
@@ -368,12 +443,22 @@ def get_dashboard_data(
                 "total": item.total,
             })
     
-    # Recent activity (stage changes)
-    recent_stages = db.query(models.StageTracking).order_by(
+    # Recent activity (stage changes) - active items only
+    recent_stages = db.query(models.StageTracking).join(models.ProductionItem).join(models.Customer).filter(
+        models.ProductionItem.is_archived == False,
+        models.Customer.is_deleted == False
+    ).order_by(
         models.StageTracking.id.desc()
-    ).limit(5).all()
+    ).limit(10).all()
     
+    # Recent system logs (resets, etc.)
+    recent_logs = db.query(models.ActivityLog).order_by(
+        models.ActivityLog.timestamp.desc()
+    ).limit(5).all()
+
     recent_activity = []
+    
+    # Add stage activities
     for s in recent_stages:
         item = db.query(models.ProductionItem).filter(
             models.ProductionItem.id == s.production_item_id
@@ -383,9 +468,24 @@ def get_dashboard_data(
                 "item_name": item.item_name,
                 "stage": s.stage,
                 "status": s.status,
-                "timestamp": (s.completed_at or s.started_at).isoformat() if (s.completed_at or s.started_at) else None
+                "timestamp": (s.completed_at or s.started_at).isoformat() if (s.completed_at or s.started_at) else None,
+                "type": "tracking"
             })
+            
+    # Add log activities
+    for log in recent_logs:
+        recent_activity.append({
+            "item_name": log.description,
+            "stage": "System",
+            "status": log.action.replace("RESET_", "RESET "),
+            "timestamp": log.timestamp.isoformat() if log.timestamp else None,
+            "type": "log"
+        })
     
+    # Sort merged list by timestamp desc
+    recent_activity.sort(key=lambda x: x["timestamp"] or "", reverse=True)
+    
+    # JSON-compatible result
     return {
         "inventory": {
             "total_materials": len(inventory_items),
@@ -405,5 +505,5 @@ def get_dashboard_data(
         "customers": {
             "total": customer_count,
         },
-        "recent_activity": recent_activity,
+        "recent_activity": recent_activity[:10], # Return top 10 combined
     }

@@ -1,264 +1,356 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>KumarBrothers — Raw Material</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/main.css" rel="stylesheet">
-    <style>
-      .low-stock { background-color: #f8d7da !important; }
-      .medium-stock { background-color: #fff3cd !important; }
-    </style>
-  </head>
-  <body>
-    <div id="navbar-container"></div>
 
-    <div class="container-fluid main-container">
-      <!-- Page Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 class="fw-bold mb-0">Raw Materials Inventory</h2>
-          <small class="text-muted">Raw material availability and usage tracking. Materials auto-deduct when fabrication completes.</small>
-        </div>
-        <div>
-          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addMaterialModal">+ Add Material</button>
-          <button class="btn btn-outline-primary ms-2" onclick="refreshInventory()">🔄 Refresh</button>
-        </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KumarBrothers — Raw Material</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/main.css" rel="stylesheet">
+  <style>
+    .low-stock {
+      background-color: #f8d7da !important;
+    }
+
+    .medium-stock {
+      background-color: #fff3cd !important;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex"><a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+        <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+        <a class="nav-link text-white ms-3" href="scrap.html">Scrap</a>
+        <a class="nav-link text-white ms-3" href="reusable.html">Reusable</a>
+        <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+        <a class="nav-link text-white ms-3" href="tracking_v2.html">Tracking</a>
+        <a class="nav-link text-white ms-3" href="queries.html">Querys</a>
+        <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
+        <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
+        <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
       </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="small-muted">Role:</div>
+      <div id="current-role" class="role-badge">Loading...</div>
+    </div>
+  </nav>
 
-      <!-- Quick Stats -->
-      <div class="row g-3 mb-4">
-        <div class="col-md-3">
-          <div class="card p-3">
-            <small class="text-muted">Total Materials</small>
-            <h4 id="statTotalMaterials">0</h4>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card p-3">
-            <small class="text-muted">Total Stock Value</small>
-            <h4 id="statTotalValue">0</h4>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card p-3">
-            <small class="text-muted">Low Stock Items</small>
-            <h4 id="statLowStock" class="text-danger">0</h4>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card p-3">
-            <small class="text-muted">Last Updated</small>
-            <h4 id="statLastUpdate">-</h4>
-          </div>
-        </div>
+  <div class="container-fluid main-container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Raw Materials Inventory</h2>
+        <small class="text-muted">Raw material availability and usage tracking. Materials auto-deduct when fabrication
+          completes.</small>
       </div>
+      <div>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#mappingsModal">🔗 Material
+          Mappings</button>
+        <button class="btn btn-kb ms-2" data-bs-toggle="modal" data-bs-target="#addMaterialModal">+ Add
+          Material</button>
+        <button class="btn btn-outline-secondary ms-2" onclick="refreshInventory()">🔄 Refresh</button>
+      </div>
+    </div>
 
-      <!-- Search & Filter Bar -->
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-          <div class="row g-3 align-items-end">
-
-            <div class="col-md-3">
-              <label class="form-label">Search Material</label>
-              <input type="text" class="form-control" id="fName" placeholder="Name / Code / Section">
+    <!-- Quick Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card p-3 h-100">
+          <div class="d-flex justify-content-between">
+            <div>
+              <small class="text-muted">Total Stock (Purchased)</small>
+              <h4 id="statTotalPurchased">0</h4>
             </div>
+            <button class="btn btn-sm btn-outline-danger reset-btn d-none" onclick="resetStock()"
+              title="Reset Total Stock (Clear Everything)">
+              ✕ Reset
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 h-100">
+          <div class="d-flex justify-content-between">
+            <div>
+              <small class="text-muted">Total Consumed</small>
+              <h4 id="statTotalConsumed">0</h4>
+            </div>
+            <button class="btn btn-sm btn-outline-warning reset-btn d-none" onclick="resetConsumed()"
+              title="Reset Consumed Only">
+              ✕ Reset
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 h-100">
+          <small class="text-muted">Current Available</small>
+          <h4 id="statCurrentStock">0</h4>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card p-3 h-100">
+          <small class="text-muted">Low Stock Items</small>
+          <h4 id="statLowStock" class="text-danger">0</h4>
+        </div>
+      </div>
+    </div>
 
-            <div class="col-md-2">
-              <label class="form-label">Category</label>
-              <select class="form-select" id="fCategory">
-                <option value="">All</option>
-                <option value="steel">Steel</option>
-                <option value="pipe">Pipe</option>
-                <option value="sheet">Sheet</option>
+    <!-- Search & Filter Bar -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-3">
+            <label class="form-label">Search Material</label>
+            <input type="text" class="form-control" id="fName" placeholder="Name / Code / Section">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="fCategory">
+              <option value="">All</option>
+              <option value="steel">Steel</option>
+              <option value="pipe">Pipe</option>
+              <option value="sheet">Sheet</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Min Quantity</label>
+            <input type="number" class="form-control" id="fQtyMin">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Max Quantity</label>
+            <input type="number" class="form-control" id="fQtyMax">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Unit</label>
+            <select class="form-select" id="fUnit">
+              <option value="">All</option>
+              <option value="kg">KG</option>
+              <option value="pcs">PCS</option>
+              <option value="meter">Meter</option>
+            </select>
+          </div>
+
+          <div class="col-md-1 d-grid">
+            <button class="btn btn-primary" id="filterSearchBtn" type="button">Search</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Table Card -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body">
+        <h5 class="fw-semibold mb-3">Material List</h5>
+
+        <div class="table-responsive">
+          <table id="inventoryTable" class="table align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Material Name</th>
+                <th>Unit</th>
+                <th>Total Stock</th>
+                <th>Used</th>
+                <th>Available</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+              <!-- Rows populated by JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Empty / No Results State -->
+    <div class="text-center text-muted py-4 d-none" id="noInventoryResults">No materials found matching the criteria.
+    </div>
+
+  </div>
+
+  <!-- Add Material Modal -->
+  <div class="modal fade" id="addMaterialModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Raw Material</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Material Name *</label>
+            <input type="text" class="form-control" id="newName" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Unit</label>
+            <select class="form-select" id="newUnit">
+              <option value="kg">KG</option>
+              <option value="pcs">PCS</option>
+              <option value="meter">Meter</option>
+              <option value="ton">Ton</option>
+              <option value="liter">Liter</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label class="form-label">Total Quantity *</label>
+              <input type="number" step="0.01" class="form-control" id="newTotal" value="0">
+            </div>
+            <div class="col-6 mb-3">
+              <label class="form-label">Already Used</label>
+              <input type="number" step="0.01" class="form-control" id="newUsed" value="0">
+            </div>
+          </div>
+          <div class="alert alert-info small">
+            <strong>Note:</strong> Once added, this material will be visible on the dashboard and all user accounts
+            immediately.
+            Materials are automatically deducted when fabrication stage is completed.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="addItemBtn">Add Material</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Material Mappings Modal -->
+  <div class="modal fade" id="mappingsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Material Name Mappings</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-muted">
+            Map names used in tracking/Excel (e.g., "Main Frame") to specific raw materials in your inventory.
+            This ensures auto-deduction works even when names don't match.
+          </p>
+
+          <div class="row g-2 mb-3 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label small fw-bold">Excel/Tracking Name</label>
+              <input type="text" class="form-control" id="mapExcelName" placeholder="e.g. Main Beam">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label small fw-bold">Map to Inventory Material</label>
+              <select class="form-select" id="mapMaterialId">
+                <option value="">-- Select Material --</option>
               </select>
             </div>
-
-            <div class="col-md-2">
-              <label class="form-label">Min Quantity</label>
-              <input type="number" class="form-control" id="fQtyMin">
+            <div class="col-md-2 d-grid">
+              <button class="btn btn-primary" onclick="saveMapping()">Add</button>
             </div>
-
-            <div class="col-md-2">
-              <label class="form-label">Max Quantity</label>
-              <input type="number" class="form-control" id="fQtyMax">
-            </div>
-
-            <div class="col-md-2">
-              <label class="form-label">Unit</label>
-              <select class="form-select" id="fUnit">
-                <option value="">All</option>
-                <option value="kg">KG</option>
-                <option value="pcs">PCS</option>
-                <option value="meter">Meter</option>
-              </select>
-            </div>
-
-            <div class="col-md-1 d-grid">
-              <button class="btn btn-primary" id="filterSearchBtn" type="button">Search</button>
-            </div>
-
           </div>
-        </div>
-      </div>
 
-      <!-- Inventory Table Card -->
-      <div class="card shadow-sm border-0 mb-3">
-        <div class="card-body">
-          <h5 class="fw-semibold mb-3">Material List</h5>
-
-          <div class="table-responsive">
-            <table id="inventoryTable" class="table align-middle">
+          <div class="table-responsive" style="max-height: 300px;">
+            <table class="table table-sm align-middle">
               <thead class="table-light">
                 <tr>
-                  <th>Material Name</th>
-                  <th>Unit</th>
-                  <th>Total Stock</th>
-                  <th>Used</th>
-                  <th>Available</th>
-                  <th>Status</th>
+                  <th>Excel Name</th>
+                  <th>Inventory Material</th>
                   <th>Actions</th>
                 </tr>
               </thead>
-              <tbody id="inventoryTableBody">
-                <!-- Rows populated by JS -->
+              <tbody id="mappingsTableBody">
+                <!-- Populated by JS -->
               </tbody>
             </table>
           </div>
-
-        </div>
-      </div>
-
-      <!-- Empty / No Results State -->
-      <div class="text-center text-muted py-4 d-none" id="noInventoryResults">No materials found matching the criteria.</div>
-
-    </div>
-
-    <!-- Add Material Modal -->
-    <div class="modal fade" id="addMaterialModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Add New Raw Material</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">Material Name *</label>
-              <input type="text" class="form-control" id="newName" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Unit</label>
-              <select class="form-select" id="newUnit">
-                <option value="kg">KG</option>
-                <option value="pcs">PCS</option>
-                <option value="meter">Meter</option>
-                <option value="ton">Ton</option>
-                <option value="liter">Liter</option>
-              </select>
-            </div>
-            <div class="row">
-              <div class="col-6 mb-3">
-                <label class="form-label">Total Quantity *</label>
-                <input type="number" step="0.01" class="form-control" id="newTotal" value="0">
-              </div>
-              <div class="col-6 mb-3">
-                <label class="form-label">Already Used</label>
-                <input type="number" step="0.01" class="form-control" id="newUsed" value="0">
-              </div>
-            </div>
-            <div class="alert alert-info small">
-              <strong>Note:</strong> Once added, this material will be visible on the dashboard and all user accounts immediately.
-              Materials are automatically deducted when fabrication stage is completed.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="addItemBtn">Add Material</button>
-          </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/modules/escapeHtml.js"></script>
-    <script src="js/modules/navbar.js"></script>
-    <script src="js/modules/debounce.js"></script>
-    <script src="js/modules/store.js"></script>
-    <script src="js/modules/error-handler.js"></script>
-    <script src="js/modules/ui-components.js"></script>
-    <script src="js/modules/pagination.js"></script>
-    <script>
-      if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
-      KBNavbar.render('navbar-container', 'inventory');
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+    const inventoryApiBase = `${API_BASE}/inventory`;
 
-      const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
-      const inventoryApiBase = `${API_BASE}/inventory`;
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
 
-      async function refreshInventory() {
-        try {
-          const params = new URLSearchParams();
-          const name = document.getElementById('fName').value.trim();
-          const category = document.getElementById('fCategory').value;
-          const unit = document.getElementById('fUnit').value;
-          const qtyMin = document.getElementById('fQtyMin').value;
-          const qtyMax = document.getElementById('fQtyMax').value;
+    async function refreshInventory() {
+      try {
+        const params = new URLSearchParams();
+        const name = document.getElementById('fName').value.trim();
+        const category = document.getElementById('fCategory').value;
+        const unit = document.getElementById('fUnit').value;
+        const qtyMin = document.getElementById('fQtyMin').value;
+        const qtyMax = document.getElementById('fQtyMax').value;
 
-          if(name) params.append('material_name', name);
-          if(category) params.append('category', category);
-          if(unit) params.append('unit', unit);
-          if(qtyMin) params.append('quantity_min', qtyMin);
-          if(qtyMax) params.append('quantity_max', qtyMax);
+        if (name) params.append('material_name', name);
+        if (category) params.append('category', category);
+        if (unit) params.append('unit', unit);
+        if (qtyMin) params.append('quantity_min', qtyMin);
+        if (qtyMax) params.append('quantity_max', qtyMax);
 
-          const url = params.toString() ? `${inventoryApiBase}?${params}` : inventoryApiBase;
-          const res = await fetch(url);
-          if(!res.ok) throw new Error('Failed to fetch');
-          const items = await res.json();
+        const url = params.toString() ? `${inventoryApiBase}?${params}` : inventoryApiBase;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Failed to fetch');
+        const items = await res.json();
 
-          renderInventory(items);
-          updateStats(items);
-        } catch(err) {
-          console.error('Inventory fetch error:', err);
-          renderInventory([]);
-        }
+        renderInventory(items);
+        updateStats(items);
+      } catch (err) {
+        console.error('Inventory fetch error:', err);
+        // renderInventory([]); // Don't clear table on error, just log it
+        if (typeof showToast === 'function') showToast('Failed to load inventory', 'danger');
       }
+    }
 
-      function renderInventory(items) {
-        const tbody = document.getElementById('inventoryTableBody');
-        const emptyEl = document.getElementById('noInventoryResults');
-        tbody.innerHTML = '';
+    function renderInventory(items) {
+      const tbody = document.getElementById('inventoryTableBody');
+      const emptyEl = document.getElementById('noInventoryResults');
+      tbody.innerHTML = '';
 
-        if(!items || items.length === 0) {
-          emptyEl.classList.remove('d-none');
-          return;
+      if (!items || items.length === 0) {
+        emptyEl.classList.remove('d-none');
+        return;
+      }
+      emptyEl.classList.add('d-none');
+
+      items.forEach(item => {
+        const remaining = (item.total || 0) - (item.used || 0);
+        const pct = item.total > 0 ? (remaining / item.total * 100) : 0;
+
+        let statusClass = 'bg-success';
+        let statusText = 'OK';
+        let rowClass = '';
+
+        if (pct < 15) {
+          statusClass = 'bg-danger';
+          statusText = 'Low';
+          rowClass = 'low-stock';
+        } else if (pct < 30) {
+          statusClass = 'bg-warning text-dark';
+          statusText = 'Medium';
+          rowClass = 'medium-stock';
         }
-        emptyEl.classList.add('d-none');
 
-        items.forEach(item => {
-          const remaining = (item.total || 0) - (item.used || 0);
-          const pct = item.total > 0 ? (remaining / item.total * 100) : 0;
-          
-          let statusClass = 'bg-success';
-          let statusText = 'OK';
-          let rowClass = '';
-          
-          if(pct < 15) { 
-            statusClass = 'bg-danger'; 
-            statusText = 'Low'; 
-            rowClass = 'low-stock';
-          } else if(pct < 30) { 
-            statusClass = 'bg-warning text-dark'; 
-            statusText = 'Medium';
-            rowClass = 'medium-stock';
-          }
-
-          const tr = document.createElement('tr');
-          tr.className = rowClass;
-          tr.dataset.id = item.id;
-          tr.innerHTML = `
+        const tr = document.createElement('tr');
+        tr.className = rowClass;
+        tr.dataset.id = item.id;
+        tr.innerHTML = `
             <td class="inv-name">${escapeHtml(item.name)}</td>
             <td class="inv-unit">${escapeHtml(item.unit || '-')}</td>
             <td class="inv-total">${Number(item.total).toFixed(2)}</td>
@@ -270,28 +362,101 @@
               <button class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
             </td>
           `;
-          tbody.appendChild(tr);
+        tbody.appendChild(tr);
 
-          // Attach event handlers
-          tr.querySelector('.edit-btn').addEventListener('click', () => editItem(item));
-          tr.querySelector('.delete-btn').addEventListener('click', () => deleteItem(item.id));
+        // Attach event handlers
+        tr.querySelector('.edit-btn').addEventListener('click', () => editItem(item));
+        tr.querySelector('.delete-btn').addEventListener('click', () => deleteItem(item.id));
+      });
+    }
+
+    function updateStats(items) {
+      const totalPurchased = items.reduce((sum, it) => sum + (it.total || 0), 0);
+      const totalConsumed = items.reduce((sum, it) => sum + (it.used || 0), 0);
+      const currentStock = totalPurchased - totalConsumed;
+      const lowStock = items.filter(it => it.total > 0 && ((it.total - it.used) / it.total) < 0.15).length;
+
+      document.getElementById('statTotalPurchased').textContent = totalPurchased.toFixed(2);
+      document.getElementById('statTotalConsumed').textContent = totalConsumed.toFixed(2);
+      document.getElementById('statCurrentStock').textContent = currentStock.toFixed(2);
+      document.getElementById('statLowStock').textContent = lowStock;
+
+      try {
+        checkResetPermissions();
+      } catch (e) {
+        console.error('Permission check failed', e);
+      }
+    }
+
+    function checkResetPermissions() {
+      // Check role from KBAuth or DOM
+      const roleText = document.getElementById('current-role').textContent || '';
+      // Also check token payload if available
+      let role = roleText;
+
+      try {
+        if (typeof KBAuth !== 'undefined') {
+          // Safety check for cached config.js (missing getPayload)
+          if (typeof KBAuth.getPayload === 'function') {
+            const payload = KBAuth.getPayload();
+            if (payload && payload.role) role = payload.role;
+          } else if (typeof KBAuth.getRole === 'function') {
+            const r = KBAuth.getRole();
+            if (r) role = r;
+          }
+        }
+      } catch (e) {
+        console.warn('Auth check error', e);
+      }
+
+      console.log('Role determined:', role);
+      const isAllowed = role === 'Boss' || role === 'Software Supervisor';
+      document.querySelectorAll('.reset-btn').forEach(btn => {
+        if (isAllowed) btn.classList.remove('d-none');
+        else btn.classList.add('d-none');
+      });
+    }
+
+    async function resetConsumed() {
+      if (!confirm('⚠ WARNING: This will reset the "Used" quantity to 0 for ALL items.\n\nThe "Total Consumed" metric will become 0.\nAre you sure you want to proceed?')) return;
+
+      try {
+        const res = await fetch(`${inventoryApiBase}/reset-consumed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() }
         });
+        if (!res.ok) throw new Error('Reset failed');
+        alert('✅ Total Consumed reset successfully!');
+        refreshInventory();
+      } catch (err) {
+        alert('Failed to reset consumed quantity: ' + err.message);
       }
+    }
 
-      function updateStats(items) {
-        const total = items.length;
-        const totalValue = items.reduce((sum, it) => sum + ((it.total || 0) - (it.used || 0)), 0);
-        const lowStock = items.filter(it => it.total > 0 && ((it.total - it.used) / it.total) < 0.15).length;
+    async function resetStock() {
+      if (!confirm('🔴 CRITICAL WARNING: This will reset ALL stock quantities (Total and Used) to 0.\n\nYour inventory counts will be wiped out.\nItems will remain, but quantities will be 0.\n\nAre you ABSOLUTELY sure?')) return;
 
-        document.getElementById('statTotalMaterials').textContent = total;
-        document.getElementById('statTotalValue').textContent = totalValue.toFixed(2);
-        document.getElementById('statLowStock').textContent = lowStock;
-        document.getElementById('statLastUpdate').textContent = new Date().toLocaleTimeString();
+      try {
+        const res = await fetch(`${inventoryApiBase}/reset-stock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() }
+        });
+        if (!res.ok) throw new Error('Reset failed');
+        alert('✅ Total Stock reset successfully!');
+        refreshInventory();
+      } catch (err) {
+        alert('Failed to reset stock: ' + err.message);
       }
+    }
 
-      function editItem(item) {
-        const tr = document.querySelector(`tr[data-id="${item.id}"]`);
-        tr.innerHTML = `
+    function authHeaders() {
+      const t = (typeof KBAuth !== 'undefined') ? KBAuth.getToken() : localStorage.getItem('kb_token');
+      return t ? { 'Authorization': `Bearer ${t}` } : {};
+    }
+
+    function editItem(item) {
+      const tr = document.querySelector(`tr[data-id="${item.id}"]`);
+      tr.innerHTML = `
           <td><input class="form-control form-control-sm edit-name" value="${escapeHtml(item.name)}"></td>
           <td><input class="form-control form-control-sm edit-unit" value="${escapeHtml(item.unit || '')}"></td>
           <td><input type="number" step="0.01" class="form-control form-control-sm edit-total" value="${item.total}"></td>
@@ -304,83 +469,159 @@
           </td>
         `;
 
-        tr.querySelector('.save-btn').addEventListener('click', () => saveItem(item.id, tr));
-        tr.querySelector('.cancel-btn').addEventListener('click', refreshInventory);
+      tr.querySelector('.save-btn').addEventListener('click', () => saveItem(item.id, tr));
+      tr.querySelector('.cancel-btn').addEventListener('click', refreshInventory);
+    }
+
+    async function saveItem(id, tr) {
+      const payload = {
+        name: tr.querySelector('.edit-name').value,
+        unit: tr.querySelector('.edit-unit').value,
+        total: parseFloat(tr.querySelector('.edit-total').value) || 0,
+        used: parseFloat(tr.querySelector('.edit-used').value) || 0,
+      };
+
+      try {
+        const res = await fetch(`${inventoryApiBase}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('Failed to save');
+        refreshInventory();
+      } catch (err) {
+        alert('Failed to save changes');
+        console.error(err);
+      }
+    }
+
+    async function deleteItem(id) {
+      if (!confirm('Delete this material?')) return;
+
+      try {
+        const res = await fetch(`${inventoryApiBase}/${id}`, {
+          method: 'DELETE',
+          headers: authHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete');
+        refreshInventory();
+      } catch (err) {
+        alert('Failed to delete material');
+        console.error(err);
+      }
+    }
+
+    // Add new material
+    document.getElementById('addItemBtn').addEventListener('click', async function () {
+      const btn = this;
+      const name = document.getElementById('newName').value.trim();
+      const unit = document.getElementById('newUnit').value;
+      const total = parseFloat(document.getElementById('newTotal').value) || 0;
+      const used = parseFloat(document.getElementById('newUsed').value) || 0;
+
+      if (!name) {
+        alert('Please enter material name');
+        return;
       }
 
-      async function saveItem(id, tr) {
-        const payload = {
-          name: tr.querySelector('.edit-name').value,
-          unit: tr.querySelector('.edit-unit').value,
-          total: parseFloat(tr.querySelector('.edit-total').value) || 0,
-          used: parseFloat(tr.querySelector('.edit-used').value) || 0,
-        };
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Adding...';
 
-        try {
-          const res = await fetch(`${inventoryApiBase}/${id}`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload),
-          });
-          if(!res.ok) throw new Error('Failed to save');
-          refreshInventory();
-        } catch(err) {
-          alert('Failed to save changes');
-          console.error(err);
+      try {
+        const res = await fetch(inventoryApiBase, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ name, unit, total, used }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ detail: 'Failed to add' }));
+          throw new Error(errData.detail || 'Failed to add');
         }
+
+        bootstrap.Modal.getInstance(document.getElementById('addMaterialModal')).hide();
+        document.getElementById('newName').value = '';
+        document.getElementById('newTotal').value = '0';
+        document.getElementById('newUsed').value = '0';
+        refreshInventory();
+      } catch (err) {
+        alert(err.message);
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Add Material';
+      }
+    });
+
+    // Search button
+    document.getElementById('filterSearchBtn').addEventListener('click', refreshInventory);
+
+    // Initial load
+    refreshInventory();
+    loadMappingMaterials(); // Populate mapping dropdown
+
+    // --- Mapping Logic ---
+    async function loadMappingMaterials() {
+      try {
+        const res = await fetch(inventoryApiBase);
+        const data = await res.json();
+        const sel = document.getElementById('mapMaterialId');
+        sel.innerHTML = '<option value="">-- Select Material --</option>' +
+          data.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+      } catch (err) { console.error('Load materials for mapping error', err); }
+    }
+
+    async function loadMappings() {
+      try {
+        const res = await fetch(`${API_BASE}/mappings`);
+        const data = await res.json();
+        const tbody = document.getElementById('mappingsTableBody');
+        tbody.innerHTML = data.map(m => `
+          <tr>
+            <td>${escapeHtml(m.excel_name)}</td>
+            <td>${escapeHtml(m.material ? m.material.name : 'Unknown')}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteMapping(${m.id})">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) { console.error('Load mappings error', err); }
+    }
+
+    async function saveMapping() {
+      const excelName = document.getElementById('mapExcelName').value.trim();
+      const materialId = parseInt(document.getElementById('mapMaterialId').value);
+
+      if (!excelName || !materialId) {
+        alert('Please fill both fields');
+        return;
       }
 
-      async function deleteItem(id) {
-        if(!confirm('Delete this material?')) return;
-        
-        try {
-          const res = await fetch(`${inventoryApiBase}/${id}`, { method: 'DELETE' });
-          if(!res.ok) throw new Error('Failed to delete');
-          refreshInventory();
-        } catch(err) {
-          alert('Failed to delete material');
-          console.error(err);
-        }
-      }
+      try {
+        const res = await fetch(`${API_BASE}/mappings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ excel_name: excelName, material_id: materialId })
+        });
+        if (!res.ok) throw new Error('Failed to save mapping');
+        document.getElementById('mapExcelName').value = '';
+        loadMappings();
+      } catch (err) { alert(err.message); }
+    }
 
-      // Add new material
-      document.getElementById('addItemBtn').addEventListener('click', async function() {
-        const name = document.getElementById('newName').value.trim();
-        const unit = document.getElementById('newUnit').value;
-        const total = parseFloat(document.getElementById('newTotal').value) || 0;
-        const used = parseFloat(document.getElementById('newUsed').value) || 0;
+    async function deleteMapping(id) {
+      if (!confirm('Delete this mapping?')) return;
+      try {
+        const res = await fetch(`${API_BASE}/mappings/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete mapping');
+        loadMappings();
+      } catch (err) { alert(err.message); }
+    }
 
-        if(!name) {
-          alert('Please enter material name');
-          return;
-        }
+    // Load mappings when modal is shown
+    document.getElementById('mappingsModal').addEventListener('show.bs.modal', loadMappings);
 
-        try {
-          const res = await fetch(inventoryApiBase, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ name, unit, total, used }),
-          });
-          if(!res.ok) throw new Error('Failed to add');
-          
-          bootstrap.Modal.getInstance(document.getElementById('addMaterialModal')).hide();
-          document.getElementById('newName').value = '';
-          document.getElementById('newTotal').value = '0';
-          document.getElementById('newUsed').value = '0';
-          refreshInventory();
-        } catch(err) {
-          alert('Failed to add material');
-          console.error(err);
-        }
-      });
+    // NOTE: Auto-refresh REMOVED - use manual refresh to avoid UI interference
+  </script>
+</body>
 
-      // Search button
-      document.getElementById('filterSearchBtn').addEventListener('click', refreshInventory);
-
-      // Initial load
-      refreshInventory();
-
-      // NOTE: Auto-refresh REMOVED - use manual refresh to avoid UI interference
-    </script>
-  </body>
 </html>

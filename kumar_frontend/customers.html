@@ -1,242 +1,268 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>KumarBrothers — Customers</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="css/main.css" rel="stylesheet">
-  </head>
-  <body>
-    <div id="navbar-container"></div>
 
-    <div class="container-fluid main-container">
-      <!-- Page Header -->
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 class="fw-bold mb-0">Customers & Projects</h2>
-          <small class="text-muted">Overview of all active and completed customer projects</small>
-        </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-outline-primary" onclick="applyCustomerFilters()">🔄 Refresh</button>
-          <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">+ Add Customer</button>
-        </div>
-      </div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KumarBrothers — Customers</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/main.css" rel="stylesheet">
+</head>
 
-      <!-- Search & Filters -->
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-          <div class="row g-3 align-items-end">
+<body>
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
 
-            <div class="col-md-4">
-              <label class="form-label">Search Customer / Project</label>
-              <input type="text" class="form-control" id="searchCustomer" placeholder="Customer or project name">
-            </div>
-
-            <div class="col-md-3">
-              <label class="form-label">Project Status</label>
-              <select class="form-select" id="filterProjectStatus">
-                <option value="">All</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-
-            <div class="col-md-3">
-              <label class="form-label">Stage Focus</label>
-              <select class="form-select" id="filterStage">
-                <option value="">All</option>
-                <option value="Fabrication">Fabrication</option>
-                <option value="Painting">Painting</option>
-                <option value="Dispatch">Dispatch</option>
-              </select>
-            </div>
-
-            <div class="col-md-2 d-grid">
-              <button class="btn btn-primary" id="applyCustomerFiltersBtn" type="button">Search</button>
-            </div>
-
-          </div>
+        <div class="d-none d-lg-flex">
+          <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+          <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+          <a class="nav-link text-white ms-3" href="scrap.html">Scrap</a>
+          <a class="nav-link text-white ms-3" href="reusable.html">Reusable</a>
+          <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+          <a class="nav-link text-white ms-3" href="tracking_v2.html">Tracking</a>
+          <a class="nav-link text-white ms-3" href="queries.html">Querys</a>
+          <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
+          <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
+          <a class="nav-link text-white ms-3" href="register.html" data-permission="users:create">Register</a>
+          <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
         </div>
       </div>
-
-      <!-- Customers List Card -->
-      <div class="card shadow-sm border-0 mb-3">
-        <div class="card-body">
-          <h5 class="fw-semibold mb-3">Customer Projects</h5>
-
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th>Customer</th>
-                  <th>Project</th>
-                  <th>Total Items</th>
-                  <th>Current Stage</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="customersTableBody">
-                <!-- Existing JS logic will populate rows when using main.js; this page script also renders when filters applied -->
-              </tbody>
-            </table>
-          </div>
-
-        </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="small-muted">Role:</div>
+        <div id="current-role" class="role-badge">Loading...</div>
       </div>
+  </nav>
 
-      <!-- Empty / No Results State -->
-      <div class="text-center text-muted py-4 d-none" id="noCustomerResults">No customers found matching the selected filters.</div>
-
+  <div class="container-fluid main-container">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Customers & Projects</h2>
+        <small class="text-muted">Overview of all active and completed customer projects</small>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" onclick="applyCustomerFilters()">🔄 Refresh</button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">+ Add
+          Customer</button>
+      </div>
     </div>
 
-    <!-- Add Customer Modal -->
-    <div class="modal fade" id="addCustomerModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Add New Customer</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Search & Filters -->
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-4">
+            <label class="form-label">Search Customer / Project</label>
+            <input type="text" class="form-control" id="searchCustomer" placeholder="Customer or project name">
           </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">Customer Name *</label>
-              <input type="text" class="form-control" id="newCustomerName" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Project Details</label>
-              <textarea class="form-control" id="newProjectDetails" rows="2"></textarea>
-            </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Project Status</label>
+            <select class="form-select" id="filterProjectStatus">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+            </select>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="saveCustomerBtn">Save Customer</button>
+
+          <div class="col-md-3">
+            <label class="form-label">Stage Focus</label>
+            <select class="form-select" id="filterStage">
+              <option value="">All</option>
+              <option value="Fabrication">Fabrication</option>
+              <option value="Painting">Painting</option>
+              <option value="Dispatch">Dispatch</option>
+            </select>
           </div>
+
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-primary" id="applyCustomerFiltersBtn" type="button">Search</button>
+          </div>
+
         </div>
       </div>
     </div>
 
-    <!-- Upload Excel Modal -->
-    <div class="modal fade" id="uploadExcelModal" tabindex="-1">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Upload Tracking Excel/CSV</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <!-- Customers List Card -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body">
+        <h5 class="fw-semibold mb-3">Customer Projects</h5>
+
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Customer</th>
+                <th>Project</th>
+                <th>Total Items</th>
+                <th>Current Stage</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody">
+              <!-- Existing JS logic will populate rows when using main.js; this page script also renders when filters applied -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Empty / No Results State -->
+    <div class="text-center text-muted py-4 d-none" id="noCustomerResults">No customers found matching the selected
+      filters.</div>
+
+  </div>
+
+  <!-- Add Customer Modal -->
+  <div class="modal fade" id="addCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Customer</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Customer Name *</label>
+            <input type="text" class="form-control" id="newCustomerName" required>
           </div>
-          <div class="modal-body">
-            <input type="hidden" id="uploadCustomerId">
-            <div class="alert alert-info">
-              <strong>📋 Workflow:</strong> 
-              <ol class="mb-0 mt-2">
-                <li>Select your Excel/CSV tracking file</li>
-                <li>Preview shows column detection and <strong>material matching</strong></li>
-                <li>✅ Matched profiles auto-deduct from inventory when Fabrication completes</li>
-                <li>⚠️ Unmatched profiles need to be added to Raw Materials first</li>
-              </ol>
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Select Excel/CSV File</label>
-              <input type="file" class="form-control" id="trackingExcelFile" accept=".xlsx,.csv">
-            </div>
-            
-            <!-- Material Matching Summary -->
-            <div id="materialMatchingArea" class="d-none mb-3">
-              <div class="card border-primary">
-                <div class="card-header bg-primary text-white">
-                  <strong>📊 Material Matching Summary</strong>
-                </div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div id="matchedProfiles" class="mb-2"></div>
-                    </div>
-                    <div class="col-md-6">
-                      <div id="unmatchedProfiles" class="mb-2"></div>
-                    </div>
+          <div class="mb-3">
+            <label class="form-label">Project Details</label>
+            <textarea class="form-control" id="newProjectDetails" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveCustomerBtn">Save Customer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Excel Modal -->
+  <div class="modal fade" id="uploadExcelModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Upload Tracking Excel/CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="uploadCustomerId">
+          <div class="alert alert-info">
+            <strong>📋 Workflow:</strong>
+            <ol class="mb-0 mt-2">
+              <li>Select your Excel/CSV tracking file</li>
+              <li>Preview shows column detection and <strong>material matching</strong></li>
+              <li>✅ Matched profiles auto-deduct from inventory when Fabrication completes</li>
+              <li>⚠️ Unmatched profiles need to be added to Raw Materials first</li>
+            </ol>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Select Excel/CSV File</label>
+            <input type="file" class="form-control" id="trackingExcelFile" accept=".xlsx,.csv">
+          </div>
+
+          <!-- Inventory Selection for Deduction -->
+          <div class="mb-3">
+            <label class="form-label fw-bold">Deduct Weight From Inventory (Optional)</label>
+            <select class="form-select" id="deductFromInventory">
+              <option value="">-- Don't deduct (tracking only) --</option>
+            </select>
+            <small class="text-muted">Select an inventory item to automatically deduct the grand total weight</small>
+          </div>
+
+          <!-- Material Matching Summary -->
+          <div id="materialMatchingArea" class="d-none mb-3">
+            <div class="card border-primary">
+              <div class="card-header bg-primary text-white">
+                <strong>📊 Material Matching Summary</strong>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div id="matchedProfiles" class="mb-2"></div>
                   </div>
-                  <div id="materialWarning"></div>
+                  <div class="col-md-6">
+                    <div id="unmatchedProfiles" class="mb-2"></div>
+                  </div>
                 </div>
+                <div id="materialWarning"></div>
               </div>
             </div>
-            
-            <div id="excelPreviewArea" class="d-none">
-              <h6 class="fw-bold">📄 Data Preview (first 15 rows):</h6>
-              <div id="excelPreviewContent" class="table-responsive" style="max-height: 350px; overflow-y: auto;"></div>
-              <div class="mt-2 d-flex justify-content-between">
-                <small class="text-muted">Total rows: <span id="totalRowsCount">0</span></small>
-                <small class="text-muted">All items will start at Fabrication stage</small>
-              </div>
+          </div>
+
+          <div id="excelPreviewArea" class="d-none">
+            <h6 class="fw-bold">📄 Data Preview (first 15 rows):</h6>
+            <div id="excelPreviewContent" class="table-responsive" style="max-height: 350px; overflow-y: auto;"></div>
+            <div class="mt-2 d-flex justify-content-between">
+              <small class="text-muted">Total rows: <span id="totalRowsCount">0</span></small>
+              <small class="text-muted">All items will start at Fabrication stage</small>
             </div>
-            <div id="uploadStatus" class="mt-2"></div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-warning" id="previewExcelBtn">🔍 Preview & Check Materials</button>
-            <button type="button" class="btn btn-primary" id="importExcelBtn" disabled>✅ Import & Start Tracking</button>
-          </div>
+          <div id="uploadStatus" class="mt-2"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-warning" id="previewExcelBtn">🔍 Preview & Check Materials</button>
+          <button type="button" class="btn btn-primary" id="importExcelBtn" disabled>✅ Import & Start Tracking</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/modules/escapeHtml.js"></script>
-    <script src="js/modules/navbar.js"></script>
-    <script src="js/modules/debounce.js"></script>
-    <script src="js/modules/store.js"></script>
-    <script src="js/modules/error-handler.js"></script>
-    <script src="js/modules/ui-components.js"></script>
-    <script src="js/modules/pagination.js"></script>
-    <script>
-      (function(){
-        if (!KBAuth.requireAuth()) throw new Error('Not authenticated');
-        KBNavbar.render('navbar-container', 'customers');
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    (function () {
+      const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+      const api = `${API_BASE}/tracking/customers`;
+      const customersApi = `${API_BASE}/customers`;
+      const btn = document.getElementById('applyCustomerFiltersBtn');
+      const tbody = document.getElementById('customersTableBody');
+      const emptyEl = document.getElementById('noCustomerResults');
 
-        const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
-        const api = `${API_BASE}/tracking/customers`;
-        const customersApi = `${API_BASE}/customers`;
-        const btn = document.getElementById('applyCustomerFiltersBtn');
-        const tbody = document.getElementById('customersTableBody');
-        const emptyEl = document.getElementById('noCustomerResults');
+      function buildParams() {
+        const p = new URLSearchParams();
+        const s = document.getElementById('searchCustomer').value.trim();
+        const status = document.getElementById('filterProjectStatus').value;
+        const stage = document.getElementById('filterStage').value;
+        if (s) p.append('name', s);
+        if (status) p.append('status', status);
+        if (stage) p.append('stage', stage);
+        return p.toString();
+      }
 
-        function buildParams(){
-          const p = new URLSearchParams();
-          const s = document.getElementById('searchCustomer').value.trim();
-          const status = document.getElementById('filterProjectStatus').value;
-          const stage = document.getElementById('filterStage').value;
-          if(s) p.append('name', s);
-          if(status) p.append('status', status);
-          if(stage) p.append('stage', stage);
-          return p.toString();
-        }
+      async function applyCustomerFilters() {
+        try {
+          const qs = buildParams();
+          const url = qs ? `${api}?${qs}` : api;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('Fetch failed');
+          const data = await res.json();
+          renderCustomers(data || []);
+        } catch (err) { console.error('Customer fetch error', err); renderCustomers([]); }
+      }
 
-        async function applyCustomerFilters(){
-          try{
-            const qs = buildParams();
-            const url = qs ? `${api}?${qs}` : api;
-            const res = await fetch(url);
-            if(!res.ok) throw new Error('Fetch failed');
-            const data = await res.json();
-            renderCustomers(data||[]);
-          }catch(err){ console.error('Customer fetch error', err); renderCustomers([]); }
-        }
+      function renderCustomers(items) {
+        tbody.innerHTML = '';
+        if (!items || items.length === 0) { emptyEl.classList.remove('d-none'); return; }
+        emptyEl.classList.add('d-none');
 
-        function renderCustomers(items){
-          tbody.innerHTML = '';
-          if(!items || items.length === 0){ emptyEl.classList.remove('d-none'); return; }
-          emptyEl.classList.add('d-none');
-
-          items.forEach(c=>{
-            const row = document.createElement('tr');
-            const totalItems = (c.items && c.items.length) ? c.items.length : (c.total_items || 0);
-            const curStage = c.current_stage || 'Pending';
-            const statusBadge = (curStage === 'Completed') 
-              ? '<span class="badge bg-success">Completed</span>' 
-              : '<span class="badge bg-warning text-dark">Active</span>';
-            row.innerHTML = `
+        items.forEach(c => {
+          const row = document.createElement('tr');
+          const totalItems = (c.items && c.items.length) ? c.items.length : (c.total_items || 0);
+          const curStage = c.current_stage || 'Pending';
+          const statusBadge = (curStage === 'Completed')
+            ? '<span class="badge bg-success">Completed</span>'
+            : '<span class="badge bg-warning text-dark">Active</span>';
+          row.innerHTML = `
               <td>${escapeHtml(c.name || '')}</td>
               <td>${escapeHtml(c.project || c.project_details || c.name || '')}</td>
               <td>${escapeHtml(String(totalItems))}</td>
@@ -244,197 +270,271 @@
               <td>${statusBadge}</td>
               <td>
                 <a class="btn btn-sm btn-kb me-1" href="customer_details.html?id=${c.id}">View</a>
-                <button class="btn btn-sm btn-outline-success" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')">📤 Upload Excel</button>
+                <button class="btn btn-sm btn-outline-success me-1" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')">📤 Upload Excel</button>
+                <button class="btn btn-warning btn-sm me-1" data-permission="customers:delete" onclick="softDeleteCustomer(${c.id}, '${escapeHtml(c.name)}')">Soft Delete</button>
+                <button class="btn btn-danger btn-sm" data-permission="customers:hard_delete" onclick="confirmHardDelete(${c.id}, '${escapeHtml(c.name)}')">Hard Delete</button>
               </td>
             `;
-            tbody.appendChild(row);
-          });
+          tbody.appendChild(row);
+        });
+      }
+      // Apply role/permission visibility to newly added elements
+      if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
+
+      function escapeHtml(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+      // Add Customer
+      document.getElementById('saveCustomerBtn').addEventListener('click', async function () {
+        const name = document.getElementById('newCustomerName').value.trim();
+        const details = document.getElementById('newProjectDetails').value.trim();
+
+        if (!name) {
+          alert('Please enter customer name');
+          return;
         }
 
-        // Add Customer
-        document.getElementById('saveCustomerBtn').addEventListener('click', async function() {
-          const name = document.getElementById('newCustomerName').value.trim();
-          const details = document.getElementById('newProjectDetails').value.trim();
-          
-          if(!name) {
-            alert('Please enter customer name');
+        try {
+          const res = await fetch(customersApi, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, project_details: details }),
+          });
+          if (!res.ok) throw new Error('Failed to create customer');
+
+          bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
+          document.getElementById('newCustomerName').value = '';
+          document.getElementById('newProjectDetails').value = '';
+          applyCustomerFilters();
+        } catch (err) {
+          console.error(err);
+        }
+      });
+
+      // Delete customer handler
+      window.deleteCustomer = async function (customerId, customerName) {
+        if (!confirm(`Delete customer '${customerName}'? This is a soft-delete and can be restored by admin.`)) return;
+        try {
+          const res = await fetch(`${API_BASE}/customers/${customerId}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const err = await res.json().catch(() => null);
+            alert(err && err.detail ? err.detail : `Failed to delete customer (${res.status})`);
             return;
           }
-          
-          try {
-            const res = await fetch(customersApi, {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ name, project_details: details }),
-            });
-            if(!res.ok) throw new Error('Failed to create customer');
-            
-            bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
-            document.getElementById('newCustomerName').value = '';
-            document.getElementById('newProjectDetails').value = '';
-            applyCustomerFilters();
-          } catch(err) {
-            alert('Failed to create customer');
-            console.error(err);
-          }
-        });
+          showToast(`Customer '${customerName}' deleted`, 'success');
+          applyCustomerFilters();
+        } catch (err) {
+          console.error(err);
+          alert('Failed to delete customer');
+        }
+      };
 
-        // Excel Upload Functions
-        window.openUploadModal = function(customerId, customerName) {
-          document.getElementById('uploadCustomerId').value = customerId;
-          document.getElementById('trackingExcelFile').value = '';
-          document.getElementById('excelPreviewArea').classList.add('d-none');
-          document.getElementById('uploadStatus').innerHTML = '';
-          document.getElementById('importExcelBtn').disabled = true;
-          new bootstrap.Modal(document.getElementById('uploadExcelModal')).show();
-        };
+      // Excel Upload Functions
+      window.openUploadModal = async function (customerId, customerName) {
+        document.getElementById('uploadCustomerId').value = customerId;
+        document.getElementById('trackingExcelFile').value = '';
+        document.getElementById('excelPreviewArea').classList.add('d-none');
+        document.getElementById('materialMatchingArea').classList.add('d-none');
+        document.getElementById('uploadStatus').innerHTML = '';
+        document.getElementById('importExcelBtn').disabled = true;
 
-        document.getElementById('previewExcelBtn').addEventListener('click', async function() {
-          const customerId = document.getElementById('uploadCustomerId').value;
-          const fileInput = document.getElementById('trackingExcelFile');
-          if(!fileInput.files || !fileInput.files[0]) {
-            alert('Please select an Excel/CSV file');
-            return;
-          }
-          
-          const formData = new FormData();
-          formData.append('file', fileInput.files[0]);
-          
-          document.getElementById('uploadStatus').innerHTML = '<span class="text-info">🔄 Analyzing file and checking materials...</span>';
-          
-          try {
-            // Use the new preview-import endpoint that checks material matching
-            const res = await fetch(`${API_BASE}/excel/preview-import/${customerId}`, {
-              method: 'POST',
-              body: formData,
-            });
-            if(!res.ok) throw new Error('Failed to analyze file');
-            const data = await res.json();
-            
-            // Show Material Matching Summary
-            const matchingArea = document.getElementById('materialMatchingArea');
-            const matchedDiv = document.getElementById('matchedProfiles');
-            const unmatchedDiv = document.getElementById('unmatchedProfiles');
-            const warningDiv = document.getElementById('materialWarning');
-            matchingArea.classList.remove('d-none');
-            
-            const matching = data.material_matching;
-            
-            // Matched profiles
-            matchedDiv.innerHTML = `
-              <strong class="text-success">✅ Matched Profiles (${matching.matched_count}):</strong>
-              <div class="small text-muted">${matching.matched_profiles.slice(0, 8).join(', ')}${matching.matched_count > 8 ? '...' : ''}</div>
-              <div class="text-success small">Total weight: ${matching.total_weight_matched_kg} kg</div>
+        // Load inventory for selection
+        await loadInventoryOptions();
+
+        new bootstrap.Modal(document.getElementById('uploadExcelModal')).show();
+      };
+
+      document.getElementById('previewExcelBtn').addEventListener('click', async function () {
+        const customerId = document.getElementById('uploadCustomerId').value;
+        const fileInput = document.getElementById('trackingExcelFile');
+        if (!fileInput.files || !fileInput.files[0]) {
+          alert('Please select an Excel/CSV file');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        document.getElementById('uploadStatus').innerHTML = '<span class="text-info">🔄 Analyzing file and checking materials...</span>';
+
+        try {
+          // Use the new preview-import endpoint that checks material matching
+          const res = await fetch(`${API_BASE}/excel/preview-import/${customerId}`, {
+            method: 'POST',
+            body: formData,
+          });
+          if (!res.ok) throw new Error('Failed to analyze file');
+          const data = await res.json();
+
+          // Show Material Matching Summary
+          const matchingArea = document.getElementById('materialMatchingArea');
+          const matchedDiv = document.getElementById('matchedProfiles');
+          const unmatchedDiv = document.getElementById('unmatchedProfiles');
+          const warningDiv = document.getElementById('materialWarning');
+          matchingArea.classList.remove('d-none');
+
+          const matching = data.material_matching;
+
+          // Matched profiles
+          const grandTotal = matching.grand_total_weight_kg || (matching.total_weight_matched_kg + matching.total_weight_unmatched_kg);
+          matchedDiv.innerHTML = `
+              <strong class="text-success">✅ Matched Profiles (${matching.matched_profiles.length}):</strong>
+              <div class="small text-muted">${matching.matched_profiles.slice(0, 8).join(', ')}${matching.matched_profiles.length > 8 ? '...' : ''}</div>
+              <div class="text-success small">Matched weight: ${matching.total_weight_matched_kg.toFixed(2)} kg</div>
+              <div class="fw-bold text-primary mt-2">📊 Grand Total Weight: ${grandTotal.toFixed(2)} kg</div>
             `;
-            
-            // Unmatched profiles
-            if(matching.unmatched_count > 0) {
-              unmatchedDiv.innerHTML = `
-                <strong class="text-warning">⚠️ Not in Inventory (${matching.unmatched_count}):</strong>
-                <div class="small text-muted">${matching.unmatched_profiles.slice(0, 8).join(', ')}${matching.unmatched_count > 8 ? '...' : ''}</div>
-                <div class="text-warning small">Weight won't deduct: ${matching.total_weight_unmatched_kg} kg</div>
-              `;
-              warningDiv.innerHTML = `
-                <div class="alert alert-warning py-2 mb-0 mt-2">
-                  <strong>⚠️ Action Needed:</strong> Add these profiles to <a href="raw_material.html" target="_blank">Raw Materials</a> 
-                  for automatic deduction when Fabrication completes.
+
+          // Unmatched profiles
+          if (matching.unmatched_count > 0) {
+            let unmatchedHtml = `<strong class="text-warning">⚠️ No Material Linked (${matching.unmatched_count}):</strong>`;
+            unmatchedHtml += `<div class="mt-2" id="unmatchedList">`;
+
+            // Show up to 5 unmatched with mapping dropdown
+            matching.unmatched_profiles.slice(0, 5).forEach(profile => {
+              unmatchedHtml += `
+                 <div class="d-flex align-items-center mb-1 gap-2">
+                   <span class="small text-truncate" style="max-width: 150px;" title="${profile}">${escapeHtml(profile)}</span>
+                   <select class="form-select form-select-sm mapping-selector" data-profile="${escapeHtml(profile)}" style="width: 150px;">
+                     <option value="">-- Link to --</option>
+                   </select>
+                   <button class="btn btn-sm btn-outline-primary py-0" onclick="quickMap(this)">Link</button>
+                 </div>`;
+            });
+
+            if (matching.unmatched_count > 5) {
+              unmatchedHtml += `<div class="small text-muted">... and ${matching.unmatched_count - 5} more.</div>`;
+            }
+            unmatchedHtml += `</div>`;
+            unmatchedDiv.innerHTML = unmatchedHtml;
+
+            // Populate selectors
+            populateMappingSelectors();
+
+            warningDiv.innerHTML = `
+                <div class="alert alert-info py-2 mb-0 mt-2">
+                  <strong>ℹ️ Note:</strong> These items will be tracked, but won't deduct from inventory automatically 
+                  unless you link them above or in <a href="raw_material.html" target="_blank">Raw Materials</a>.
                 </div>
               `;
-            } else {
-              unmatchedDiv.innerHTML = `<span class="text-success">✅ All profiles found in inventory!</span>`;
-              warningDiv.innerHTML = '';
-            }
-            
-            // Show preview table
-            const previewArea = document.getElementById('excelPreviewArea');
-            const previewContent = document.getElementById('excelPreviewContent');
-            previewArea.classList.remove('d-none');
-            
-            document.getElementById('totalRowsCount').textContent = data.file_info.total_rows;
-            
-            let html = '<table class="table table-sm table-bordered table-hover"><thead class="table-light"><tr>';
-            // Add material status column first
-            html += '<th class="text-center">Status</th>';
-            data.file_info.columns.forEach(col => {
-              const mapped = data.column_mapping[col];
-              html += `<th>${escapeHtml(col)}${mapped ? ' <span class="badge bg-info">→' + mapped + '</span>' : ''}</th>`;
-            });
-            html += '</tr></thead><tbody>';
-            
-            // Show preview rows with material status
-            data.preview_rows.forEach(row => {
-              const status = row.__material_status || '';
-              const rowClass = status.includes('✅') ? 'table-success' : (status.includes('⚠️') ? 'table-warning' : '');
-              html += `<tr class="${rowClass}">`;
-              html += `<td class="text-center small">${status}</td>`;
-              data.file_info.columns.forEach(col => {
-                html += `<td class="small">${escapeHtml(String(row[col] || ''))}</td>`;
-              });
-              html += '</tr>';
-            });
-            
-            if(data.file_info.total_rows > 15) {
-              html += `<tr><td colspan="${data.file_info.columns.length + 1}" class="text-center text-muted">... and ${data.file_info.total_rows - 15} more rows</td></tr>`;
-            }
-            html += '</tbody></table>';
-            
-            previewContent.innerHTML = html;
-            document.getElementById('uploadStatus').innerHTML = '<span class="text-success">✓ File analyzed - ready for import</span>';
-            document.getElementById('importExcelBtn').disabled = false;
-            
-          } catch(err) {
-            document.getElementById('uploadStatus').innerHTML = '<span class="text-danger">Failed to process file: ' + err.message + '</span>';
-            console.error(err);
+          } else {
+            unmatchedDiv.innerHTML = `<span class="text-success">✅ All profiles found in inventory!</span>`;
+            warningDiv.innerHTML = '';
           }
-        });
 
-        document.getElementById('importExcelBtn').addEventListener('click', async function() {
-          const customerId = document.getElementById('uploadCustomerId').value;
-          const fileInput = document.getElementById('trackingExcelFile');
-          
-          if(!fileInput.files || !fileInput.files[0]) {
-            alert('Please select an Excel file');
-            return;
-          }
-          
-          const formData = new FormData();
-          formData.append('file', fileInput.files[0]);
-          
-          document.getElementById('uploadStatus').innerHTML = '<span class="text-info">🔄 Importing tracking items...</span>';
-          this.disabled = true;
-          
-          try {
-            const res = await fetch(`${API_BASE}/excel/import-tracking/${customerId}`, {
-              method: 'POST',
-              body: formData,
+          // Show preview table
+          const previewArea = document.getElementById('excelPreviewArea');
+          const previewContent = document.getElementById('excelPreviewContent');
+          previewArea.classList.remove('d-none');
+
+          document.getElementById('totalRowsCount').textContent = data.file_info.total_rows;
+
+          let html = '<table class="table table-sm table-bordered table-hover"><thead class="table-light"><tr>';
+          // Add material status column first
+          html += '<th class="text-center">Status</th>';
+          data.file_info.columns.forEach(col => {
+            const mapped = data.column_mapping[col];
+            html += `<th>${escapeHtml(col)}${mapped ? ' <span class="badge bg-info">→' + mapped + '</span>' : ''}</th>`;
+          });
+          html += '</tr></thead><tbody>';
+
+          // Show preview rows with material status
+          data.preview_rows.forEach(row => {
+            const status = row.__material_status || '';
+            const rowClass = status.includes('✅') ? 'table-success' : (status.includes('⚠️') ? 'table-warning' : '');
+            html += `<tr class="${rowClass}">`;
+            html += `<td class="text-center small">${status}</td>`;
+            data.file_info.columns.forEach(col => {
+              html += `<td class="small">${escapeHtml(String(row[col] || ''))}</td>`;
             });
-            const data = await res.json();
-            
-            if(!res.ok) {
-              throw new Error(data.detail || 'Import failed');
-            }
-            
-            // Show detailed success message with deduplication info
-            let summaryParts = [];
-            if(data.items_created > 0) summaryParts.push(`<strong>${data.items_created}</strong> new items created`);
-            if(data.items_updated > 0) summaryParts.push(`<strong>${data.items_updated}</strong> existing items updated`);
-            if(data.items_skipped > 0) summaryParts.push(`<strong>${data.items_skipped}</strong> completed items skipped`);
-            const summaryText = summaryParts.length > 0 ? summaryParts.join(', ') : 'No changes';
-            
-            let matchingInfo = '';
-            if(data.material_matching) {
-              const m = data.material_matching;
-              matchingInfo = `
+            html += '</tr>';
+          });
+
+          if (data.file_info.total_rows > 15) {
+            html += `<tr><td colspan="${data.file_info.columns.length + 1}" class="text-center text-muted">... and ${data.file_info.total_rows - 15} more rows</td></tr>`;
+          }
+          html += '</tbody></table>';
+
+          previewContent.innerHTML = html;
+          document.getElementById('uploadStatus').innerHTML = '<span class="text-success">✓ File analyzed - ready for import</span>';
+          document.getElementById('importExcelBtn').disabled = false;
+
+        } catch (err) {
+          document.getElementById('uploadStatus').innerHTML = '<span class="text-danger">Failed to process file: ' + err.message + '</span>';
+          console.error(err);
+        }
+      });
+
+      // Load inventory items into selector
+      async function loadInventoryOptions() {
+        try {
+          const res = await fetch(`${API_BASE}/inventory`);
+          const inventory = await res.json();
+
+          const select = document.getElementById('deductFromInventory');
+          select.innerHTML = '<option value="">-- Don\'t deduct (tracking only) --</option>';
+
+          inventory.forEach(inv => {
+            const available = (inv.total || 0) - (inv.used || 0);
+            select.innerHTML += `<option value="${inv.id}">${escapeHtml(inv.name)} (Available: ${available.toFixed(2)} ${inv.unit})</option>`;
+          });
+        } catch (err) {
+          console.error('Failed to load inventory', err);
+        }
+      }
+
+      document.getElementById('importExcelBtn').addEventListener('click', async function () {
+        const customerId = document.getElementById('uploadCustomerId').value;
+        const fileInput = document.getElementById('trackingExcelFile');
+        const inventoryId = document.getElementById('deductFromInventory').value;
+
+        if (!fileInput.files || !fileInput.files[0]) {
+          alert('Please select an Excel file');
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        // Build URL with inventory_id if selected
+        let importUrl = `${API_BASE}/excel/import-tracking/${customerId}`;
+        if (inventoryId) {
+          importUrl += `?inventory_id=${inventoryId}`;
+        }
+
+        document.getElementById('uploadStatus').innerHTML = '<span class="text-info">🔄 Importing tracking items...</span>';
+        this.disabled = true;
+
+        try {
+          const res = await fetch(importUrl, {
+            method: 'POST',
+            body: formData,
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.detail || 'Import failed');
+          }
+
+          // Show detailed success message with deduplication info
+          let summaryParts = [];
+          if (data.items_created > 0) summaryParts.push(`<strong>${data.items_created}</strong> new items created`);
+          if (data.items_updated > 0) summaryParts.push(`<strong>${data.items_updated}</strong> existing items updated`);
+          if (data.items_skipped > 0) summaryParts.push(`<strong>${data.items_skipped}</strong> completed items skipped`);
+          const summaryText = summaryParts.length > 0 ? summaryParts.join(', ') : 'No changes';
+
+          let matchingInfo = '';
+          if (data.material_matching) {
+            const m = data.material_matching;
+            matchingInfo = `
                 <hr>
                 <strong>Material Linking:</strong><br>
                 ✅ ${data.items_with_material_link || 0} items linked to inventory<br>
-                ${m.unmatched_profiles && m.unmatched_profiles.length > 0 
-                  ? `⚠️ ${m.unmatched_profiles.length} profiles not found: ${m.unmatched_profiles.slice(0,3).join(', ')}${m.unmatched_profiles.length > 3 ? '...' : ''}`
-                  : '✅ All profiles matched!'}
+                ${m.unmatched_profiles && m.unmatched_profiles.length > 0
+                ? `⚠️ ${m.unmatched_profiles.length} profiles not found: ${m.unmatched_profiles.slice(0, 3).join(', ')}${m.unmatched_profiles.length > 3 ? '...' : ''}`
+                : '✅ All profiles matched!'}
               `;
-            }
-            
-            document.getElementById('uploadStatus').innerHTML = `
+          }
+
+          document.getElementById('uploadStatus').innerHTML = `
               <div class="alert alert-success">
                 <strong>✅ Import Complete!</strong><br>
                 ${summaryText} for ${escapeHtml(data.customer_name)}.<br>
@@ -442,29 +542,70 @@
                 ${matchingInfo}
               </div>
             `;
-            
-            // Refresh customer list after 2 seconds
-            setTimeout(() => {
-              bootstrap.Modal.getInstance(document.getElementById('uploadExcelModal')).hide();
-              applyCustomerFilters();
-            }, 2000);
-            
-          } catch(err) {
-            document.getElementById('uploadStatus').innerHTML = `<span class="text-danger">❌ Import failed: ${err.message}</span>`;
-            this.disabled = false;
-            console.error(err);
-          }
-        });
 
-        if(btn) btn.addEventListener('click', applyCustomerFilters);
-        // allow Enter key in search input
-        const si = document.getElementById('searchCustomer'); if(si) si.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); applyCustomerFilters(); } });
+          // Refresh customer list after 2 seconds
+          setTimeout(() => {
+            bootstrap.Modal.getInstance(document.getElementById('uploadExcelModal')).hide();
+            applyCustomerFilters();
+          }, 2000);
 
-        // initial load
-        applyCustomerFilters();
-        
-        // NOTE: Auto-refresh REMOVED - use manual refresh to avoid UI interference
-      })();
-    </script>
-  </body>
+        } catch (err) {
+          document.getElementById('uploadStatus').innerHTML = `<span class="text-danger">❌ Import failed: ${err.message}</span>`;
+          this.disabled = false;
+          console.error(err);
+        }
+      });
+
+      if (btn) btn.addEventListener('click', applyCustomerFilters);
+      // allow Enter key in search input
+      const si = document.getElementById('searchCustomer'); if (si) si.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyCustomerFilters(); } });
+
+      // Quick mapping helpers
+      async function populateMappingSelectors() {
+        try {
+          const res = await fetch(`${API_BASE}/inventory`);
+          const data = await res.json();
+          const options = data.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+          document.querySelectorAll('.mapping-selector').forEach(sel => {
+            sel.innerHTML += options;
+          });
+        } catch (err) { console.error('Failed to populate selectors', err); }
+      }
+
+      window.quickMap = async function (btn) {
+        const div = btn.parentElement;
+        const selector = div.querySelector('.mapping-selector');
+        const profile = selector.dataset.profile;
+        const materialId = selector.value;
+
+        if (!materialId) {
+          alert('Select a material first');
+          return;
+        }
+
+        try {
+          btn.disabled = true;
+          const res = await fetch(`${API_BASE}/mappings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ excel_name: profile, material_id: parseInt(materialId) })
+          });
+          if (!res.ok) throw new Error('Failed to link material');
+
+          btn.innerHTML = '✅ Linked';
+          selector.disabled = true;
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+        }
+      };
+
+      // initial load
+      applyCustomerFilters();
+
+      // NOTE: Auto-refresh REMOVED - use manual refresh to avoid UI interference
+    })();
+  </script>
+</body>
+
 </html>

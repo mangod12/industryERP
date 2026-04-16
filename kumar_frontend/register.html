@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>KumarBrothers | User Registration</title>
@@ -7,6 +8,7 @@
 
   <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <script src="js/config.js"></script>
 
   <style>
@@ -21,7 +23,7 @@
       background: #ffffff;
       padding: 30px;
       border-radius: 8px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
     }
 
     .register-title {
@@ -66,54 +68,56 @@
   <div class="register-container">
     <div class="register-title">Create New User</div>
     <div class="register-subtitle">
-      Only authorized personnel can create user accounts
+      Only authorized personnel (Boss, Supervisors) can create user accounts
     </div>
 
     <form id="registerForm">
 
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Full Name</label>
-          <input type="text" class="form-control" required>
-        </div>
-
-        <div class="col-md-6 mb-3">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" required>
-        </div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" id="email" class="form-control" required>
       </div>
 
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="form-label">Username</label>
-          <input type="text" class="form-control" required>
+          <input type="text" name="username" id="username" class="form-control" required>
         </div>
 
         <div class="col-md-6 mb-3">
-          <label class="form-label">Phone Number</label>
-          <input type="tel" class="form-control">
+          <label class="form-label">Role</label>
+          <select class="form-select" id="roleSelect" required>
+            <option value="">Select Role</option>
+            <option value="Boss">Boss</option>
+            <option value="Software Supervisor">Software Supervisor</option>
+            <option value="User">User</option>
+            <option value="Fabricator">Fabricator</option>
+            <option value="Painter">Painter</option>
+            <option value="Dispatch">Dispatch</option>
+          </select>
         </div>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">Role</label>
-        <select class="form-select" required>
-          <option value="">Select Role</option>
-          <option>Boss</option>
-          <option>Software Supervisor</option>
-          <option>User</option>
-        </select>
       </div>
 
       <div class="row">
         <div class="col-md-6 mb-3">
           <label class="form-label">Password</label>
-          <input type="password" class="form-control" required>
+          <div class="input-group">
+            <input type="password" name="password" id="password" class="form-control" required minlength="8">
+            <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
         </div>
 
         <div class="col-md-6 mb-3">
           <label class="form-label">Confirm Password</label>
-          <input type="password" class="form-control" required>
+          <div class="input-group">
+            <input type="password" name="confirm_password" id="confirm_password" class="form-control" required
+              minlength="8">
+            <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -122,7 +126,7 @@
       </button>
 
       <div class="note">
-        ⚠ This page should only be accessible to Boss or Software Supervisor.
+        ⚠ This page is restricted to Boss and Software Supervisors only.
       </div>
 
     </form>
@@ -131,62 +135,94 @@
   <!-- Auth JS -->
   <script>
     // Protect this page client-side: only Boss or Software Supervisor allowed
-    (function(){
-      if (!KBAuth.isAuthenticated()) return window.location.href = 'login.html';
-      var role = KBAuth.getRole();
-      if (role !== 'Boss' && role !== 'Software Supervisor') return window.location.href = 'index.html';
+    (function () {
+      const role = localStorage.getItem('kb_role');
+      const token = localStorage.getItem('kb_token');
+
+      if (!token) return window.location.href = 'login.html';
+
+      // Allow Boss OR Software Supervisor
+      // Normalize check (backend roles are Title Case)
+      if (role !== 'Boss' && role !== 'Software Supervisor') {
+        alert('Access Denied: Only Boss or Software Supervisor can create users.');
+        return window.location.href = 'index.html';
+      }
     })();
 
-    document.getElementById("registerForm").addEventListener("submit", async function(e) {
+    document.getElementById("registerForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       const form = this;
-      const full_name = form.querySelector('input[placeholder]')?.value || form.querySelector('input[type=text]')?.value || '';
-      const email = form.querySelector('input[type=email]').value;
-      const username = form.querySelector('input[type=text]').value;
-      const phone = form.querySelector('input[type=tel]').value;
-      const role = form.querySelector('select').value;
-      const password = form.querySelector('input[type=password]').value;
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const roleValue = document.getElementById('roleSelect').value;
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm_password').value;
+
+      // Remove existing status messages
+      const existingStatus = form.querySelector('.status-msg');
+      if (existingStatus) existingStatus.remove();
 
       const statusEl = document.createElement('div');
+      statusEl.className = 'status-msg mt-3';
       form.appendChild(statusEl);
 
-      try{
+      if (password !== confirm) {
+        statusEl.innerHTML = `<div class='text-danger'>Passwords do not match</div>`;
+        return;
+      }
+
+      const payload = {
+        username: username,
+        email: email,
+        password: password,
+        role: roleValue // Sending Title Case directly (e.g. "Software Supervisor")
+      };
+
+      try {
         const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
-        const token = (typeof KBAuth !== 'undefined') ? KBAuth.getToken() : localStorage.getItem('kb_token');
+        const token = localStorage.getItem('kb_token');
+
         const res = await fetch(`${API_BASE}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ full_name, email, username, password, role })
+          body: JSON.stringify(payload)
         });
-        const data = await res.json();
-        if(!res.ok){
-          statusEl.textContent = '';
-          const errDiv = document.createElement('div');
-          errDiv.className = 'text-danger mt-2';
-          errDiv.textContent = (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) || 'Registration failed';
-          statusEl.appendChild(errDiv);
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          statusEl.innerHTML = `<div class='text-danger'>${data?.detail || 'Registration failed'}</div>`;
           return;
         }
-        statusEl.textContent = '';
-        const successDiv = document.createElement('div');
-        successDiv.className = 'text-success mt-2';
-        successDiv.textContent = 'User created successfully';
-        statusEl.appendChild(successDiv);
-        // If we set a development token earlier, clean it up so we don't leave a stray dev credential
-        if(localStorage.getItem('kb_token') === 'dev-token'){
-          localStorage.removeItem('kb_token');
-          localStorage.removeItem('kb_role');
-        }
-        setTimeout(()=> window.location.href = 'index.html', 900);
-      }catch(err){
-        statusEl.textContent = '';
-        const catchDiv = document.createElement('div');
-        catchDiv.className = 'text-danger mt-2';
-        catchDiv.textContent = 'Error: ' + err.message;
-        statusEl.appendChild(catchDiv);
+
+        statusEl.innerHTML = `<div class='text-success fw-bold'>User created successfully! Redirecting...</div>`;
+        form.reset();
+
+        setTimeout(() => window.location.href = 'index.html', 1500);
+
+      } catch (err) {
+        statusEl.innerHTML = `<div class='text-danger'>Error: ${err.message}</div>`;
       }
     });
   </script>
 
+  <script>
+    // Password visibility toggle
+    document.querySelectorAll('.pw-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = btn.closest('.input-group').querySelector('input');
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+          input.type = 'password';
+          icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+      });
+    });
+  </script>
+
 </body>
+
 </html>

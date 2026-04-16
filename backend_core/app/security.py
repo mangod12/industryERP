@@ -25,7 +25,7 @@ from jose import JWTError, jwt
 import bcrypt
 from pydantic import BaseModel, validator
 from sqlalchemy.orm import Session
-
+from passlib.context import CryptContext 
 from .db import SessionLocal
 
 
@@ -64,9 +64,10 @@ def get_secret_key() -> str:
     return secret
 
 
+# Centralize JWT config here so other modules import the same values.
 SECRET_KEY = get_secret_key()
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("TOKEN_EXPIRE_MINUTES", "60"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours default
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 
@@ -121,14 +122,35 @@ class PasswordPolicy:
         return len(errors) == 0, errors
 
 
+
+def hash_password(password: str) -> str:
+    """
+    Hash a password using bcrypt directly.
+    passlib CryptContext is incompatible with newer bcrypt versions,
+    so we use the bcrypt library directly for reliability.
+    """
+    if isinstance(password, str):
+        password = password.encode('utf-8')
+    return bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    """Verify a plain password against a bcrypt hash."""
+    try:
+        if isinstance(plain_password, str):
+            plain_password = plain_password.encode('utf-8')
+        if isinstance(hashed_password, str):
+            hashed_password = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(plain_password, hashed_password)
+    except Exception:
+        return False
 
 
-def get_password_hash(password: str) -> str:
-    """Hash a password using bcrypt"""
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
+# Backwards-compatible alias used in some modules
+get_password_hash = hash_password
+
+
+# JWT config is set once above via get_secret_key() — no duplicate definitions
 
 
 # =============================================================================
@@ -152,23 +174,22 @@ def create_access_token(
     data: dict,
     expires_delta: Optional[timedelta] = None
 ) -> str:
-    """
-    Create a JWT access token with security best practices.
-    """
     to_encode = data.copy()
-    
-    now = datetime.utcnow()
-    expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    
-    # Add security claims
-    to_encode.update({
-        "exp": expire,
-        "iat": now,
-        "jti": secrets.token_urlsafe(16),  # Unique token ID
-        "type": "access"
-    })
-    
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+    expire = datetime.utcnow() + (
+        expires_delta
+        if expires_delta
+        else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    to_encode.update({"exp": expire})
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
     return encoded_jwt
 
 
@@ -261,18 +282,12 @@ class Permission:
     SETTINGS_VIEW = "settings:view"
     SETTINGS_UPDATE = "settings:update"
 
-    # BOM permissions
-    BOM_VIEW = "bom:view"
-    BOM_CREATE = "bom:create"
-    BOM_UPDATE = "bom:update"
-    BOM_DELETE = "bom:delete"
-
 
 # Role definitions with their permissions
 ROLE_PERMISSIONS: dict[str, Set[str]] = {
     "Boss": {
         # Full access
-        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE,
+        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE, 
         Permission.INVENTORY_UPDATE, Permission.INVENTORY_DELETE,
         Permission.INVENTORY_ADJUST,
         Permission.GRN_VIEW, Permission.GRN_CREATE, Permission.GRN_APPROVE,
@@ -283,11 +298,10 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.USER_VIEW, Permission.USER_CREATE, Permission.USER_UPDATE, Permission.USER_DELETE,
         Permission.REPORT_VIEW, Permission.REPORT_EXPORT,
         Permission.SETTINGS_VIEW, Permission.SETTINGS_UPDATE,
-        Permission.BOM_VIEW, Permission.BOM_CREATE, Permission.BOM_UPDATE, Permission.BOM_DELETE,
     },
     
     "Software Supervisor": {
-        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE,
+        Permission.INVENTORY_VIEW, Permission.INVENTORY_CREATE, 
         Permission.INVENTORY_UPDATE, Permission.INVENTORY_ADJUST,
         Permission.GRN_VIEW, Permission.GRN_CREATE, Permission.GRN_APPROVE,
         Permission.DISPATCH_VIEW, Permission.DISPATCH_CREATE, Permission.DISPATCH_APPROVE,
@@ -295,7 +309,6 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.PRODUCTION_VIEW, Permission.PRODUCTION_UPDATE, Permission.PRODUCTION_CONSUME,
         Permission.REPORT_VIEW, Permission.REPORT_EXPORT,
         Permission.SETTINGS_VIEW,
-        Permission.BOM_VIEW, Permission.BOM_CREATE, Permission.BOM_UPDATE,
     },
     
     "Store Keeper": {
@@ -304,7 +317,6 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.DISPATCH_VIEW, Permission.DISPATCH_CREATE,
         Permission.PRODUCTION_VIEW, Permission.PRODUCTION_CONSUME,
         Permission.REPORT_VIEW,
-        Permission.BOM_VIEW,
     },
     
     "QA Inspector": {
@@ -313,7 +325,6 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.QA_VIEW, Permission.QA_INSPECT, Permission.QA_APPROVE,
         Permission.QA_REJECT, Permission.QA_HOLD,
         Permission.REPORT_VIEW,
-        Permission.BOM_VIEW,
     },
     
     "Dispatch Operator": {
@@ -321,7 +332,6 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.DISPATCH_VIEW, Permission.DISPATCH_CREATE,
         Permission.PRODUCTION_VIEW,
         Permission.REPORT_VIEW,
-        Permission.BOM_VIEW,
     },
     
     "User": {
@@ -330,7 +340,6 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.DISPATCH_VIEW,
         Permission.PRODUCTION_VIEW,
         Permission.REPORT_VIEW,
-        Permission.BOM_VIEW,
     },
 }
 
@@ -566,3 +575,21 @@ def validate_email(email: str) -> bool:
     """Validate email format"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(pattern, email))
+
+
+# =============================================================================
+# SIMPLE ROLE CHECKER UTIL (for deps)
+# =============================================================================
+
+ALLOWED_ROLES = {"boss", "software_supervisor", "user"}
+
+
+def require_roles(allowed_roles: List[str]):
+    def checker(current_user):
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to perform this action"
+            )
+        return current_user
+    return checker
