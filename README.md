@@ -1,180 +1,178 @@
 # KumarBrothers Steel ERP
-(PRODUCTION READY)
 
-A comprehensive steel fabrication tracking and inventory management system with automatic material deduction, Excel import, and real-time dashboard.
+[![CI](https://github.com/mangod12/industryERP/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/ci.yml)
+[![Deploy](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml)
+
+Production-grade ERP for steel fabrication — tracks raw materials from receipt through fabrication, painting, dispatch, and scrap recovery.
 
 ---
 
-## 📋 System Workflow
+## Live Demo
 
-### Overview Diagram
+| | URL |
+|---|---|
+| **App** | [kbsteel-backend-498310931350.asia-south1.run.app](https://kbsteel-backend-498310931350.asia-south1.run.app) |
+| **API Docs** | [/docs](https://kbsteel-backend-498310931350.asia-south1.run.app/docs) |
+| **Version** | [/version](https://kbsteel-backend-498310931350.asia-south1.run.app/version) |
+
+### Demo Credentials
+
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `AdminTest2026Kbs` | Boss (full access) |
+| `supervisor` | *(contact admin)* | Software Supervisor |
+| `storekeeper` | *(contact admin)* | Store Keeper |
+| `qainspector` | *(contact admin)* | QA Inspector |
+| `dispatchop` | *(contact admin)* | Dispatch Operator |
+| `user` | *(contact admin)* | View-only |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI 0.128.0, Python 3.12, Gunicorn + Uvicorn |
+| ORM | SQLAlchemy 2.0.46, Pydantic v2 |
+| Database | PostgreSQL (Cloud SQL) / SQLite (dev) |
+| Frontend | Vanilla JS, Bootstrap 5.3.2, no build step |
+| Auth | JWT (python-jose), bcrypt, 6 RBAC roles |
+| Excel | pandas 3.0.0 + openpyxl for import/export |
+| Deploy | Google Cloud Run, Artifact Registry, Cloud Build |
+| CI/CD | GitHub Actions (Workload Identity Federation) |
+
+---
+
+## Core Business Flow
+
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        KUMARBROTHERS STEEL ERP WORKFLOW                      │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-    STEP 1                    STEP 2                    STEP 3
-┌─────────────┐          ┌─────────────┐          ┌─────────────┐
-│  Add Raw    │          │ Add Customer│          │Upload Excel │
-│  Materials  │    →     │  /Project   │    →     │  Tracking   │
-│  (Profiles) │          │             │          │    File     │
-└─────────────┘          └─────────────┘          └─────────────┘
-      │                                                  │
-      │                                                  ▼
-      │                                    ┌──────────────────────────┐
-      │                                    │ System Auto-Links        │
-      │                                    │ PROFILE → Raw Material   │
-      │                                    │ (e.g., UB203X133X25)     │
-      └───────────────────────────────────►└──────────────────────────┘
-                                                         │
-                                                         ▼
-                         TRACKING STAGES (Sequential - Cannot Skip)
-    ┌─────────────────┬─────────────────┬─────────────────┐
-    │  FABRICATION    │    PAINTING     │    DISPATCH     │
-    │    (Stage 1)    │    (Stage 2)    │    (Stage 3)    │
-    │                 │                 │                 │
-    │  ✓ Complete     │  ✓ Complete     │  ✓ Complete     │
-    │      ↓          │      ↓          │      ↓          │
-    │  AUTO-DEDUCT    │  Move to next   │    FINISHED!    │
-    │  from inventory │     stage       │                 │
-    └─────────────────┴─────────────────┴─────────────────┘
-                                                         │
-                                                         ▼
-                                          ┌──────────────────────────┐
-                                          │  Dashboard Updates       │
-                                          │  - Stock reduced         │
-                                          │  - Progress shown        │
-                                          │  - All users see changes │
-                                          └──────────────────────────┘
+Raw Material Receipt (GRN) --> Weighbridge --> QA Inspection --> Stock Lot
+     |
+Customer Order --> Excel Upload (auto-link profiles to inventory)
+     |
+Fabrication --> Painting --> Dispatch --> Completed
+     |                              |
+Auto-deduct inventory          Dispatch note --> Weighbridge --> Ship
+     |
+Scrap/Waste --> Recovery or Write-off
 ```
 
----
+## Key Features
 
-## 🔄 Core Features
-
-### 1. Robust Tracking Architecture
-*   **Separation of Concerns**: Visibility logic is handled by optimized API endpoints (`/tracking/all-items`), preventing "N+1 query" lag even with thousands of items.
-*   **Transactional Production**: Stage transitions (Fabrication → Painting → Dispatch) are handled by a dedicated `TrackingService`, ensuring data integrity and correct inventory deduction.
-*   **Checklists**: Each tracking item has a checklist (e.g., "Cut", "Weld", "Clean") that must be completed before the stage moves forward.
-
-### 2. Role-Based Access Control (RBAC)
-*   **Boss**: Full system access. Can create users, manage inventory, and override checks.
-*   **Software Supervisor**: Can manage inventory, production, and users (limited).
-*   **Store Keeper / QA / Dispatch**: Role-specific access.
-*   **Security**: Registration is restricted. Only **Boss** and **Software Supervisor** can create new accounts.
-
-### 3. Automatic Excel Import
-*   Upload client Excel files directly.
-*   Auto-detects columns: `Drawing no`, `PROFILE`, `QTY.`, `WT-(kg)`, `PAINT`, etc.
-*   Auto-links `PROFILE` column to your Inventory (Raw Materials).
-
-### 4. Real-Time Dashboard
-*   Auto-refreshes every 10 seconds.
-*   Shows live counts for Fabrication, Painting, and Dispatch.
-*   Monitors Raw Material stock and alerts on Low Stock (<15%).
-
-### 5. Notification Preferences
-*   Users can customize which notifications they receive in **Settings**.
-*   Categories include: Instructions from Boss, Stage Changes, Query Status, Low Stock Alerts, and Dispatch Completion.
-*   Filter logic is handled on the backend to reduce noise.
+- **Drawing-based production tracking (v3)** — Kanban board with per-component stage tracking
+- **Dual inventory system** — v1 simple counts + v2 lot-level traceability with immutable audit trail
+- **GRN/Dispatch workflows** — Goods receipt and dispatch with weighbridge integration
+- **Auto material deduction** — Fabrication stage auto-deducts from inventory with double-deduction prevention
+- **Excel import** — 90+ column alias matching, auto-links profiles to raw materials
+- **6-role RBAC** — Boss, Supervisor, Store Keeper, QA Inspector, Dispatch Operator, User
+- **Scrap management** — Track waste, recover reusable stock, loss analytics
+- **Real-time dashboard** — Live counts, low stock alerts, auto-refresh
 
 ---
 
-## 🚀 Quick Start (Production)
+## Quick Start (Local Development)
 
-### Prerequisites
-- Python 3.10+
-- pip (Python package manager)
+```bash
+# Clone and setup
+git clone https://github.com/mangod12/industryERP.git
+cd industryERP
 
-### Step 1: Setup Environment
-
-```powershell
-# 1. Open Terminal in project root
-
-# 2. Create virtual environment
+# Create virtual environment
 python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 
-# 3. Activate usage
-.venv\Scripts\Activate.ps1
-
-# 4. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
+
+# Start (SQLite dev DB created automatically)
+uvicorn backend_core.app.main:app --reload --port 8000
 ```
 
-### Step 2: Start Backend Server
+Open [http://localhost:8000](http://localhost:8000) — frontend is served by FastAPI.
 
-```powershell
-cd backend_core
-python -m uvicorn app.main:app --reload --port 8000
-```
-*Backend is now running at: **http://127.0.0.1:8000***
-
-### Step 3: Start Frontend Server
-
-Open a **new** terminal window:
-
-```powershell
-cd kumar_frontend
-python -m http.server 5500
-```
-*Frontend is now running at: **http://127.0.0.1:5500***
-
-### Step 4: Login
-
-Go to **http://127.0.0.1:5500/login.html**
-
-**Standard Admin Credentials:**
-*   Username: `admin` (or `Boss`)
-*   Password: *(Randomized on first run for securityized. Check console logs or use your set password)*
+Admin credentials are printed to console on first startup.
 
 ---
 
-## 📱 User Guide
+## API Overview
 
-### 1. How to Register New Users
-> **Restricted**: Only "Boss" or "Software Supervisor" can do this.
-1.  Log in as Admin (Boss).
-2.  Navigate to `register.html` (or click "Register" if visible in settings).
-3.  Fill in details. **Note**: You cannot create an account with higher privileges than your own (Supervisor cannot create Boss).
+**172 endpoints** across 3 API versions:
 
-### 2. How to Upload Excel
-1.  Go to **Customers** page.
-2.  Add a Customer (e.g., "ABC Corp").
-3.  Click **"Upload Excel"**.
-4.  Select your file. The system will preview raw material matches.
-5.  Click **Import**.
+| Version | Prefix | Endpoints | Purpose |
+|---|---|---|---|
+| v1 | `/auth`, `/customers`, `/tracking`, etc. | 77 | Legacy CRUD, stage tracking |
+| v2 | `/api/v2/*` | 27 | Lot-level inventory, GRN, dispatch |
+| v3 | `/api/v3/*` | + | Drawing-based production tracking |
 
-### 3. How to Track Production
-1.  Go to **Tracking** page.
-2.  Use the **Kanban Board** to visualize flow.
-3.  Click item to view **Checklist**.
-4.  Check all items → Click **"Complete Fabrication"**.
-5.  *System auto-deducts material and moves item to Painting.*
-
-### 4. Notification Settings
-1.  Click your username (top right) → **Settings**.
-2.  Navigate to **Notification Preferences**.
-3.  Toggle categories on/off and click **Save Preferences**.
+Full interactive docs at [`/docs`](https://kbsteel-backend-498310931350.asia-south1.run.app/docs).
 
 ---
 
-## 🔧 Technical Notes for Developers
+## Project Structure
 
-### Split-Brain Routing (Legacy vs New)
-*   **GET /tracking/all-items**: Optimized read endpoint for the Frontend table/board.
-*   **PUT /api/tracking/{id}**: New `TrackingService` endpoint for writing state changes.
-
-### Database
-*   Type: SQLite
-*   Path: `backend_core/data/kumar_core.db`
-*   **Resetting**: To wipe data, stop the backend, delete this file, and restart.
-
-### Key Files
-*   `backend_core/app/services/tracking_service.py`: Core logic for stage transitions.
-*   `backend_core/app/auth.py`: Login and Registration logic.
-*   `kumar_frontend/tracking_v2.js`: Frontend logic for Kanban and Pagination.
+```
+kbsteel-old/
+├── backend_core/app/          # FastAPI application
+│   ├── main.py                # App factory, router mounting
+│   ├── models.py              # v1 models (15 tables)
+│   ├── models_v2.py           # v2 models (12 tables)
+│   ├── models_v3.py           # v3 drawing models (10 tables)
+│   ├── security.py            # JWT, RBAC, rate limiting
+│   ├── version.py             # Version tracking
+│   ├── db.py                  # Engine, sessions, migrations
+│   ├── services/              # Business logic layer
+│   └── routers/               # v2/v3 API endpoints
+├── kumar_frontend/            # 24 HTML pages, vanilla JS
+│   ├── js/config.js           # Auth, API client, RBAC
+│   └── css/main.css           # Theming
+├── tests/                     # Test suite
+│   ├── test_v3_drawings.py    # Unit tests (TestClient)
+│   └── e2e_cloud_run.py       # 78 E2E tests against live deployment
+├── .github/workflows/         # CI/CD pipelines
+│   ├── ci.yml                 # Tests + Docker build verification
+│   └── deploy.yml             # Cloud Build + Cloud Run deploy
+├── Dockerfile                 # Production container
+└── deploy/                    # nginx.conf, start.sh
+```
 
 ---
 
-## 📞 Support
-For issues or questions, contact the development team.
+## CI/CD Pipeline
+
+```
+git push main --> CI (tests + Docker build) --> Cloud Build --> Cloud Run (live)
+```
+
+- **CI:** Python 3.12 unit tests, Docker build verification on every push/PR
+- **CD:** Automatic deploy to Cloud Run on push to `main` via Workload Identity Federation
+
+---
+
+## Deployment
+
+### Google Cloud Run (Production)
+
+The app auto-deploys to Cloud Run on push to `main`. Manual deploy:
+
+```bash
+gcloud run deploy kbsteel-backend \
+  --source . \
+  --region asia-south1 \
+  --project kbsteel-erp \
+  --allow-unauthenticated
+```
+
+### Environment Variables
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `KUMAR_SECRET_KEY` | prod | JWT signing key (min 32 chars) |
+| `ENVIRONMENT` | no | `production` or `development` |
+| `DATABASE_URL` | prod | PostgreSQL connection string |
+| `CORS_ORIGINS` | no | Comma-separated allowed origins |
+
+---
+
+## License
+
+Private — Kumar Brothers Steel Industry.
