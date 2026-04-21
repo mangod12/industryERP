@@ -55,7 +55,7 @@ def _run_migrations():
 
     def _add(conn, table, col, definition):
         print(f"[migration] Adding {table}.{col}")
-        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {definition}"))
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {definition}"))
 
     with engine.begin() as conn:
         # --- users ---
