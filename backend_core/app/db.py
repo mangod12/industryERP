@@ -46,36 +46,63 @@ def _run_migrations():
         return  # SQLite dev DB is recreated from scratch
 
     inspector = sa_inspect(engine)
+    tables = set(inspector.get_table_names())
+
+    def _cols(table):
+        if table not in tables:
+            return set()
+        return {c["name"] for c in inspector.get_columns(table)}
+
+    def _add(conn, table, col, definition):
+        print(f"[migration] Adding {table}.{col}")
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {definition}"))
+
     with engine.begin() as conn:
-        # Migration 1: Rename password_hash → hashed_password (old schema compat)
-        if "users" in inspector.get_table_names():
-            cols = {c["name"] for c in inspector.get_columns("users")}
+        # --- users ---
+        cols = _cols("users")
+        if cols:
             if "password_hash" in cols and "hashed_password" not in cols:
                 print("[migration] Renaming users.password_hash → hashed_password")
-                conn.execute(text(
-                    'ALTER TABLE users RENAME COLUMN password_hash TO hashed_password'
-                ))
+                conn.execute(text('ALTER TABLE users RENAME COLUMN password_hash TO hashed_password'))
             elif "password" in cols and "hashed_password" not in cols:
                 print("[migration] Renaming users.password → hashed_password")
-                conn.execute(text(
-                    'ALTER TABLE users RENAME COLUMN password TO hashed_password'
-                ))
-            # Add missing columns that create_all() won't add to existing tables
+                conn.execute(text('ALTER TABLE users RENAME COLUMN password TO hashed_password'))
             if "is_active" not in cols:
-                print("[migration] Adding users.is_active column")
-                conn.execute(text(
-                    'ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE'
-                ))
+                _add(conn, "users", "is_active", "BOOLEAN DEFAULT TRUE")
             if "company" not in cols:
-                print("[migration] Adding users.company column")
-                conn.execute(text(
-                    'ALTER TABLE users ADD COLUMN company VARCHAR'
-                ))
+                _add(conn, "users", "company", "VARCHAR")
             if "created_at" not in cols:
-                print("[migration] Adding users.created_at column")
-                conn.execute(text(
-                    'ALTER TABLE users ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()'
-                ))
+                _add(conn, "users", "created_at", "TIMESTAMP WITH TIME ZONE DEFAULT NOW()")
+
+        # --- customers ---
+        cols = _cols("customers")
+        if cols:
+            if "order_status" not in cols:
+                _add(conn, "customers", "order_status", "VARCHAR DEFAULT 'ACTIVE'")
+            if "is_deleted" not in cols:
+                _add(conn, "customers", "is_deleted", "BOOLEAN DEFAULT FALSE")
+
+        # --- production_items ---
+        cols = _cols("production_items")
+        if cols:
+            if "is_completed" not in cols:
+                _add(conn, "production_items", "is_completed", "BOOLEAN DEFAULT FALSE")
+
+        # --- notifications ---
+        cols = _cols("notifications")
+        if cols:
+            if "category" not in cols:
+                _add(conn, "notifications", "category", "VARCHAR")
+
+        # --- queries ---
+        cols = _cols("queries")
+        if cols:
+            if "title" not in cols:
+                _add(conn, "queries", "title", "VARCHAR")
+            if "message" not in cols:
+                _add(conn, "queries", "message", "TEXT")
+            if "admin_reply" not in cols:
+                _add(conn, "queries", "admin_reply", "TEXT")
 
 
 def create_db_and_tables():
