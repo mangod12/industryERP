@@ -87,6 +87,12 @@ def _run_migrations():
         if cols:
             if "is_completed" not in cols:
                 _add(conn, "production_items", "is_completed", "BOOLEAN DEFAULT FALSE")
+            if "is_archived" not in cols:
+                _add(conn, "production_items", "is_archived", "BOOLEAN DEFAULT FALSE")
+            if "parent_item_id" not in cols:
+                _add(conn, "production_items", "parent_item_id", "INTEGER")
+            if "excel_upload_id" not in cols:
+                _add(conn, "production_items", "excel_upload_id", "INTEGER")
 
         # --- notifications ---
         cols = _cols("notifications")
@@ -103,6 +109,8 @@ def _run_migrations():
                 _add(conn, "queries", "message", "TEXT")
             if "admin_reply" not in cols:
                 _add(conn, "queries", "admin_reply", "TEXT")
+            if "created_by" not in cols:
+                _add(conn, "queries", "created_by", "INTEGER")
 
 
 def create_db_and_tables():
