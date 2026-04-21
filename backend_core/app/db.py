@@ -111,6 +111,8 @@ def _run_migrations():
                 _add(conn, "queries", "admin_reply", "TEXT")
             if "created_by" not in cols:
                 _add(conn, "queries", "created_by", "INTEGER")
+            if "updated_at" not in cols:
+                _add(conn, "queries", "updated_at", "TIMESTAMP")
 
 
 def create_db_and_tables():
