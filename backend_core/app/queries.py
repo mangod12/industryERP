@@ -8,6 +8,7 @@ from .deps import get_current_user, boss_or_supervisor, get_db
 router = APIRouter()
 
 
+@router.post("", status_code=status.HTTP_201_CREATED)
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def create_query(
     payload: schemas.QueryCreate,
@@ -61,6 +62,7 @@ def my_queries(
     ).order_by(models.Query.created_at.desc()).all()
 
 
+@router.get("", response_model=List[schemas.QueryResponse])
 @router.get("/", response_model=List[schemas.QueryResponse])
 def all_queries(
     db: Session = Depends(get_db),

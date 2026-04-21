@@ -9,6 +9,7 @@ from .services.customer_service import hard_delete_customer as svc_hard_delete
 router = APIRouter()
 
 
+@router.post("/", response_model=schemas.CustomerOut, status_code=201)
 @router.post("", response_model=schemas.CustomerOut, status_code=201)
 def create_customer(customer_in: schemas.CustomerCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     cust = models.Customer(name=customer_in.name, project_details=customer_in.project_details)
@@ -18,6 +19,7 @@ def create_customer(customer_in: schemas.CustomerCreate, db: Session = Depends(g
     return cust
 
 
+@router.get("/", response_model=List[schemas.CustomerOut])
 @router.get("", response_model=List[schemas.CustomerOut])
 def list_customers(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """List all customers - accessible to all authenticated users"""

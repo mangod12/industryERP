@@ -189,6 +189,7 @@ async def create_vendor(
     return {"id": vendor.id, "code": vendor.code, "name": vendor.name}
 
 
+@router.get("", response_model=List[GRNOut])
 @router.get("/", response_model=List[GRNOut])
 async def list_grns(
     status: Optional[str] = None,
@@ -275,6 +276,7 @@ async def list_grns(
     return output
 
 
+@router.post("", status_code=201)
 @router.post("/", status_code=201)
 async def create_grn(
     data: GRNCreateRequest,

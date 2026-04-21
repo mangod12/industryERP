@@ -7,10 +7,12 @@ from .deps import get_db, require_role
 
 router = APIRouter()
 
+@router.get("/", response_model=List[schemas.MaterialMappingOut])
 @router.get("", response_model=List[schemas.MaterialMappingOut])
 def list_mappings(db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor", "User"))):
     return db.query(models.MaterialMapping).all()
 
+@router.post("/", response_model=schemas.MaterialMappingOut)
 @router.post("", response_model=schemas.MaterialMappingOut)
 def create_mapping(mapping_in: schemas.MaterialMappingCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor"))):
     # Check if mapping already exists

@@ -114,6 +114,7 @@ class DispatchOut(BaseModel):
 # ENDPOINTS
 # =============================================================================
 
+@router.get("", response_model=List[DispatchOut])
 @router.get("/", response_model=List[DispatchOut])
 async def list_dispatches(
     status: Optional[str] = None,
@@ -191,6 +192,7 @@ async def list_dispatches(
     return output
 
 
+@router.post("", status_code=201)
 @router.post("/", status_code=201)
 async def create_dispatch(
     data: DispatchCreateRequest,

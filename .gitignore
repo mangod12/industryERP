@@ -40,6 +40,7 @@ pip-delete-this-directory.txt
 *.sqlite3
 *.db
 backend_core/data/
+data/
 
 # Sample data files
 *.csv
@@ -50,6 +51,12 @@ check_*.py
 
 # Old project folders
 kbsteel-main/
+
+# Codex CLI output
+.codex-output/
+
+# Google Cloud temp artifacts
+.gcloud-tmp/
 
 # OS files
 .DS_Store

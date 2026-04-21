@@ -4,12 +4,11 @@
  */
 
 const KBConfig = {
-  // API Configuration — auto-detect protocol and host
-  // If we are served from the same domain as the API (standard production), use current origin.
-  // If we are in local dev on separate ports, it falls back to :8000
-  API_BASE: window.location.port === '8000' || !window.location.port
+  // API Configuration — prefer same-origin whenever the UI is served over HTTP(S).
+  // Fallback to :8000 only for file:// or other non-standard local static usage.
+  API_BASE: /^https?:$/.test(window.location.protocol)
     ? window.location.origin
-    : `${window.location.protocol}//${window.location.hostname}:8000`,
+    : `${window.location.protocol}//${window.location.hostname || '127.0.0.1'}:8000`,
 
   // Available roles in the system
   ROLES: Object.freeze({

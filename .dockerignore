@@ -1,0 +1,17 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.db
+*.sqlite3
+data/
+backend_core/data/
+.git/
+.env
+.env.*
+.pytest_cache/
+tests/
+docs/
+.ai/
+*.md
+.gcloud-tmp/

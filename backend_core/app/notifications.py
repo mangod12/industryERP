@@ -8,6 +8,7 @@ from .deps import get_db, get_current_user, require_role
 router = APIRouter()
 
 
+@router.get("", response_model=List[schemas.NotificationOut])
 @router.get("/", response_model=List[schemas.NotificationOut])
 def list_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # return notifications addressed to the user, to their role, or global notifications
@@ -67,6 +68,7 @@ def mark_read(ids: List[int], db: Session = Depends(get_db), current_user: model
     return {"updated": updated}
 
 
+@router.post("")
 @router.post("/")
 def create_notification(n_in: schemas.NotificationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss"))):
     n = models.Notification(

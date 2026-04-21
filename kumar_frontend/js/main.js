@@ -193,7 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   if (!publicPages.includes(currentPage)) {
     (function initNotifications() {
-      const API_BASE_N = (typeof API_BASE !== 'undefined') ? API_BASE : (window.location.origin || 'http://127.0.0.1:8000');
+      const API_BASE_N = (typeof KBConfig !== 'undefined' && KBConfig.API_BASE)
+        ? KBConfig.API_BASE
+        : (window.API_BASE || window.location.origin || 'http://127.0.0.1:8000');
 
       function authHdrs() {
         const t = (typeof KBAuth !== 'undefined') ? KBAuth.getToken() : localStorage.getItem('kb_token');
@@ -439,7 +441,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   // API BASE URL
   // --------------------------------------------------------------------------
-  const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
+  const apiBase = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
 
   // --------------------------------------------------------------------------
   // INSTRUCTIONS — handled by instructions.html inline script (API-connected)
@@ -473,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (statusEl) statusEl.innerHTML = 'Uploading and processing...';
 
       try {
-        const res = await fetch(`${API_BASE}/excel/upload`, {
+        const res = await fetch(`${apiBase}/excel/upload`, {
           method: 'POST',
           body: formData,
         });
@@ -532,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   // INVENTORY CRUD
   // --------------------------------------------------------------------------
-  const inventoryApiBase = `${API_BASE}/inventory/`;
+  const inventoryApiBase = `${apiBase}/inventory/`;
 
   async function fetchInventory() {
     try {
@@ -721,7 +723,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   // TRACKING / CUSTOMERS
   // --------------------------------------------------------------------------
-  const trackingApiBase = `${API_BASE}/tracking`;
+  const trackingApiBase = `${apiBase}/tracking`;
 
   async function fetchTrackingCustomers() {
     try {
@@ -994,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
     notifList.innerHTML = 'Loading...';
 
     try {
-      const res = await apiFetch('/notifications');
+      const res = await apiFetch('/notifications/');
       if (!res.ok) {
         notifList.innerHTML = '<div class="text-danger">Failed to load</div>';
         return;

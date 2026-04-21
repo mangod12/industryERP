@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KumarBrothers - Drawings & Production</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/main.css" rel="stylesheet">
+  <style>
+    .filter-card,
+    .view-card,
+    .kanban-column,
+    .instance-panel {
+      background: #fff;
+      border: 0;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(11, 36, 71, 0.08);
+    }
+
+    .filter-card {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .view-card {
+      overflow: hidden;
+    }
+
+    .view-card .card-header {
+      background: linear-gradient(180deg, rgba(11, 36, 71, 0.04), rgba(11, 36, 71, 0));
+      border-bottom: 1px solid rgba(11, 36, 71, 0.08);
+    }
+
+    .progress-thin {
+      height: 10px;
+      border-radius: 999px;
+      background: #e9eef5;
+    }
+
+    .progress-thin .progress-bar {
+      border-radius: 999px;
+    }
+
+    .status-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .kanban-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(220px, 1fr));
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .kanban-column {
+      min-height: 320px;
+      padding: 0.9rem;
+    }
+
+    .kanban-column-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(11, 36, 71, 0.08);
+    }
+
+    .kanban-card {
+      border: 1px solid rgba(11, 36, 71, 0.08);
+      border-left: 4px solid #1d4ed8;
+      border-radius: 10px;
+      padding: 0.85rem;
+      margin-bottom: 0.75rem;
+      background: #fff;
+      box-shadow: 0 4px 14px rgba(11, 36, 71, 0.06);
+    }
+
+    .kanban-card small {
+      color: #6b7280;
+    }
+
+    .stage-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-right: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .instance-panel {
+      padding: 0.55rem 0.7rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .instance-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+
+    .detail-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .detail-meta .meta-box {
+      background: #f8fafc;
+      border: 1px solid rgba(11, 36, 71, 0.06);
+      border-radius: 10px;
+      padding: 0.75rem;
+    }
+
+    .empty-state {
+      padding: 2rem 1rem;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    @media (max-width: 1400px) {
+      .kanban-grid {
+        grid-template-columns: repeat(4, minmax(220px, 1fr));
+      }
+    }
+
+    @media (max-width: 992px) {
+      .kanban-grid {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+      }
+    }
+
+    @media (max-width: 576px) {
+      .kanban-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .page-actions {
+        width: 100%;
+      }
+
+      .page-actions .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="kb-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+      <div class="navbar-brand">KumarBrothers</div>
+      <div class="d-none d-lg-flex">
+        <a class="nav-link text-white ms-3" href="index.html">Dashboard</a>
+        <a class="nav-link text-white ms-3" href="raw_material.html">Inventory</a>
+        <a class="nav-link text-white ms-3" href="scrap.html">Scrap</a>
+        <a class="nav-link text-white ms-3" href="reusable.html">Reusable</a>
+        <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
+        <a class="nav-link text-white ms-3" href="tracking_v2.html">Tracking</a>
+        <a class="nav-link text-white ms-3" href="drawings.html">Drawings</a>
+        <a class="nav-link text-white ms-3" href="queries.html">Querys</a>
+        <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
+        <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
+        <a class="nav-link text-white ms-3" href="register.html" data-permission="users:create">Register</a>
+        <a class="nav-link text-white ms-3 kb-logout" href="#">Logout</a>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div class="small-muted">Role:</div>
+      <div id="current-role" class="role-badge">Loading...</div>
+    </div>
+  </nav>
+
+  <div class="container-fluid main-container">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+      <div>
+        <h2 class="fw-bold mb-0">Drawings & Production</h2>
+        <small class="text-muted">Release drawings, track assemblies, and move live steel through production stages.</small>
+      </div>
+      <div class="d-flex flex-wrap align-items-center gap-2 page-actions">
+        <span class="small text-muted">Last updated: <span id="lastUpdated">-</span></span>
+        <button type="button" class="btn btn-outline-primary" id="refreshBtn">Refresh</button>
+        <button type="button" class="btn btn-outline-secondary" id="toggleViewBtn">Kanban View</button>
+        <button type="button" class="btn btn-success" data-permission="production:create" data-bs-toggle="modal"
+          data-bs-target="#newDrawingModal">New Drawing</button>
+      </div>
+    </div>
+
+    <div class="filter-card">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Customer</label>
+          <select class="form-select" id="filterCustomer">
+            <option value="">All Customers</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="filterStatus">
+            <option value="">All Statuses</option>
+            <option value="draft">Draft</option>
+            <option value="released">Released</option>
+            <option value="in_progress">In Progress</option>
+            <option value="complete">Complete</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Search</label>
+          <input type="text" class="form-control" id="searchInput"
+            placeholder="Drawing no, title, customer, project ref">
+        </div>
+        <div class="col-md-2 d-grid">
+          <button type="button" class="btn btn-primary" id="applyFiltersBtn">Search</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-card card shadow-sm border-0 mb-4" id="tableViewCard">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0">Drawing Register</h5>
+          <small class="text-muted">Released and draft drawings with live production completion.</small>
+        </div>
+        <span class="badge text-bg-light" id="drawingCountBadge">0 drawings</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Drawing No</th>
+              <th>Rev</th>
+              <th>Title</th>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Components</th>
+              <th style="min-width: 170px;">Progress</th>
+              <th>Weight (tons)</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="drawingsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="view-card card shadow-sm border-0 d-none" id="kanbanViewCard">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0">Production Kanban</h5>
+          <small class="text-muted">Live instance flow across cutting to dispatch.</small>
+        </div>
+        <span class="badge text-bg-light" id="kanbanScopeLabel">All active instances</span>
+      </div>
+      <div class="card-body">
+        <div class="kanban-grid" id="kanbanBoard"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="drawingDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-0">Drawing Detail</h5>
+            <small class="text-muted" id="detailSubtitle">-</small>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-meta mb-4" id="drawingMeta"></div>
+          <div id="drawingAssemblies"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="newDrawingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="newDrawingForm">
+          <div class="modal-header">
+            <h5 class="modal-title">New Drawing</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Drawing Number *</label>
+              <input type="text" class="form-control" id="drawingNumber" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Title *</label>
+              <input type="text" class="form-control" id="drawingTitle" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Customer *</label>
+              <select class="form-select" id="drawingCustomer" required>
+                <option value="">Select customer</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Project Ref</label>
+              <input type="text" class="form-control" id="drawingProjectRef">
+            </div>
+            <div class="mb-0">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" id="drawingNotes" rows="3"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Drawing</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js?v=20260416"></script>
+  <script src="js/main.js?v=20260416"></script>
+  <script>
+    (function () {
+      const statusBadgeMap = {
+        draft: 'secondary',
+        released: 'info',
+        in_progress: 'warning',
+        complete: 'success'
+      };
+      const stageColorMap = {
+        cutting: 'primary',
+        drilling: 'info',
+        fitting: 'warning',
+        welding: 'danger',
+        painting: 'success',
+        qc: 'dark',
+        dispatch: 'secondary',
+        completed: 'success'
+      };
+      const kanbanStageOrder = ['cutting', 'drilling', 'fitting', 'welding', 'painting', 'qc', 'dispatch'];
+
+      let drawings = [];
+      let visibleDrawings = [];
+      let customers = [];
+      let detailCache = {};
+      let currentView = 'table';
+      let pollHandle = null;
+      let currentDetailId = null;
+
+      const detailModalEl = document.getElementById('drawingDetailModal');
+      const detailModal = new bootstrap.Modal(detailModalEl);
+      const newDrawingModalEl = document.getElementById('newDrawingModal');
+      const newDrawingModal = new bootstrap.Modal(newDrawingModalEl);
+
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function (char) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
+        });
+      }
+
+      async function toJson(response) {
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          const message = data && (data.detail || data.message) ? (data.detail || data.message) : 'Request failed';
+          throw new Error(message);
+        }
+        return data;
+      }
+
+      function formatStatus(status) {
+        return String(status || '').replace(/_/g, ' ').replace(/\b\w/g, function (match) {
+          return match.toUpperCase();
+        });
+      }
+
+      function formatTons(weightKg) {
+        return (Number(weightKg || 0) / 1000).toFixed(3);
+      }
+
+      function setLastUpdated() {
+        document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+      }
+
+      function normalizeDrawingDetail(payload) {
+        const root = payload && payload.drawing ? { ...payload.drawing, ...payload } : (payload || {});
+        if (!Array.isArray(root.assemblies) && payload && payload.drawing && Array.isArray(payload.drawing.assemblies)) {
+          root.assemblies = payload.drawing.assemblies;
+        }
+
+        const assemblies = Array.isArray(root.assemblies) ? root.assemblies : [];
+        let totalInstances = Number(root.total_instances || root.instance_count || 0);
+        let completedInstances = Number(root.completed_instances || root.completed_instance_count || 0);
+
+        assemblies.forEach(function (assembly) {
+          assembly.components = Array.isArray(assembly.components) ? assembly.components : [];
+          assembly.components.forEach(function (component) {
+            component.instances = Array.isArray(component.instances) ? component.instances : [];
+            if (!root.instance_count && component.instances.length) {
+              totalInstances += component.instances.length;
+            }
+            if (!root.completed_instance_count && component.instances.length) {
+              completedInstances += component.instances.filter(function (instance) { return instance.is_completed; }).length;
+            }
+          });
+        });
+
+        if (!root.completion_pct && !root.pct_complete && totalInstances > 0) {
+          root.completion_pct = Number(((completedInstances / totalInstances) * 100).toFixed(2));
+        }
+
+        root.total_instances = totalInstances;
+        root.completed_instances = completedInstances;
+        root.assemblies = assemblies;
+        return root;
+      }
+
+      async function loadCustomers() {
+        const data = await toJson(await KBApi.get('/customers'));
+        customers = Array.isArray(data) ? data : [];
+        populateCustomerSelects();
+      }
+
+      function populateCustomerSelects() {
+        const filters = [document.getElementById('filterCustomer'), document.getElementById('drawingCustomer')];
+        filters.forEach(function (select, index) {
+          if (!select) return;
+          const currentValue = select.value;
+          select.innerHTML = index === 0
+            ? '<option value="">All Customers</option>'
+            : '<option value="">Select customer</option>';
+          customers.forEach(function (customer) {
+            select.innerHTML += '<option value="' + customer.id + '">' + escapeHtml(customer.name) + '</option>';
+          });
+          select.value = currentValue;
+        });
+      }
+
+      async function loadDrawings() {
+        const customerId = document.getElementById('filterCustomer').value;
+        const status = document.getElementById('filterStatus').value;
+        const params = {};
+        if (customerId) params.customer_id = customerId;
+        if (status) params.status = status;
+
+        drawings = await toJson(await KBApi.get('/api/v3/drawings/', params));
+        applyClientFilters();
+        setLastUpdated();
+      }
+
+      function applyClientFilters() {
+        const search = document.getElementById('searchInput').value.trim().toLowerCase();
+        visibleDrawings = drawings.filter(function (drawing) {
+          if (!search) return true;
+          const haystack = [
+            drawing.drawing_number,
+            drawing.title,
+            drawing.customer_name,
+            drawing.project_ref
+          ].join(' ').toLowerCase();
+          return haystack.includes(search);
+        });
+
+        renderTable();
+        if (currentView === 'kanban') {
+          loadKanban().catch(function (error) {
+            if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to load kanban', 'danger');
+          });
+        }
+      }
+
+      function statusBadgeHtml(status) {
+        const badge = statusBadgeMap[status] || 'secondary';
+        return '<span class="badge text-bg-' + badge + ' status-pill">' + escapeHtml(formatStatus(status)) + '</span>';
+      }
+
+      function renderTable() {
+        const tbody = document.getElementById('drawingsTableBody');
+        const badge = document.getElementById('drawingCountBadge');
+        badge.textContent = visibleDrawings.length + (visibleDrawings.length === 1 ? ' drawing' : ' drawings');
+
+        if (!visibleDrawings.length) {
+          tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No drawings found for the selected filters.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = visibleDrawings.map(function (drawing) {
+          const canRelease = drawing.status === 'draft';
+          const completion = Number(drawing.completion_pct || drawing.pct_complete || 0);
+          return '' +
+            '<tr>' +
+            '<td><strong>' + escapeHtml(drawing.drawing_number) + '</strong></td>' +
+            '<td>' + escapeHtml(drawing.revision || '-') + '</td>' +
+            '<td>' +
+            '<div class="fw-semibold">' + escapeHtml(drawing.title || 'Untitled Drawing') + '</div>' +
+            '<small class="text-muted">' + escapeHtml(drawing.project_ref || '') + '</small>' +
+            '</td>' +
+            '<td>' + escapeHtml(drawing.customer_name || '-') + '</td>' +
+            '<td>' + statusBadgeHtml(drawing.status) + '</td>' +
+            '<td>' + Number(drawing.component_count || 0) + '</td>' +
+            '<td>' +
+            '<div class="small mb-1">' + completion.toFixed(1) + '%</div>' +
+            '<div class="progress progress-thin"><div class="progress-bar bg-success" role="progressbar" style="width:' + completion + '%"></div></div>' +
+            '</td>' +
+            '<td>' + formatTons(drawing.total_weight_kg) + '</td>' +
+            '<td>' +
+            '<div class="d-flex flex-wrap gap-2">' +
+            '<button type="button" class="btn btn-sm btn-outline-primary view-drawing-btn" data-id="' + drawing.id + '">View</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-info release-drawing-btn ' + (canRelease ? '' : 'd-none') + '" data-permission="production:update" data-id="' + drawing.id + '">Release</button>' +
+            '</div>' +
+            '</td>' +
+            '</tr>';
+        }).join('');
+
+        bindTableActions();
+        if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
+      }
+
+      function bindTableActions() {
+        document.querySelectorAll('.view-drawing-btn').forEach(function (button) {
+          button.addEventListener('click', function () {
+            openDrawingDetail(Number(button.dataset.id));
+          });
+        });
+
+        document.querySelectorAll('.release-drawing-btn').forEach(function (button) {
+          button.addEventListener('click', function () {
+            releaseDrawing(Number(button.dataset.id));
+          });
+        });
+      }
+
+      async function buildKanbanMetadata() {
+        const metadata = {};
+        const detailPromises = visibleDrawings.map(function (drawing) {
+          return getDrawingDetail(drawing.id).catch(function () { return null; });
+        });
+
+        const details = await Promise.all(detailPromises);
+        details.forEach(function (detail) {
+          if (!detail) return;
+          detail.assemblies.forEach(function (assembly) {
+            assembly.components.forEach(function (component) {
+              component.instances.forEach(function (instance) {
+                metadata[instance.id] = {
+                  piece_mark: component.piece_mark,
+                  drawing_number: detail.drawing_number,
+                  assembly_mark: assembly.mark_number
+                };
+              });
+            });
+          });
+        });
+
+        return metadata;
+      }
+
+      async function loadKanban() {
+        const boardEl = document.getElementById('kanbanBoard');
+        const customerId = document.getElementById('filterCustomer').value;
+        const params = {};
+        if (customerId) params.customer_id = customerId;
+
+        const board = await toJson(await KBApi.get('/api/v3/drawings/kanban', params));
+        const metadata = await buildKanbanMetadata();
+        const search = document.getElementById('searchInput').value.trim().toLowerCase();
+
+        const columnsByStage = {};
+        (board.columns || []).forEach(function (column) {
+          columnsByStage[column.stage_name] = {
+            stage_name: column.stage_name,
+            instances: (column.instances || []).filter(function (instance) {
+              const meta = metadata[instance.id] || {};
+              const haystack = [
+                meta.piece_mark,
+                meta.drawing_number,
+                meta.assembly_mark,
+                instance.serial_tag
+              ].join(' ').toLowerCase();
+              return !search || haystack.includes(search);
+            })
+          };
+        });
+
+        const columns = kanbanStageOrder.map(function (stage) {
+          return columnsByStage[stage] || { stage_name: stage, instances: [] };
+        });
+
+        boardEl.innerHTML = columns.map(function (column) {
+          return '' +
+            '<div class="kanban-column">' +
+            '<div class="kanban-column-header">' +
+            '<div><div class="fw-semibold">' + escapeHtml(formatStatus(column.stage_name)) + '</div><small class="text-muted">Active instances</small></div>' +
+            '<span class="badge text-bg-light">' + column.instances.length + '</span>' +
+            '</div>' +
+            '<div>' + renderKanbanCards(column.instances, metadata) + '</div>' +
+            '</div>';
+        }).join('');
+
+        document.getElementById('kanbanScopeLabel').textContent = customerId ? 'Customer scoped board' : 'All active instances';
+      }
+
+      function renderKanbanCards(instances, metadata) {
+        if (!instances.length) {
+          return '<div class="empty-state py-4">No active instances</div>';
+        }
+
+        return instances.map(function (instance) {
+          const meta = metadata[instance.id] || {};
+          return '' +
+            '<div class="kanban-card">' +
+            '<div class="fw-semibold">' + escapeHtml(meta.piece_mark || instance.serial_tag || ('Instance #' + instance.instance_number)) + '</div>' +
+            '<small>' + escapeHtml(meta.drawing_number || 'Drawing not loaded') + '</small><br>' +
+            '<small>' + escapeHtml(meta.assembly_mark || 'Assembly not loaded') + '</small>' +
+            '<div class="mt-2">' + stageStatusBadge(instance.current_stage, instance.stage_status) + '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function stageStatusBadge(stage, stageStatus) {
+        const color = stageColorMap[stage] || 'secondary';
+        const statusText = stageStatus ? ' | ' + formatStatus(stageStatus) : '';
+        return '<span class="badge text-bg-' + color + ' stage-badge">' + escapeHtml(formatStatus(stage) + statusText) + '</span>';
+      }
+
+      async function getDrawingDetail(drawingId, forceRefresh) {
+        if (!forceRefresh && detailCache[drawingId]) {
+          return detailCache[drawingId];
+        }
+
+        const detail = normalizeDrawingDetail(await toJson(await KBApi.get('/api/v3/drawings/' + drawingId)));
+        detailCache[drawingId] = detail;
+        return detail;
+      }
+
+      async function openDrawingDetail(drawingId) {
+        currentDetailId = drawingId;
+        const detail = await getDrawingDetail(drawingId, true);
+        renderDrawingDetail(detail);
+        detailModal.show();
+      }
+
+      function renderDrawingDetail(detail) {
+        document.querySelector('#drawingDetailModal .modal-title').textContent =
+          (detail.drawing_number || 'Drawing') + ' - ' + (detail.title || 'Drawing Detail');
+        document.getElementById('detailSubtitle').textContent =
+          (detail.customer_name || '') + (detail.project_ref ? ' | ' + detail.project_ref : '');
+
+        const completion = Number(detail.completion_pct || detail.pct_complete || 0);
+        document.getElementById('drawingMeta').innerHTML = [
+          { label: 'Revision', value: detail.revision || '-' },
+          { label: 'Status', value: formatStatus(detail.status) },
+          { label: 'Assemblies', value: detail.assemblies.length },
+          { label: 'Instances', value: detail.total_instances || 0 },
+          { label: 'Completed', value: detail.completed_instances || 0 },
+          { label: 'Weight', value: formatTons(detail.total_weight_kg) + ' tons' }
+        ].map(function (item) {
+          return '<div class="meta-box"><small class="text-muted d-block mb-1">' + escapeHtml(item.label) +
+            '</small><div class="fw-semibold">' + escapeHtml(item.value) + '</div></div>';
+        }).join('') +
+          '<div class="meta-box"><small class="text-muted d-block mb-1">Progress</small>' +
+          '<div class="fw-semibold mb-2">' + completion.toFixed(1) + '%</div>' +
+          '<div class="progress progress-thin"><div class="progress-bar bg-success" style="width:' + completion + '%"></div></div></div>';
+
+        const assembliesEl = document.getElementById('drawingAssemblies');
+        if (!detail.assemblies.length) {
+          assembliesEl.innerHTML = '<div class="empty-state">No assemblies found on this drawing.</div>';
+          return;
+        }
+
+        assembliesEl.innerHTML = '<div class="accordion" id="assembliesAccordion">' + detail.assemblies.map(function (assembly, index) {
+          return '' +
+            '<div class="accordion-item">' +
+            '<h2 class="accordion-header">' +
+            '<button class="accordion-button ' + (index === 0 ? '' : 'collapsed') + '" type="button" data-bs-toggle="collapse" data-bs-target="#assembly-' + assembly.id + '">' +
+            '<div class="w-100 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center me-3">' +
+            '<span class="fw-semibold">' + escapeHtml(assembly.mark_number) + '</span>' +
+            '<small class="text-muted">' + escapeHtml(assembly.description || 'No description') + ' | ' +
+            Number(assembly.quantity_complete || 0) + '/' + Number(assembly.quantity_required || 0) + ' complete | ' +
+            formatTons(assembly.total_weight_kg) + ' tons</small>' +
+            '</div>' +
+            '</button>' +
+            '</h2>' +
+            '<div id="assembly-' + assembly.id + '" class="accordion-collapse collapse ' + (index === 0 ? 'show' : '') + '" data-bs-parent="#assembliesAccordion">' +
+            '<div class="accordion-body">' +
+            renderAssemblyTable(detail, assembly) +
+            '</div>' +
+            '</div>' +
+            '</div>';
+        }).join('') + '</div>';
+
+        bindInstanceActions();
+        if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
+      }
+
+      function renderAssemblyTable(detail, assembly) {
+        if (!assembly.components.length) {
+          return '<div class="empty-state">No components found in this assembly.</div>';
+        }
+
+        return '' +
+          '<div class="table-responsive">' +
+          '<table class="table align-middle">' +
+          '<thead class="table-light">' +
+          '<tr>' +
+          '<th>Piece Mark</th>' +
+          '<th>Profile</th>' +
+          '<th>Qty</th>' +
+          '<th>Weight</th>' +
+          '<th>Instances</th>' +
+          '<th>Actions</th>' +
+          '</tr>' +
+          '</thead>' +
+          '<tbody>' +
+          assembly.components.map(function (component) {
+            return '' +
+              '<tr>' +
+              '<td><strong>' + escapeHtml(component.piece_mark) + '</strong></td>' +
+              '<td>' + escapeHtml(component.profile_section || '-') + '</td>' +
+              '<td>' + Number(component.quantity_per_assembly || 0) + '</td>' +
+              '<td>' + Number(component.weight_each_kg || 0).toFixed(3) + ' kg</td>' +
+              '<td>' + renderInstanceBadges(component.instances) + '</td>' +
+              '<td>' + renderInstanceActions(detail, assembly, component) + '</td>' +
+              '</tr>';
+          }).join('') +
+          '</tbody>' +
+          '</table>' +
+          '</div>';
+      }
+
+      function renderInstanceBadges(instances) {
+        if (!instances || !instances.length) {
+          return '<span class="text-muted">No instances available</span>';
+        }
+
+        return instances.map(function (instance) {
+          return stageStatusBadge(instance.current_stage, instance.stage_status) +
+            '<span class="badge text-bg-light stage-badge">#' + Number(instance.instance_number || 0) + '</span>';
+        }).join('');
+      }
+
+      function renderInstanceActions(detail, assembly, component) {
+        if (!component.instances || !component.instances.length) {
+          return '<span class="text-muted">-</span>';
+        }
+
+        return component.instances.map(function (instance) {
+          const disabled = instance.is_completed || instance.is_scrapped;
+          return '' +
+            '<div class="instance-panel">' +
+            '<div class="small fw-semibold">' +
+            escapeHtml(component.piece_mark) + ' / #' + Number(instance.instance_number || 0) +
+            '</div>' +
+            '<div class="text-muted small">' + escapeHtml(assembly.mark_number) + ' | ' + escapeHtml(detail.drawing_number) + '</div>' +
+            '<div class="instance-actions">' +
+            '<button type="button" class="btn btn-sm btn-outline-primary advance-instance-btn" data-permission="production:update" data-instance-id="' + instance.id + '" ' + (disabled ? 'disabled' : '') + '>Advance Stage</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-warning hold-instance-btn" data-permission="qa:hold" data-instance-id="' + instance.id + '" ' + (disabled ? 'disabled' : '') + '>Hold</button>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger scrap-instance-btn" data-permission="production:update" data-instance-id="' + instance.id + '" ' + (disabled ? 'disabled' : '') + '>Scrap</button>' +
+            '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function bindInstanceActions() {
+        document.querySelectorAll('.advance-instance-btn').forEach(function (button) {
+          button.addEventListener('click', function () {
+            advanceInstance(Number(button.dataset.instanceId));
+          });
+        });
+
+        document.querySelectorAll('.hold-instance-btn').forEach(function (button) {
+          button.addEventListener('click', function () {
+            holdInstance(Number(button.dataset.instanceId));
+          });
+        });
+
+        document.querySelectorAll('.scrap-instance-btn').forEach(function (button) {
+          button.addEventListener('click', function () {
+            scrapInstance(Number(button.dataset.instanceId));
+          });
+        });
+      }
+
+      async function releaseDrawing(drawingId) {
+        if (!confirm('Release this drawing and create production instances?')) return;
+        await toJson(await KBApi.post('/api/v3/drawings/' + drawingId + '/release', {}));
+        delete detailCache[drawingId];
+        await refreshPage();
+      }
+
+      async function advanceInstance(instanceId) {
+        await ensureStarted(instanceId);
+        await toJson(await KBApi.post('/api/v3/drawings/instances/' + instanceId + '/advance', {
+          component_instance_id: instanceId
+        }));
+        await refreshAfterInstanceAction();
+      }
+
+      async function ensureStarted(instanceId) {
+        try {
+          await toJson(await KBApi.post('/api/v3/drawings/instances/' + instanceId + '/start', {}));
+        } catch (error) {
+          if (!/already|in progress|started/i.test(error.message || '')) {
+            throw error;
+          }
+        }
+      }
+
+      async function holdInstance(instanceId) {
+        const reason = window.prompt('Hold reason');
+        if (!reason) return;
+        await toJson(await KBApi.post('/api/v3/drawings/instances/' + instanceId + '/hold', { reason: reason }));
+        await refreshAfterInstanceAction();
+      }
+
+      async function scrapInstance(instanceId) {
+        const reason = window.prompt('Scrap reason');
+        if (!reason) return;
+        if (!confirm('Scrap this production instance?')) return;
+        await toJson(await KBApi.post('/api/v3/drawings/instances/' + instanceId + '/scrap', { reason: reason }));
+        await refreshAfterInstanceAction();
+      }
+
+      async function refreshAfterInstanceAction() {
+        if (currentDetailId) {
+          delete detailCache[currentDetailId];
+        }
+        await refreshPage();
+        if (currentDetailId && detailModalEl.classList.contains('show')) {
+          const detail = await getDrawingDetail(currentDetailId, true);
+          renderDrawingDetail(detail);
+        }
+      }
+
+      function toggleView() {
+        currentView = currentView === 'table' ? 'kanban' : 'table';
+        document.getElementById('tableViewCard').classList.toggle('d-none', currentView !== 'table');
+        document.getElementById('kanbanViewCard').classList.toggle('d-none', currentView !== 'kanban');
+        document.getElementById('toggleViewBtn').textContent = currentView === 'table' ? 'Kanban View' : 'Table View';
+        if (currentView === 'kanban') {
+          loadKanban().catch(function (error) {
+            if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to load kanban', 'danger');
+          });
+        }
+      }
+
+      async function submitNewDrawing(event) {
+        event.preventDefault();
+        const payload = {
+          drawing_number: document.getElementById('drawingNumber').value.trim(),
+          title: document.getElementById('drawingTitle').value.trim(),
+          customer_id: Number(document.getElementById('drawingCustomer').value),
+          project_ref: document.getElementById('drawingProjectRef').value.trim() || null,
+          notes: document.getElementById('drawingNotes').value.trim() || null
+        };
+
+        await toJson(await KBApi.post('/api/v3/drawings/', payload));
+        document.getElementById('newDrawingForm').reset();
+        newDrawingModal.hide();
+        await refreshPage();
+      }
+
+      async function refreshPage() {
+        await loadDrawings();
+        if (currentView === 'kanban') {
+          await loadKanban();
+        }
+      }
+
+      function startPolling() {
+        stopPolling();
+        pollHandle = window.setInterval(function () {
+          refreshPage().catch(function (error) {
+            console.error('Auto-refresh failed', error);
+          });
+        }, 15000);
+      }
+
+      function stopPolling() {
+        if (pollHandle) {
+          window.clearInterval(pollHandle);
+          pollHandle = null;
+        }
+      }
+
+      document.getElementById('applyFiltersBtn').addEventListener('click', function () {
+        refreshPage().catch(function (error) {
+          if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to load drawings', 'danger');
+        });
+      });
+      document.getElementById('refreshBtn').addEventListener('click', function () {
+        refreshPage().catch(function (error) {
+          if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to refresh drawings', 'danger');
+        });
+      });
+      document.getElementById('toggleViewBtn').addEventListener('click', toggleView);
+      document.getElementById('newDrawingForm').addEventListener('submit', submitNewDrawing);
+      document.getElementById('searchInput').addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          applyClientFilters();
+        }
+      });
+      document.getElementById('searchInput').addEventListener('input', applyClientFilters);
+      document.getElementById('filterStatus').addEventListener('change', function () {
+        refreshPage().catch(function (error) {
+          if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to load drawings', 'danger');
+        });
+      });
+      document.getElementById('filterCustomer').addEventListener('change', function () {
+        refreshPage().catch(function (error) {
+          if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to load drawings', 'danger');
+        });
+      });
+      detailModalEl.addEventListener('hidden.bs.modal', function () {
+        currentDetailId = null;
+      });
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stopPolling();
+        else startPolling();
+      });
+
+      async function init() {
+        try {
+          if (!KBAuth.requireAuth()) return;
+          await loadCustomers();
+          await refreshPage();
+          if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
+          startPolling();
+        } catch (error) {
+          console.error(error);
+          if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to initialize drawings page', 'danger');
+        }
+      }
+
+      init();
+    })();
+  </script>
+</body>
+
+</html>

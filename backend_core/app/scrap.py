@@ -97,6 +97,7 @@ class ScrapCSVRow(BaseModel):
 
 # ============ Scrap Endpoints ============
 
+@router.get("/records/", response_model=List[ScrapRecordOut])
 @router.get("/records", response_model=List[ScrapRecordOut])
 def list_scrap_records(
     status: Optional[str] = Query(None),
