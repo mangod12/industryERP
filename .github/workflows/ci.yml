@@ -43,7 +43,8 @@ jobs:
           docker run -d --name kbtest \
             -e ENVIRONMENT=development \
             -e KUMAR_SECRET_KEY=ci-test-key-minimum-32-characters-long \
-            -p 8080:8080 kbsteel-backend:test
-          sleep 5
+            -p 8080:8080 kbsteel-backend:test \
+            gunicorn -w 1 -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:8080 --timeout 30
+          sleep 8
           curl -sf http://localhost:8080/version || (docker logs kbtest && exit 1)
           docker stop kbtest
