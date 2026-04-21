@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt requests
+
+      - name: Run unit tests
+        run: python -m pytest tests/test_v3_drawings.py -v --tb=short
+
+      - name: Verify app starts
+        run: |
+          ENVIRONMENT=development python -c "from backend_core.app.main import app; print('App loaded OK')"
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t kbsteel-backend:test .
+
+      - name: Verify container starts
+        run: |
+          docker run -d --name kbtest \
+            -e ENVIRONMENT=development \
+            -e KUMAR_SECRET_KEY=ci-test-key-minimum-32-characters-long \
+            -p 8080:8080 kbsteel-backend:test
+          sleep 5
+          curl -sf http://localhost:8080/version || (docker logs kbtest && exit 1)
+          docker stop kbtest
