@@ -19,4 +19,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD exec gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:$PORT --timeout 120
+CMD exec gunicorn -w 2 -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:$PORT --timeout 120

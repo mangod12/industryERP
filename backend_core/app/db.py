@@ -34,13 +34,60 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+def _run_migrations():
+    """Run safe schema migrations for PostgreSQL.
+
+    Handles column renames and additions that create_all() cannot do
+    on existing tables. Each migration is idempotent.
+    """
+    from sqlalchemy import text, inspect as sa_inspect
+
+    if DATABASE_URL.startswith("sqlite"):
+        return  # SQLite dev DB is recreated from scratch
+
+    inspector = sa_inspect(engine)
+    with engine.begin() as conn:
+        # Migration 1: Rename password_hash → hashed_password (old schema compat)
+        if "users" in inspector.get_table_names():
+            cols = {c["name"] for c in inspector.get_columns("users")}
+            if "password_hash" in cols and "hashed_password" not in cols:
+                print("[migration] Renaming users.password_hash → hashed_password")
+                conn.execute(text(
+                    'ALTER TABLE users RENAME COLUMN password_hash TO hashed_password'
+                ))
+            elif "password" in cols and "hashed_password" not in cols:
+                print("[migration] Renaming users.password → hashed_password")
+                conn.execute(text(
+                    'ALTER TABLE users RENAME COLUMN password TO hashed_password'
+                ))
+            # Add missing columns that create_all() won't add to existing tables
+            if "is_active" not in cols:
+                print("[migration] Adding users.is_active column")
+                conn.execute(text(
+                    'ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE'
+                ))
+            if "company" not in cols:
+                print("[migration] Adding users.company column")
+                conn.execute(text(
+                    'ALTER TABLE users ADD COLUMN company VARCHAR'
+                ))
+            if "created_at" not in cols:
+                print("[migration] Adding users.created_at column")
+                conn.execute(text(
+                    'ALTER TABLE users ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()'
+                ))
+
+
 def create_db_and_tables():
     from sqlalchemy import inspect
     from .models import User
     from .security import hash_password
-    
+
+    # Run migrations BEFORE create_all so column renames happen first
+    _run_migrations()
+
     Base.metadata.create_all(bind=engine)
-    
+
     # Check if we need to seed the admin user
     db = SessionLocal()
     try:
@@ -57,8 +104,8 @@ def create_db_and_tables():
             )
             db.add(admin_user)
             db.commit()
-            print(f"[backend_core] ⚠️  Admin user created — username: admin / password: {_admin_pw}")
-            print("[backend_core] ⚠️  SAVE THIS PASSWORD. It will NOT be shown again.")
+            print(f"[backend_core] Admin user created — username: admin / password: {_admin_pw}")
+            print("[backend_core] SAVE THIS PASSWORD. It will NOT be shown again.")
     except Exception as e:
         print(f"[backend_core] Error seeding admin user: {e}")
     finally:
