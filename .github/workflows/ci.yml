@@ -19,7 +19,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt requests
+        run: pip install -r requirements.txt requests httpx
 
       - name: Run unit tests
         run: python -m pytest tests/test_v3_drawings.py -v --tb=short
