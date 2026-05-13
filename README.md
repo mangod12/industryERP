@@ -3,7 +3,7 @@
 [![CI](https://github.com/mangod12/industryERP/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/ci.yml)
 [![Deploy](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml)
 
-Production-grade ERP for steel fabrication — tracks raw materials from receipt through fabrication, painting, dispatch, and scrap recovery.
+Production ERP running daily operations at a steel fabrication business. 172 endpoints, 6-role RBAC, FastAPI + PostgreSQL on Cloud SQL + Cloud Run.
 
 ---
 
