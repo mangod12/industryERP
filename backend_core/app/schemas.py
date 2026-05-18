@@ -1,7 +1,7 @@
-﻿from typing import Optional, List
 from datetime import datetime
+from typing import List, Optional
+
 from pydantic import BaseModel, EmailStr
-from typing import Literal
 
 
 class Token(BaseModel):
@@ -13,7 +13,6 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
-
 
 
 class UserBase(BaseModel):
@@ -245,7 +244,6 @@ class QueryOutLegacy(BaseModel):
         from_attributes = True
 
 
-
 class InstructionCreate(BaseModel):
     message: str
 
@@ -366,8 +364,10 @@ class MaterialMappingBase(BaseModel):
     excel_name: str
     material_id: int
 
+
 class MaterialMappingCreate(MaterialMappingBase):
     pass
+
 
 class MaterialMappingOut(MaterialMappingBase):
     id: int
@@ -377,3 +377,15 @@ class MaterialMappingOut(MaterialMappingBase):
     class Config:
         from_attributes = True
 
+
+# --- Tracking API schemas (moved from tracking_api.py) ---
+
+
+class TrackingUpdateIn(BaseModel):
+    is_checked: Optional[bool] = None
+    stage: Optional[str] = None
+    move_quantity: Optional[int] = None
+
+
+class QuantityMoveIn(BaseModel):
+    move_quantity: float

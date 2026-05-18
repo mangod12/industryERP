@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Prefer explicit DATABASE_URL env var. If not provided, fall back to local
 # SQLite for development only. In production, always set DATABASE_URL.
@@ -37,10 +38,16 @@ Base = declarative_base()
 def _run_migrations():
     """Run safe schema migrations for PostgreSQL.
 
+    DEPRECATED: This hand-rolled migration function is superseded by Alembic.
+    It is kept temporarily for backward compatibility while Alembic is verified
+    in production. Once confirmed, remove this function and its call in
+    create_db_and_tables(). See alembic/ directory for the new migration system.
+
     Handles column renames and additions that create_all() cannot do
     on existing tables. Each migration is idempotent.
     """
-    from sqlalchemy import text, inspect as sa_inspect
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy import text
 
     if DATABASE_URL.startswith("sqlite"):
         return  # SQLite dev DB is recreated from scratch
@@ -63,10 +70,10 @@ def _run_migrations():
         if cols:
             if "password_hash" in cols and "hashed_password" not in cols:
                 print("[migration] Renaming users.password_hash → hashed_password")
-                conn.execute(text('ALTER TABLE users RENAME COLUMN password_hash TO hashed_password'))
+                conn.execute(text("ALTER TABLE users RENAME COLUMN password_hash TO hashed_password"))
             elif "password" in cols and "hashed_password" not in cols:
                 print("[migration] Renaming users.password → hashed_password")
-                conn.execute(text('ALTER TABLE users RENAME COLUMN password TO hashed_password'))
+                conn.execute(text("ALTER TABLE users RENAME COLUMN password TO hashed_password"))
             if "is_active" not in cols:
                 _add(conn, "users", "is_active", "BOOLEAN DEFAULT TRUE")
             if "company" not in cols:
@@ -116,7 +123,6 @@ def _run_migrations():
 
 
 def create_db_and_tables():
-    from sqlalchemy import inspect
     from .models import User
     from .security import hash_password
 
@@ -130,6 +136,7 @@ def create_db_and_tables():
     try:
         if not db.query(User).filter(User.username == "admin").first():
             import secrets as _secrets
+
             _admin_pw = _secrets.token_urlsafe(16)  # Strong random password
             print("[backend_core] Seeding default admin user...")
             admin_user = User(
@@ -137,7 +144,7 @@ def create_db_and_tables():
                 email="admin@kbsteel.com",
                 hashed_password=hash_password(_admin_pw),
                 role="Boss",
-                company="Kumar Brothers Steel"
+                company="Kumar Brothers Steel",
             )
             db.add(admin_user)
             db.commit()

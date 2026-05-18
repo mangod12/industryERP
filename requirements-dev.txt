@@ -1,0 +1,6 @@
+# Dev/CI dependencies
+ruff==0.11.12
+mypy==1.15.0
+pytest==9.0.2
+pytest-cov==6.1.1
+httpx==0.28.1

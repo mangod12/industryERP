@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- GRN Header Info -->
+<table class="info-grid">
+    <tr>
+        <td class="label">GRN Number:</td>
+        <td class="value"><strong>{{ grn_number }}</strong></td>
+        <td class="label">Date:</td>
+        <td class="value">{{ grn_date | fmt_date }}</td>
+    </tr>
+    <tr>
+        <td class="label">Vendor:</td>
+        <td class="value">{{ vendor.name }} ({{ vendor.code }})</td>
+        <td class="label">Vendor GSTIN:</td>
+        <td class="value">{{ vendor.gstin }}</td>
+    </tr>
+    <tr>
+        <td class="label">Invoice No:</td>
+        <td class="value">{{ vendor_invoice_number }}</td>
+        <td class="label">Invoice Date:</td>
+        <td class="value">{{ vendor_invoice_date | fmt_date }}</td>
+    </tr>
+    <tr>
+        <td class="label">Vehicle No:</td>
+        <td class="value">{{ vehicle_number }}</td>
+        <td class="label">Driver:</td>
+        <td class="value">{{ driver_name }}</td>
+    </tr>
+    <tr>
+        <td class="label">WB Slip No:</td>
+        <td class="value">{{ weighbridge_slip }}</td>
+        <td class="label">Gate Entry:</td>
+        <td class="value">{{ gate_entry_time | fmt_datetime }}</td>
+    </tr>
+</table>
+
+<!-- Weighbridge Data -->
+<div class="section-heading">Weighbridge Data</div>
+<div class="weight-box">
+    <div class="weight-item">
+        <div class="weight-label">Gross Weight</div>
+        <div class="weight-value">{{ gross_weight_kg | fmt_weight }}</div>
+        <div class="weight-unit">KG</div>
+    </div>
+    <div class="weight-item">
+        <div class="weight-label">Tare Weight</div>
+        <div class="weight-value">{{ tare_weight_kg | fmt_weight }}</div>
+        <div class="weight-unit">KG</div>
+    </div>
+    <div class="weight-item">
+        <div class="weight-label">Net Weight</div>
+        <div class="weight-value">{{ net_weight_kg | fmt_weight }}</div>
+        <div class="weight-unit">KG</div>
+    </div>
+</div>
+
+<!-- Line Items -->
+<div class="section-heading">Material Details</div>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Material</th>
+            <th>Heat No</th>
+            <th class="right">Qty</th>
+            <th class="right">Weight (KG)</th>
+            <th class="right">Rate</th>
+            <th class="right">Amount</th>
+            <th class="center">QA Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in line_items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.material_name }}<br><small>{{ item.material_code }}</small></td>
+            <td>{{ item.heat_number }}</td>
+            <td class="right">{{ item.received_qty }}</td>
+            <td class="right">{{ item.weight_kg | fmt_weight }}</td>
+            <td class="right">{{ item.rate | fmt_currency if item.rate else "—" }}</td>
+            <td class="right">{{ item.amount | fmt_currency if item.amount else "—" }}</td>
+            <td class="center">
+                <span class="status-badge status-{{ item.qa_status }}">{{ item.qa_status }}</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="4" class="right">Totals:</td>
+            <td class="right">{{ total_weight_kg | fmt_weight }}</td>
+            <td></td>
+            <td class="right">{{ total_amount | fmt_currency if total_amount else "—" }}</td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Remarks -->
+{% if remarks %}
+<div class="section-heading">Remarks</div>
+<div class="remarks">{{ remarks }}</div>
+{% endif %}
+{% endblock %}

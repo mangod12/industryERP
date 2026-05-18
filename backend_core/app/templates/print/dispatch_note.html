@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Dispatch Header Info -->
+<table class="info-grid">
+    <tr>
+        <td class="label">Dispatch No:</td>
+        <td class="value"><strong>{{ dispatch_number }}</strong></td>
+        <td class="label">Date:</td>
+        <td class="value">{{ dispatch_date | fmt_date }}</td>
+    </tr>
+    <tr>
+        <td class="label">Customer:</td>
+        <td class="value">{{ customer.name }}</td>
+        <td class="label">Sales Order:</td>
+        <td class="value">{{ sales_order_ref }}</td>
+    </tr>
+    <tr>
+        <td class="label">Vehicle No:</td>
+        <td class="value">{{ vehicle_number }}</td>
+        <td class="label">Transporter:</td>
+        <td class="value">{{ transporter }}</td>
+    </tr>
+    <tr>
+        <td class="label">Driver:</td>
+        <td class="value">{{ driver_name }}</td>
+        <td class="label">Driver Contact:</td>
+        <td class="value">{{ driver_contact }}</td>
+    </tr>
+    {% if dispatched_at %}
+    <tr>
+        <td class="label">Dispatched At:</td>
+        <td class="value">{{ dispatched_at | fmt_datetime }}</td>
+        <td></td>
+        <td></td>
+    </tr>
+    {% endif %}
+</table>
+
+<!-- Weighbridge Data -->
+<div class="section-heading">Weighbridge Data</div>
+<div class="weight-box">
+    <div class="weight-item">
+        <div class="weight-label">Gross Weight</div>
+        <div class="weight-value">{{ gross_weight_kg | fmt_weight }}</div>
+        <div class="weight-unit">KG</div>
+    </div>
+    <div class="weight-item">
+        <div class="weight-label">Tare Weight</div>
+        <div class="weight-value">{{ tare_weight_kg | fmt_weight }}</div>
+        <div class="weight-unit">KG</div>
+    </div>
+    <div class="weight-item">
+        <div class="weight-label">Net Weight</div>
+        <div class="weight-value">{{ net_weight_kg | fmt_weight }}</div>
+        <div class="weight-unit">KG</div>
+    </div>
+</div>
+
+<!-- Line Items -->
+<div class="section-heading">Dispatch Items</div>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Stock Lot</th>
+            <th>Material</th>
+            <th>Heat No</th>
+            <th class="right">Qty</th>
+            <th class="right">Weight (KG)</th>
+            <th class="right">Rate</th>
+            <th class="right">Amount</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in line_items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.lot_number }}</td>
+            <td>{{ item.material_name }}<br><small>{{ item.material_code }}</small></td>
+            <td>{{ item.heat_number }}</td>
+            <td class="right">{{ item.dispatched_qty }}</td>
+            <td class="right">{{ item.dispatched_weight_kg | fmt_weight }}</td>
+            <td class="right">{{ item.rate | fmt_currency if item.rate else "—" }}</td>
+            <td class="right">{{ item.amount | fmt_currency if item.amount else "—" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="5" class="right">Totals:</td>
+            <td class="right">{{ total_weight_kg | fmt_weight }}</td>
+            <td></td>
+            <td class="right">{{ total_amount | fmt_currency if total_amount else "—" }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Remarks -->
+{% if remarks %}
+<div class="section-heading">Remarks</div>
+<div class="remarks">{{ remarks }}</div>
+{% endif %}
+{% endblock %}

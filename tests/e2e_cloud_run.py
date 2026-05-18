@@ -9,8 +9,9 @@ Usage: python -m pytest tests/e2e_cloud_run.py -v --tb=short
 
 import os
 import time
-import requests
+
 import pytest
+import requests
 
 BASE_URL = os.getenv(
     "E2E_BASE_URL",
@@ -23,6 +24,7 @@ AUTH_ROLE = None
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
+
 
 def get(path, token=None, params=None, allow_statuses=(200,)):
     """GET with optional auth, return (status, body_or_None)."""
@@ -51,6 +53,7 @@ def post_json(path, data, token=None):
 
 
 # ─── 1. HEALTH & VERSION ───────────────────────────────────────────────────
+
 
 class TestHealthAndVersion:
     def test_sanity(self):
@@ -120,6 +123,7 @@ class TestFrontendPages:
 
 # ─── 3. AUTH FLOW ──────────────────────────────────────────────────────────
 
+
 class TestAuthFlow:
     def test_login_success(self):
         """Try login with known test credentials from env vars — run FIRST to avoid rate limit."""
@@ -128,10 +132,13 @@ class TestAuthFlow:
         if not username or not password:
             pytest.skip("E2E_USERNAME / E2E_PASSWORD not set — skipping auth test")
 
-        status, body, _ = post_json("/auth/login", {
-            "username": username,
-            "password": password,
-        })
+        status, body, _ = post_json(
+            "/auth/login",
+            {
+                "username": username,
+                "password": password,
+            },
+        )
         assert status == 200, f"Login failed: {body}"
         assert "access_token" in body
         assert "role" in body
@@ -147,10 +154,7 @@ class TestAuthFlow:
         assert status in (400, 429)
 
     def test_login_wrong_credentials(self):
-        status, body, _ = post_json("/auth/login", {
-            "username": "nonexistent_user_xyz",
-            "password": "WrongPass123!"
-        })
+        status, body, _ = post_json("/auth/login", {"username": "nonexistent_user_xyz", "password": "WrongPass123!"})
         assert status in (401, 429)
 
     def test_unauthenticated_endpoints_return_401(self):
@@ -182,6 +186,7 @@ class TestAuthFlow:
 
 # ─── 4. AUTHENTICATED API TESTS (only if creds provided) ───────────────────
 
+
 class TestAuthenticatedAPIs:
     """Run only when E2E_USERNAME/E2E_PASSWORD are set."""
 
@@ -193,10 +198,13 @@ class TestAuthenticatedAPIs:
             password = os.getenv("E2E_PASSWORD")
             if not username or not password:
                 pytest.skip("No auth credentials — skipping authenticated tests")
-            status, body, _ = post_json("/auth/login", {
-                "username": username,
-                "password": password,
-            })
+            status, body, _ = post_json(
+                "/auth/login",
+                {
+                    "username": username,
+                    "password": password,
+                },
+            )
             if status != 200:
                 pytest.skip(f"Login failed ({status}) — skipping authenticated tests")
             AUTH_TOKEN = body["access_token"]
@@ -351,6 +359,7 @@ class TestAuthenticatedAPIs:
 
 # ─── 5. CORS ───────────────────────────────────────────────────────────────
 
+
 class TestCORS:
     def test_cors_preflight(self):
         """OPTIONS request should return CORS headers."""
@@ -369,6 +378,7 @@ class TestCORS:
 
 # ─── 6. SECURITY CHECKS ────────────────────────────────────────────────────
 
+
 class TestSecurity:
     def test_no_server_header_leak(self):
         """Should not expose detailed server info."""
@@ -379,28 +389,19 @@ class TestSecurity:
 
     def test_rate_limit_on_login(self):
         """Verify rate limiting is active (5 attempts per 5 min)."""
-        status, body, _ = post_json("/auth/login", {
-            "username": "rate_limit_test_user",
-            "password": "WrongPass123!"
-        })
+        status, body, _ = post_json("/auth/login", {"username": "rate_limit_test_user", "password": "WrongPass123!"})
         # 401 = bad creds handled gracefully, 429 = rate limit active (both valid)
         assert status in (401, 429)
 
     def test_sql_injection_in_login(self):
         """SQL injection attempt should be handled safely."""
-        status, body, _ = post_json("/auth/login", {
-            "username": "' OR 1=1 --",
-            "password": "anything"
-        })
+        status, body, _ = post_json("/auth/login", {"username": "' OR 1=1 --", "password": "anything"})
         assert status in (401, 400, 422, 429)
 
     def test_xss_in_login(self):
         """XSS attempt should not reflect in response."""
         payload = "<script>alert(1)</script>"
-        status, body, _ = post_json("/auth/login", {
-            "username": payload,
-            "password": "anything"
-        })
+        status, body, _ = post_json("/auth/login", {"username": payload, "password": "anything"})
         if isinstance(body, dict):
             body_str = str(body)
         else:
@@ -409,6 +410,7 @@ class TestSecurity:
 
 
 # ─── 7. ERROR HANDLING ─────────────────────────────────────────────────────
+
 
 class TestErrorHandling:
     def test_404_api_route(self):
@@ -432,6 +434,7 @@ class TestErrorHandling:
 
 
 # ─── 8. PERFORMANCE BASELINE ───────────────────────────────────────────────
+
 
 class TestPerformance:
     def test_version_response_time(self):

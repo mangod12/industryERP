@@ -1,26 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
 from . import models, schemas
-from .deps import get_current_user, boss_or_supervisor, get_db
+from .deps import boss_or_supervisor, get_current_user, get_db
 
 router = APIRouter()
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 @router.post("/", status_code=status.HTTP_201_CREATED)
-def create_query(
-    payload: schemas.QueryCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    query = models.Query(
-        title=payload.title,
-        message=payload.message,
-        created_by=current_user.id,
-        status="OPEN"
-    )
+def create_query(payload: schemas.QueryCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    query = models.Query(title=payload.title, message=payload.message, created_by=current_user.id, status="OPEN")
 
     db.add(query)
     db.flush()
@@ -32,7 +24,7 @@ def create_query(
         message=f"❓ New query from {current_user.username}: {payload.title[:80]}",
         level="info",
         category="query_raised",
-        read=False
+        read=False,
     )
     db.add(notif_boss)
 
@@ -43,7 +35,7 @@ def create_query(
         message=f"❓ New query from {current_user.username}: {payload.title[:80]}",
         level="info",
         category="query_raised",
-        read=False
+        read=False,
     )
     db.add(notif_sup)
 
@@ -53,46 +45,32 @@ def create_query(
 
 
 @router.get("/me", response_model=List[schemas.QueryResponse])
-def my_queries(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    return db.query(models.Query).filter(
-        models.Query.created_by == current_user.id
-    ).order_by(models.Query.created_at.desc()).all()
+def my_queries(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return (
+        db.query(models.Query)
+        .filter(models.Query.created_by == current_user.id)
+        .order_by(models.Query.created_at.desc())
+        .all()
+    )
 
 
 @router.get("", response_model=List[schemas.QueryResponse])
 @router.get("/", response_model=List[schemas.QueryResponse])
-def all_queries(
-    db: Session = Depends(get_db),
-    current_user=Depends(boss_or_supervisor)
-):
+def all_queries(db: Session = Depends(get_db), current_user=Depends(boss_or_supervisor)):
     return db.query(models.Query).order_by(models.Query.created_at.desc()).all()
 
 
 @router.post("/{query_id}/reply")
 def reply_to_query(
-    query_id: int,
-    payload: schemas.QueryReply,
-    db: Session = Depends(get_db),
-    current_user=Depends(boss_or_supervisor)
+    query_id: int, payload: schemas.QueryReply, db: Session = Depends(get_db), current_user=Depends(boss_or_supervisor)
 ):
-    query = db.query(models.Query).filter(
-        models.Query.id == query_id
-    ).first()
+    query = db.query(models.Query).filter(models.Query.id == query_id).first()
 
     if not query:
-        raise HTTPException(
-            status_code=404,
-            detail="Query not found"
-        )
+        raise HTTPException(status_code=404, detail="Query not found")
 
     if payload.status not in ["IN_PROGRESS", "CLOSED"]:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid status. Must be IN_PROGRESS or CLOSED"
-        )
+        raise HTTPException(status_code=400, detail="Invalid status. Must be IN_PROGRESS or CLOSED")
 
     query.admin_reply = payload.reply
     query.status = payload.status
@@ -102,7 +80,7 @@ def reply_to_query(
         message=f"Your query '{query.title or query.id}' is now {payload.status}",
         level="info",
         category="query_response",
-        read=False
+        read=False,
     )
 
     db.add(notification)
@@ -112,11 +90,7 @@ def reply_to_query(
 
 
 @router.delete("/{query_id}", status_code=204)
-def delete_query(
-    query_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
+def delete_query(query_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     query = db.query(models.Query).filter(models.Query.id == query_id).first()
     if not query:
         raise HTTPException(status_code=404, detail="Query not found")

@@ -7,19 +7,23 @@ Manages the full lifecycle of a shop drawing:
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
+from typing import List, Optional
 
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import func
 
-from ..models_v3 import (
-    Drawing, Assembly, Component, ComponentInstance,
-    StageTransition, MaterialReservation,
-    DrawingStatus, ComponentStage, ComponentStageStatus,
-    ReservationStatus, DEFAULT_STAGES, StageConfig,
-)
 from ..models import Customer
 from ..models_v2 import MaterialMaster, StockLot
+from ..models_v3 import (
+    DEFAULT_STAGES,
+    Assembly,
+    Component,
+    ComponentInstance,
+    ComponentStageStatus,
+    Drawing,
+    DrawingStatus,
+    StageConfig,
+    StageTransition,
+)
 
 
 class DrawingService:
@@ -81,8 +85,7 @@ class DrawingService:
             raise ValueError(f"Drawing {drawing_id} not found")
         if drawing.status not in (DrawingStatus.DRAFT, DrawingStatus.DETAILED):
             raise ValueError(
-                f"Cannot add assembly to drawing with status '{drawing.status}'. "
-                "Drawing must be DRAFT or DETAILED."
+                f"Cannot add assembly to drawing with status '{drawing.status}'. Drawing must be DRAFT or DETAILED."
             )
 
         assembly = Assembly(
@@ -170,9 +173,7 @@ class DrawingService:
         if not drawing:
             raise ValueError(f"Drawing {drawing_id} not found")
         if drawing.status not in (DrawingStatus.DRAFT, DrawingStatus.DETAILED, DrawingStatus.CHECKED):
-            raise ValueError(
-                f"Drawing is already in status '{drawing.status.value}' and cannot be re-released"
-            )
+            raise ValueError(f"Drawing is already in status '{drawing.status.value}' and cannot be re-released")
 
         assemblies = drawing.assemblies
         if not assemblies:
@@ -250,35 +251,39 @@ class DrawingService:
                     total_instances += 1
                     if inst.is_completed:
                         completed_instances += 1
-                    stage_breakdown[inst.current_stage] = (
-                        stage_breakdown.get(inst.current_stage, 0) + 1
+                    stage_breakdown[inst.current_stage] = stage_breakdown.get(inst.current_stage, 0) + 1
+                    instances_data.append(
+                        {
+                            "id": inst.id,
+                            "instance_number": inst.instance_number,
+                            "current_stage": inst.current_stage,
+                            "stage_status": inst.stage_status,
+                            "is_completed": inst.is_completed,
+                            "is_scrapped": inst.is_scrapped,
+                        }
                     )
-                    instances_data.append({
-                        "id": inst.id,
-                        "instance_number": inst.instance_number,
-                        "current_stage": inst.current_stage,
-                        "stage_status": inst.stage_status,
-                        "is_completed": inst.is_completed,
-                        "is_scrapped": inst.is_scrapped,
-                    })
-                components_data.append({
-                    "id": comp.id,
-                    "piece_mark": comp.piece_mark,
-                    "profile_section": comp.profile_section,
-                    "grade": comp.grade,
-                    "weight_each_kg": float(comp.weight_each_kg),
-                    "quantity_per_assembly": comp.quantity_per_assembly,
-                    "instances": instances_data,
-                })
-            assemblies_data.append({
-                "id": asm.id,
-                "mark_number": asm.mark_number,
-                "description": asm.description,
-                "quantity_required": asm.quantity_required,
-                "quantity_complete": asm.quantity_complete,
-                "total_weight_kg": float(asm.total_weight_kg or 0),
-                "components": components_data,
-            })
+                components_data.append(
+                    {
+                        "id": comp.id,
+                        "piece_mark": comp.piece_mark,
+                        "profile_section": comp.profile_section,
+                        "grade": comp.grade,
+                        "weight_each_kg": float(comp.weight_each_kg),
+                        "quantity_per_assembly": comp.quantity_per_assembly,
+                        "instances": instances_data,
+                    }
+                )
+            assemblies_data.append(
+                {
+                    "id": asm.id,
+                    "mark_number": asm.mark_number,
+                    "description": asm.description,
+                    "quantity_required": asm.quantity_required,
+                    "quantity_complete": asm.quantity_complete,
+                    "total_weight_kg": float(asm.total_weight_kg or 0),
+                    "components": components_data,
+                }
+            )
 
         return {
             "id": drawing.id,
@@ -312,20 +317,13 @@ class DrawingService:
         """List drawings with optional filters, newest first."""
         query = db.query(Drawing).options(
             selectinload(Drawing.customer),
-            selectinload(Drawing.assemblies)
-            .selectinload(Assembly.components)
-            .selectinload(Component.instances),
+            selectinload(Drawing.assemblies).selectinload(Assembly.components).selectinload(Component.instances),
         )
         if customer_id is not None:
             query = query.filter(Drawing.customer_id == customer_id)
         if status is not None:
             query = query.filter(Drawing.status == status)
-        return (
-            query.order_by(Drawing.created_at.desc())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+        return query.order_by(Drawing.created_at.desc()).offset(skip).limit(limit).all()
 
     # -------------------------------------------------------------------------
     # GET STAGE PIPELINE
@@ -380,12 +378,8 @@ class DrawingService:
 
             # Sum completed instance weights
             for comp in asm.components:
-                completed_count = sum(
-                    1 for inst in comp.instances if inst.is_completed
-                )
-                drawing_completed += (
-                    Decimal(str(comp.weight_each_kg)) * completed_count
-                )
+                completed_count = sum(1 for inst in comp.instances if inst.is_completed)
+                drawing_completed += Decimal(str(comp.weight_each_kg)) * completed_count
 
         drawing.total_weight_kg = drawing_total
         drawing.completed_weight_kg = drawing_completed
@@ -417,10 +411,7 @@ class DrawingService:
             return
 
         all_complete = all(inst.is_completed for inst in all_instances)
-        any_in_progress = any(
-            inst.stage_status == ComponentStageStatus.IN_PROGRESS
-            for inst in all_instances
-        )
+        any_in_progress = any(inst.stage_status == ComponentStageStatus.IN_PROGRESS for inst in all_instances)
 
         if all_complete:
             drawing.status = DrawingStatus.COMPLETE
@@ -442,7 +433,6 @@ class DrawingService:
         if not drawing:
             raise ValueError(f"Drawing {drawing_id} not found")
 
-        from ..models_v2 import StockLot, MaterialMaster
         from ..models import Inventory
 
         total_bom_kg = Decimal("0")
@@ -484,9 +474,7 @@ class DrawingService:
                     # Get lot numbers from reservations
                     for res in inst.reservations:
                         if res.stock_lot_id:
-                            lot = db.query(StockLot).filter(
-                                StockLot.id == res.stock_lot_id
-                            ).first()
+                            lot = db.query(StockLot).filter(StockLot.id == res.stock_lot_id).first()
                             if lot:
                                 lot_numbers.add(lot.lot_number)
                                 if lot.heat_number:
@@ -499,49 +487,46 @@ class DrawingService:
                 # Resolve material name
                 mat_name = None
                 if comp.material_id:
-                    mat = db.query(MaterialMaster).filter(
-                        MaterialMaster.id == comp.material_id
-                    ).first()
+                    mat = db.query(MaterialMaster).filter(MaterialMaster.id == comp.material_id).first()
                     if mat:
                         mat_name = f"{mat.name} ({mat.code})"
                 elif comp.inventory_id:
-                    inv = db.query(Inventory).filter(
-                        Inventory.id == comp.inventory_id
-                    ).first()
+                    inv = db.query(Inventory).filter(Inventory.id == comp.inventory_id).first()
                     if inv:
                         mat_name = f"{inv.name} ({inv.code})" if inv.code else inv.name
 
-                comp_usages.append({
-                    "piece_mark": comp.piece_mark,
-                    "profile_section": comp.profile_section,
-                    "grade": comp.grade,
-                    "weight_each_kg": float(comp.weight_each_kg),
-                    "total_instances": len(comp.instances),
-                    "instances_consumed": consumed_count,
-                    "instances_pending": pending_count,
-                    "total_required_kg": float(required_kg),
-                    "total_consumed_kg": float(comp_consumed_kg),
-                    "total_reserved_kg": float(comp_reserved_kg),
-                    "material_name": mat_name,
-                    "stock_lot_numbers": sorted(lot_numbers),
-                    "heat_numbers": sorted(heat_numbers),
-                })
+                comp_usages.append(
+                    {
+                        "piece_mark": comp.piece_mark,
+                        "profile_section": comp.profile_section,
+                        "grade": comp.grade,
+                        "weight_each_kg": float(comp.weight_each_kg),
+                        "total_instances": len(comp.instances),
+                        "instances_consumed": consumed_count,
+                        "instances_pending": pending_count,
+                        "total_required_kg": float(required_kg),
+                        "total_consumed_kg": float(comp_consumed_kg),
+                        "total_reserved_kg": float(comp_reserved_kg),
+                        "material_name": mat_name,
+                        "stock_lot_numbers": sorted(lot_numbers),
+                        "heat_numbers": sorted(heat_numbers),
+                    }
+                )
 
-            assembly_usages.append({
-                "mark_number": asm.mark_number,
-                "description": asm.description,
-                "quantity_required": asm.quantity_required,
-                "quantity_complete": asm.quantity_complete,
-                "components": comp_usages,
-                "subtotal_required_kg": float(asm_required),
-                "subtotal_consumed_kg": float(asm_consumed),
-            })
+            assembly_usages.append(
+                {
+                    "mark_number": asm.mark_number,
+                    "description": asm.description,
+                    "quantity_required": asm.quantity_required,
+                    "quantity_complete": asm.quantity_complete,
+                    "components": comp_usages,
+                    "subtotal_required_kg": float(asm_required),
+                    "subtotal_consumed_kg": float(asm_consumed),
+                }
+            )
 
         total_pending = total_bom_kg - total_reserved_kg
-        consumption_pct = (
-            float(total_consumed_kg / total_bom_kg * 100)
-            if total_bom_kg > 0 else 0.0
-        )
+        consumption_pct = float(total_consumed_kg / total_bom_kg * 100) if total_bom_kg > 0 else 0.0
 
         customer_name = drawing.customer.name if drawing.customer else None
 
@@ -550,7 +535,7 @@ class DrawingService:
             "drawing_number": drawing.drawing_number,
             "revision": drawing.revision,
             "customer_name": customer_name,
-            "status": drawing.status.value if hasattr(drawing.status, 'value') else str(drawing.status),
+            "status": drawing.status.value if hasattr(drawing.status, "value") else str(drawing.status),
             "assemblies": assembly_usages,
             "total_bom_weight_kg": float(total_bom_kg),
             "total_consumed_kg": float(total_consumed_kg),

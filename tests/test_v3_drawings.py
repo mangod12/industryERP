@@ -3,20 +3,19 @@ v3 Drawing API — Integration Tests
 Tests the complete drawing → assembly → component → instance lifecycle.
 """
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend_core'))
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend_core"))
 
 import pytest
+from app.db import Base
+from app.deps import get_db
+from app.main import create_app
+from app.security import hash_password
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-from app.db import Base
-from app.main import create_app
-from app.deps import get_db
-from app.security import hash_password
-
 
 # Test database (in-memory SQLite)
 TEST_DB_URL = "sqlite:///./test_v3.db"
@@ -37,6 +36,7 @@ def client():
     """Create test client with clean database."""
     Base.metadata.create_all(bind=engine)
     from app.models_v2 import Base as BaseV2
+
     BaseV2.metadata.create_all(bind=engine)
 
     app = create_app()
@@ -44,6 +44,7 @@ def client():
 
     db = TestSession()
     from app.models import User
+
     admin = db.query(User).filter(User.username == "testadmin").first()
     if not admin:
         admin = User(
@@ -51,7 +52,7 @@ def client():
             email="test@kbsteel.com",
             hashed_password=hash_password("TestPass123!"),
             role="Boss",
-            company="Test Steel"
+            company="Test Steel",
         )
         db.add(admin)
         db.commit()
@@ -76,10 +77,7 @@ def client():
 @pytest.fixture(scope="module")
 def customer_id(client):
     """Create a test customer."""
-    resp = client.post("/customers", json={
-        "name": "Test Steel Corp",
-        "project_details": "Test Project"
-    })
+    resp = client.post("/customers", json={"name": "Test Steel Corp", "project_details": "Test Project"})
     assert resp.status_code in (200, 201), f"Customer creation failed: {resp.text}"
     return resp.json()["id"]
 
@@ -92,12 +90,15 @@ class TestDrawingLifecycle:
     component_id = None
 
     def test_01_create_drawing(self, client, customer_id):
-        resp = client.post("/api/v3/drawings/", json={
-            "drawing_number": "D-001",
-            "title": "Handrail Assembly",
-            "customer_id": customer_id,
-            "project_ref": "PRJ-001",
-        })
+        resp = client.post(
+            "/api/v3/drawings/",
+            json={
+                "drawing_number": "D-001",
+                "title": "Handrail Assembly",
+                "customer_id": customer_id,
+                "project_ref": "PRJ-001",
+            },
+        )
         assert resp.status_code == 201, f"Failed: {resp.text}"
         data = resp.json()
         assert data["drawing_number"] == "D-001"
@@ -106,11 +107,14 @@ class TestDrawingLifecycle:
         TestDrawingLifecycle.drawing_id = data["id"]
 
     def test_02_add_assembly(self, client):
-        resp = client.post(f"/api/v3/drawings/{self.drawing_id}/assemblies", json={
-            "mark_number": "A1",
-            "description": "Main handrail assembly",
-            "quantity_required": 2,
-        })
+        resp = client.post(
+            f"/api/v3/drawings/{self.drawing_id}/assemblies",
+            json={
+                "mark_number": "A1",
+                "description": "Main handrail assembly",
+                "quantity_required": 2,
+            },
+        )
         assert resp.status_code == 201, f"Failed: {resp.text}"
         data = resp.json()
         assert data["mark_number"] == "A1"
@@ -119,26 +123,32 @@ class TestDrawingLifecycle:
 
     def test_03_add_components(self, client):
         # Component 1: Top rail beam
-        resp = client.post(f"/api/v3/drawings/assemblies/{self.assembly_id}/components", json={
-            "piece_mark": "P1",
-            "profile_section": "UB203X133X25",
-            "grade": "S275",
-            "length_mm": 3200,
-            "quantity_per_assembly": 1,
-            "weight_each_kg": 80.0,
-        })
+        resp = client.post(
+            f"/api/v3/drawings/assemblies/{self.assembly_id}/components",
+            json={
+                "piece_mark": "P1",
+                "profile_section": "UB203X133X25",
+                "grade": "S275",
+                "length_mm": 3200,
+                "quantity_per_assembly": 1,
+                "weight_each_kg": 80.0,
+            },
+        )
         assert resp.status_code == 201, f"Failed: {resp.text}"
         TestDrawingLifecycle.component_id = resp.json()["id"]
 
         # Component 2: Vertical posts
-        resp = client.post(f"/api/v3/drawings/assemblies/{self.assembly_id}/components", json={
-            "piece_mark": "P2",
-            "profile_section": "50X50X5 SHS",
-            "grade": "S275",
-            "length_mm": 1100,
-            "quantity_per_assembly": 3,
-            "weight_each_kg": 8.5,
-        })
+        resp = client.post(
+            f"/api/v3/drawings/assemblies/{self.assembly_id}/components",
+            json={
+                "piece_mark": "P2",
+                "profile_section": "50X50X5 SHS",
+                "grade": "S275",
+                "length_mm": 1100,
+                "quantity_per_assembly": 3,
+                "weight_each_kg": 8.5,
+            },
+        )
         assert resp.status_code == 201, f"Failed: {resp.text}"
 
     def test_04_release_drawing(self, client):
@@ -186,11 +196,13 @@ class TestDrawingLifecycle:
 
         # Use progress endpoint to check instance count, then try advancing instance 1
         # The first instance created should have the lowest ID
-        from app.models_v3 import ComponentInstance, Component, Assembly
+        from app.models_v3 import Assembly, Component, ComponentInstance
+
         db = TestSession()
         instances = (
             db.query(ComponentInstance)
-            .join(Component).join(Assembly)
+            .join(Component)
+            .join(Assembly)
             .filter(Assembly.drawing_id == self.drawing_id)
             .order_by(ComponentInstance.id)
             .all()
@@ -204,10 +216,13 @@ class TestDrawingLifecycle:
         assert resp.status_code == 200, f"Start failed: {resp.text}"
 
         # Advance from cutting to next stage
-        resp = client.post(f"/api/v3/drawings/instances/{instance_id}/advance", json={
-            "component_instance_id": instance_id,
-            "remarks": "Test advance",
-        })
+        resp = client.post(
+            f"/api/v3/drawings/instances/{instance_id}/advance",
+            json={
+                "component_instance_id": instance_id,
+                "remarks": "Test advance",
+            },
+        )
         assert resp.status_code == 200, f"Advance failed: {resp.text}"
         result = resp.json()
         assert result["from_stage"] == "cutting"
@@ -246,9 +261,12 @@ class TestDrawingLifecycle:
 
     def test_10_reserve_materials(self, client):
         # Reserve requires a body with drawing_id
-        resp = client.post(f"/api/v3/drawings/{self.drawing_id}/reserve-materials", json={
-            "drawing_id": self.drawing_id,
-        })
+        resp = client.post(
+            f"/api/v3/drawings/{self.drawing_id}/reserve-materials",
+            json={
+                "drawing_id": self.drawing_id,
+            },
+        )
         # May fail if components have no material/inventory link — that's expected
         # Accept either 200 (success) or 400 (no material link)
         assert resp.status_code in (200, 400), f"Reserve failed: {resp.text}"
@@ -258,20 +276,26 @@ class TestDrawingValidation:
     """Test error cases and validation."""
 
     def test_create_without_customer(self, client):
-        resp = client.post("/api/v3/drawings/", json={
-            "drawing_number": "D-999",
-            "title": "Test",
-            "customer_id": 99999,
-        })
+        resp = client.post(
+            "/api/v3/drawings/",
+            json={
+                "drawing_number": "D-999",
+                "title": "Test",
+                "customer_id": 99999,
+            },
+        )
         assert resp.status_code in (400, 404)
 
     def test_release_empty_drawing(self, client, customer_id):
         # Create drawing with no assemblies
-        resp = client.post("/api/v3/drawings/", json={
-            "drawing_number": "D-EMPTY",
-            "title": "Empty",
-            "customer_id": customer_id,
-        })
+        resp = client.post(
+            "/api/v3/drawings/",
+            json={
+                "drawing_number": "D-EMPTY",
+                "title": "Empty",
+                "customer_id": customer_id,
+            },
+        )
         drawing_id = resp.json()["id"]
 
         # Try to release — should fail
@@ -279,7 +303,10 @@ class TestDrawingValidation:
         assert resp.status_code == 400
 
     def test_advance_nonexistent_instance(self, client):
-        resp = client.post("/api/v3/drawings/instances/99999/advance", json={
-            "component_instance_id": 99999,
-        })
+        resp = client.post(
+            "/api/v3/drawings/instances/99999/advance",
+            json={
+                "component_instance_id": 99999,
+            },
+        )
         assert resp.status_code in (400, 404)

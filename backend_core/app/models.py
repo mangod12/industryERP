@@ -1,10 +1,10 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Float
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
-from .db import Base
 from sqlalchemy.sql import func
 
-
+from .db import Base
 
 
 class User(Base):
@@ -15,18 +15,18 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
-    #STRICT ROLE CONTROL
+    # STRICT ROLE CONTROL
     role = Column(
         String,
         nullable=False,
-        default="user"  # default safe role
+        default="user",  # default safe role
     )
 
     company = Column(String, nullable=True)
 
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     @property
     def password_hash(self):
         return self.hashed_password
@@ -90,7 +90,6 @@ class ProductionItem(Base):
     FINAL_STAGE = "dispatch"
 
 
-
 class StageTracking(Base):
     __tablename__ = "stage_tracking"
     id = Column(Integer, primary_key=True, index=True)
@@ -124,17 +123,13 @@ class Query(Base):
     status = Column(
         String,
         default="OPEN",  # OPEN | IN_PROGRESS | CLOSED
-        nullable=False
+        nullable=False,
     )
 
     admin_reply = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now()
-    )
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class Instruction(Base):
@@ -165,7 +160,7 @@ class Inventory(Base):
     name = Column(String, nullable=False)
     unit = Column(String, nullable=True)
     total = Column(Float, nullable=False, default=0.0)  # Changed to Float for decimal quantities
-    used = Column(Float, nullable=False, default=0.0)   # Changed to Float for decimal quantities
+    used = Column(Float, nullable=False, default=0.0)  # Changed to Float for decimal quantities
     # Optional metadata fields to support richer searching/filtering
     code = Column(String, nullable=True)
     section = Column(String, nullable=True)
@@ -179,19 +174,22 @@ class Notification(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     role = Column(String, nullable=True)  # target role (optional)
     message = Column(Text, nullable=False)
+
     # Backwards-compatible title property (no DB column) - derived from message
     @property
     def title(self):
         if self.message:
             return (self.message[:100] + "...") if len(self.message) > 100 else self.message
         return ""
+
     level = Column(String, nullable=False, default="info")
-    category = Column(String, nullable=True) # e.g. "stage_changes", "instr_from_boss"
+    category = Column(String, nullable=True)  # e.g. "stage_changes", "instr_from_boss"
     read = Column(Boolean, default=False)
 
     @property
     def is_read(self):
         return bool(self.read)
+
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -199,9 +197,10 @@ class ActivityLog(Base):
     """
     Generic activity log for system-wide events (e.g., inventory resets).
     """
+
     __tablename__ = "activity_logs"
     id = Column(Integer, primary_key=True, index=True)
-    action = Column(String, nullable=False) # e.g. "RESET_CONSUMED"
+    action = Column(String, nullable=False)  # e.g. "RESET_CONSUMED"
     description = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
@@ -272,6 +271,7 @@ class RoleNotificationSetting(Base):
 
 class ScrapRecord(Base):
     """Track scrap/waste materials after dispatch"""
+
     __tablename__ = "scrap_records"
     id = Column(Integer, primary_key=True, index=True)
     material_name = Column(String, nullable=False)
@@ -292,6 +292,7 @@ class ScrapRecord(Base):
 
 class ReusableStock(Base):
     """Track reusable offcuts and leftover pieces that can be used again"""
+
     __tablename__ = "reusable_stock"
     id = Column(Integer, primary_key=True, index=True)
     material_name = Column(String, nullable=False)
@@ -312,12 +313,12 @@ class ReusableStock(Base):
 
 class MaterialMapping(Base):
     """Link Excel product/profile names to specific inventory materials"""
+
     __tablename__ = "material_mappings"
     id = Column(Integer, primary_key=True, index=True)
     excel_name = Column(String, unique=True, nullable=False, index=True)
     material_id = Column(Integer, ForeignKey("inventory.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationship to Inventory
     material = relationship("Inventory")
-

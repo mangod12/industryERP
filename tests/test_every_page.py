@@ -2,14 +2,16 @@
 Test EVERY page and EVERY API call as a real user would.
 Simulates: login → navigate to each page → trigger every data load → test every form.
 """
-import requests
-import json
+
 import sys
+
+import requests
 
 BASE = "http://127.0.0.1:8001"
 S = requests.Session()
 results = []
 TOKEN = None
+
 
 def t(name, ok, detail=""):
     results.append((name, ok, detail))
@@ -20,18 +22,30 @@ def t(name, ok, detail=""):
     print(line)
     return ok
 
+
 def get(path, expect=200):
     r = S.get(f"{BASE}{path}", headers={"Authorization": f"Bearer {TOKEN}"} if TOKEN else {})
-    return t(f"GET {path}", r.status_code == expect, f"got {r.status_code}: {r.text[:100]}" if r.status_code != expect else ""), r
+    return t(
+        f"GET {path}",
+        r.status_code == expect,
+        f"got {r.status_code}: {r.text[:100]}" if r.status_code != expect else "",
+    ), r
 
-def post(path, data=None, expect=(200,201)):
+
+def post(path, data=None, expect=(200, 201)):
     r = S.post(f"{BASE}{path}", json=data, headers={"Authorization": f"Bearer {TOKEN}"} if TOKEN else {})
     ok = r.status_code in (expect if isinstance(expect, tuple) else (expect,))
     return t(f"POST {path}", ok, f"got {r.status_code}: {r.text[:100]}" if not ok else ""), r
 
+
 def put(path, data=None, expect=200):
     r = S.put(f"{BASE}{path}", json=data, headers={"Authorization": f"Bearer {TOKEN}"} if TOKEN else {})
-    return t(f"PUT {path}", r.status_code == expect, f"got {r.status_code}: {r.text[:100]}" if r.status_code != expect else ""), r
+    return t(
+        f"PUT {path}",
+        r.status_code == expect,
+        f"got {r.status_code}: {r.text[:100]}" if r.status_code != expect else "",
+    ), r
+
 
 # =====================================================================
 print("\n=== LOGIN PAGE ===")
@@ -104,12 +118,34 @@ for item in inv_items:
         inv_id = item["id"]
         break
 if not inv_id:
-    _, r = post("/inventory", {"name": "UB203X133X25-FLOW", "unit": "kg", "total": 5000, "used": 0, "code": "UB203F", "section": "UB203X133X25", "category": "Beam"})
+    _, r = post(
+        "/inventory",
+        {
+            "name": "UB203X133X25-FLOW",
+            "unit": "kg",
+            "total": 5000,
+            "used": 0,
+            "code": "UB203F",
+            "section": "UB203X133X25",
+            "category": "Beam",
+        },
+    )
     if r.status_code in (200, 201):
         inv_id = r.json()["id"]
 
 if inv_id:
-    _, r = put(f"/inventory/{inv_id}", {"name": inv_items[0]["name"] if inv_items else "UB203X133X25", "unit": "kg", "total": 5500, "used": 100, "code": "UB203", "section": "UB203X133X25", "category": "Beam"})
+    _, r = put(
+        f"/inventory/{inv_id}",
+        {
+            "name": inv_items[0]["name"] if inv_items else "UB203X133X25",
+            "unit": "kg",
+            "total": 5500,
+            "used": 100,
+            "code": "UB203",
+            "section": "UB203X133X25",
+            "category": "Beam",
+        },
+    )
 
 # =====================================================================
 print("\n=== MATERIALS PAGE (materials.html) ===")
@@ -125,13 +161,16 @@ get("/scrap/records")
 get("/customers")  # dropdown
 
 # Create scrap
-_, r = post("/scrap/records", {
-    "material_name": "Flow Test Scrap",
-    "weight_kg": 12.5,
-    "quantity": 1,
-    "reason_code": "cutting_waste",
-    "notes": "Flow test"
-})
+_, r = post(
+    "/scrap/records",
+    {
+        "material_name": "Flow Test Scrap",
+        "weight_kg": 12.5,
+        "quantity": 1,
+        "reason_code": "cutting_waste",
+        "notes": "Flow test",
+    },
+)
 scrap_id = r.json().get("id") if r.status_code in (200, 201) else None
 
 # Filter scrap
@@ -155,9 +194,15 @@ get("/api/v2/grn/vendors")
 get("/api/v2/inventory/materials")
 
 # Create vendor (uses query params, not JSON body)
-r = S.post(f"{BASE}/api/v2/grn/vendors?code=V-FLOW-001&name=Flow+Test+Vendor&city=Bangalore&contact_person=Test&phone=9876543210",
-           headers={"Authorization": f"Bearer {TOKEN}"})
-t("POST /api/v2/grn/vendors", r.status_code in (200, 201, 400), f"got {r.status_code}: {r.text[:80]}" if r.status_code not in (200, 201, 400) else "")
+r = S.post(
+    f"{BASE}/api/v2/grn/vendors?code=V-FLOW-001&name=Flow+Test+Vendor&city=Bangalore&contact_person=Test&phone=9876543210",
+    headers={"Authorization": f"Bearer {TOKEN}"},
+)
+t(
+    "POST /api/v2/grn/vendors",
+    r.status_code in (200, 201, 400),
+    f"got {r.status_code}: {r.text[:80]}" if r.status_code not in (200, 201, 400) else "",
+)
 vendor_id = r.json().get("id") if r.status_code in (200, 201) else None
 
 # Get existing vendor if create failed (duplicate)
@@ -168,11 +213,7 @@ if not vendor_id:
 
 # Create GRN
 if vendor_id:
-    _, r = post("/api/v2/grn/", {
-        "vendor_id": vendor_id,
-        "vehicle_number": "KA01AB1234",
-        "driver_name": "Flow Driver"
-    })
+    _, r = post("/api/v2/grn/", {"vendor_id": vendor_id, "vehicle_number": "KA01AB1234", "driver_name": "Flow Driver"})
 
 # =====================================================================
 print("\n=== DISPATCH PAGE (dispatch.html) ===")
@@ -200,33 +241,45 @@ get("/api/v3/drawings/kanban")
 
 # Create drawing
 import time
+
 run_id = str(int(time.time()))[-6:]
-_, r = post("/api/v3/drawings/", {
-    "drawing_number": f"FLOW-{run_id}",
-    "title": "Flow Test Drawing",
-    "customer_id": cid,
-})
+_, r = post(
+    "/api/v3/drawings/",
+    {
+        "drawing_number": f"FLOW-{run_id}",
+        "title": "Flow Test Drawing",
+        "customer_id": cid,
+    },
+)
 if r.status_code in (200, 201):
     dwg_id = r.json()["id"]
     t("Drawing created", True)
 
     # Add assembly
-    _, r = post(f"/api/v3/drawings/{dwg_id}/assemblies", {
-        "mark_number": "FA1", "description": "Flow assembly", "quantity_required": 2
-    })
+    _, r = post(
+        f"/api/v3/drawings/{dwg_id}/assemblies",
+        {"mark_number": "FA1", "description": "Flow assembly", "quantity_required": 2},
+    )
     if r.status_code in (200, 201):
         asm_id = r.json()["id"]
 
         # Add components
-        post(f"/api/v3/drawings/assemblies/{asm_id}/components", {
-            "piece_mark": "FP1", "profile_section": "UB203X133X25",
-            "grade": "S275", "length_mm": 3000, "quantity_per_assembly": 1,
-            "weight_each_kg": 75.0, "inventory_id": inv_id
-        })
-        post(f"/api/v3/drawings/assemblies/{asm_id}/components", {
-            "piece_mark": "FP2", "profile_section": "50x50x5 SHS",
-            "quantity_per_assembly": 2, "weight_each_kg": 8.0
-        })
+        post(
+            f"/api/v3/drawings/assemblies/{asm_id}/components",
+            {
+                "piece_mark": "FP1",
+                "profile_section": "UB203X133X25",
+                "grade": "S275",
+                "length_mm": 3000,
+                "quantity_per_assembly": 1,
+                "weight_each_kg": 75.0,
+                "inventory_id": inv_id,
+            },
+        )
+        post(
+            f"/api/v3/drawings/assemblies/{asm_id}/components",
+            {"piece_mark": "FP2", "profile_section": "50x50x5 SHS", "quantity_per_assembly": 2, "weight_each_kg": 8.0},
+        )
 
     # Release
     _, r = post(f"/api/v3/drawings/{dwg_id}/release")
@@ -259,9 +312,10 @@ if r.status_code in (200, 201):
                 # Start
                 post(f"/api/v3/drawings/instances/{iid}/start")
                 # Advance
-                _, ar = post(f"/api/v3/drawings/instances/{iid}/advance", {
-                    "component_instance_id": iid, "remarks": "Flow test advance"
-                })
+                _, ar = post(
+                    f"/api/v3/drawings/instances/{iid}/advance",
+                    {"component_instance_id": iid, "remarks": "Flow test advance"},
+                )
                 t("Instance advanced", ar.status_code == 200)
 
                 # Hold another
@@ -348,12 +402,27 @@ post("/notifications/mark-read", {"ids": []}, expect=(200, 400, 422))
 # =====================================================================
 print("\n=== ALL STATIC PAGES LOAD ===")
 pages = [
-    "login.html", "index.html", "register.html", "customers.html",
-    "customer_add.html", "customer_edit.html", "customer_details.html",
-    "raw_material.html", "materials.html", "scrap.html", "reusable.html",
-    "grn.html", "dispatch.html", "tracking_v2.html", "drawings.html",
-    "instructions.html", "queries.html", "settings.html",
-    "account-settings.html", "notification-settings.html", "stock.html",
+    "login.html",
+    "index.html",
+    "register.html",
+    "customers.html",
+    "customer_add.html",
+    "customer_edit.html",
+    "customer_details.html",
+    "raw_material.html",
+    "materials.html",
+    "scrap.html",
+    "reusable.html",
+    "grn.html",
+    "dispatch.html",
+    "tracking_v2.html",
+    "drawings.html",
+    "instructions.html",
+    "queries.html",
+    "settings.html",
+    "account-settings.html",
+    "notification-settings.html",
+    "stock.html",
 ]
 for p in pages:
     r = S.get(f"{BASE}/{p}")

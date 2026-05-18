@@ -13,28 +13,24 @@ Mirrors models_v3.py. Uses Pydantic v2 conventions:
 from __future__ import annotations
 
 from datetime import datetime
-from pydantic import BaseModel, Field
 from typing import Any
 
+from pydantic import BaseModel, Field
 
 # =============================================================================
 # RE-EXPORTED ENUMS (string values, safe to use in request/response bodies)
 # =============================================================================
-
 # Import enum values so callers can reference them without importing models_v3
 from .models_v3 import (
-    DrawingStatus,
-    ComponentStage,
     ComponentStageStatus,
+    DrawingStatus,
     ReservationStatus,
-    RevisionChangeType,
-    DispositionAction,
 )
-
 
 # =============================================================================
 # DRAWING SCHEMAS
 # =============================================================================
+
 
 class DrawingCreate(BaseModel):
     drawing_number: str = Field(..., description="Unique drawing number (e.g. DWG-001)")
@@ -123,6 +119,7 @@ class DrawingSummary(BaseModel):
 # ASSEMBLY SCHEMAS
 # =============================================================================
 
+
 class AssemblyCreate(BaseModel):
     mark_number: str = Field(..., description="Main-mark / shipping-mark identifier")
     description: str | None = Field(None, description="Assembly description")
@@ -143,6 +140,7 @@ class AssemblyUpdate(BaseModel):
 # =============================================================================
 # COMPONENT SCHEMAS
 # =============================================================================
+
 
 class ComponentCreate(BaseModel):
     piece_mark: str = Field(..., description="Piece-mark identifier within the assembly")
@@ -202,6 +200,7 @@ class ComponentOut(BaseModel):
 # COMPONENT INSTANCE SCHEMAS
 # =============================================================================
 
+
 class StageTransitionOut(BaseModel):
     id: int
     from_stage: str | None
@@ -249,6 +248,7 @@ class ComponentInstanceDetail(ComponentInstanceOut):
 # STAGE OPERATION SCHEMAS
 # =============================================================================
 
+
 class AdvanceStageRequest(BaseModel):
     component_instance_id: int = Field(..., description="ID of the instance to advance")
     target_stage: str | None = Field(
@@ -282,15 +282,14 @@ class AdvanceStageResponse(BaseModel):
 # MATERIAL OPERATION SCHEMAS
 # =============================================================================
 
+
 class ReserveMaterialsRequest(BaseModel):
     drawing_id: int = Field(..., description="Reserve materials for all instances on this drawing")
 
 
 class IssueMaterialRequest(BaseModel):
     component_instance_id: int = Field(..., description="Instance receiving the material")
-    stock_lot_id: int | None = Field(
-        None, description="Specific stock lot to issue from; omit for auto-pick"
-    )
+    stock_lot_id: int | None = Field(None, description="Specific stock lot to issue from; omit for auto-pick")
 
 
 class ReturnMaterialRequest(BaseModel):
@@ -317,11 +316,10 @@ class MaterialReservationOut(BaseModel):
 # DRAWING IMPORT SCHEMAS
 # =============================================================================
 
+
 class DrawingExcelImportRequest(BaseModel):
     customer_id: int = Field(..., description="Customer to associate the imported drawing with")
-    sheet_name: str | None = Field(
-        None, description="Excel sheet name to parse; defaults to the first sheet"
-    )
+    sheet_name: str | None = Field(None, description="Excel sheet name to parse; defaults to the first sheet")
 
 
 class DrawingExcelImportResponse(BaseModel):
@@ -334,6 +332,7 @@ class DrawingExcelImportResponse(BaseModel):
 # =============================================================================
 # DRAWING PROGRESS & SUMMARY SCHEMAS
 # =============================================================================
+
 
 class DrawingProgress(BaseModel):
     drawing_id: int
@@ -349,6 +348,7 @@ class DrawingProgress(BaseModel):
 
 class DrawingWeightSummary(BaseModel):
     """Lightweight weight rollup for a drawing — progress vs BOM."""
+
     drawing_id: int
     bom_weight_kg: float = Field(0.0, description="Total theoretical weight from BOM")
     reserved_weight_kg: float = Field(0.0, description="Currently soft-locked in reservations")
@@ -360,18 +360,15 @@ class DrawingWeightSummary(BaseModel):
 # KANBAN SCHEMAS
 # =============================================================================
 
+
 class KanbanColumn(BaseModel):
     stage_name: str = Field(..., description="Stage represented by this column")
     count: int = Field(0, description="Number of instances in this stage")
-    instances: list[ComponentInstanceOut] = Field(
-        default_factory=list, description="Instances currently in this stage"
-    )
+    instances: list[ComponentInstanceOut] = Field(default_factory=list, description="Instances currently in this stage")
 
 
 class KanbanBoard(BaseModel):
-    drawing_id: int | None = Field(
-        None, description="Scoped to a single drawing when set; global board when None"
-    )
+    drawing_id: int | None = Field(None, description="Scoped to a single drawing when set; global board when None")
     columns: list[KanbanColumn] = Field(default_factory=list, description="Ordered stage columns")
 
 
@@ -379,8 +376,10 @@ class KanbanBoard(BaseModel):
 # DRAWING MATERIAL USAGE (items used per drawing)
 # =============================================================================
 
+
 class ComponentMaterialUsage(BaseModel):
     """Material usage for a single component type within a drawing."""
+
     piece_mark: str
     profile_section: str
     grade: str | None = None
@@ -398,6 +397,7 @@ class ComponentMaterialUsage(BaseModel):
 
 class AssemblyMaterialUsage(BaseModel):
     """Material usage aggregated per assembly."""
+
     mark_number: str
     description: str | None = None
     quantity_required: int
@@ -409,6 +409,7 @@ class AssemblyMaterialUsage(BaseModel):
 
 class DrawingMaterialSummary(BaseModel):
     """Complete material usage report for a drawing — answers 'what items were used?'"""
+
     drawing_id: int
     drawing_number: str
     revision: str

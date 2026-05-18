@@ -3,13 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..deps import get_db, get_current_user, boss_or_supervisor
-from ..models import User, Inventory
-from ..models_v2 import StockLot, StockMovement, MovementType, QAStatus
+from ..deps import boss_or_supervisor, get_current_user, get_db
+from ..models import Inventory, User
+from ..models_v2 import MovementType, QAStatus, StockLot, StockMovement
 from ..models_v3 import (
     Assembly,
     Component,
@@ -20,30 +20,31 @@ from ..models_v3 import (
     MaterialReservation,
     ReservationStatus,
 )
-from ..services.component_tracking_service import ComponentTrackingService
-from ..services.drawing_service import DrawingService
-from ..services.inventory_service import StockLotService, get_next_sequence
 from ..schemas_v3 import (
-    DrawingCreate,
-    DrawingUpdate,
-    DrawingOut,
-    DrawingSummary,
+    AdvanceStageRequest,
+    AdvanceStageResponse,
     AssemblyCreate,
     AssemblyOut,
-    ComponentCreate,
-    ComponentOut,
-    ComponentInstanceOut,
-    AdvanceStageRequest,
+    AssemblyUpdate,
     BatchAdvanceRequest,
-    AdvanceStageResponse,
-    KanbanBoard,
+    ComponentCreate,
+    ComponentInstanceOut,
+    ComponentOut,
+    ComponentUpdate,
+    DrawingCreate,
+    DrawingOut,
     DrawingProgress,
-    ReserveMaterialsRequest,
+    DrawingSummary,
+    DrawingUpdate,
     IssueMaterialRequest,
+    KanbanBoard,
     MaterialReservationOut,
+    ReserveMaterialsRequest,
+    ReturnMaterialRequest,
 )
-from ..schemas_v3 import AssemblyUpdate, ComponentUpdate, ReturnMaterialRequest
-
+from ..services.component_tracking_service import ComponentTrackingService
+from ..services.drawing_service import DrawingService
+from ..services.inventory_service import get_next_sequence
 
 router = APIRouter(prefix="/api/v3/drawings", tags=["drawings-v3"])
 
@@ -112,9 +113,7 @@ def _serialize_instance(instance: ComponentInstance) -> ComponentInstanceOut:
 def _serialize_component(component: Component) -> ComponentOut:
     instances = component.instances or []
     completed = sum(1 for inst in instances if inst.is_completed)
-    in_progress = sum(
-        1 for inst in instances if inst.stage_status == ComponentStageStatus.IN_PROGRESS
-    )
+    in_progress = sum(1 for inst in instances if inst.stage_status == ComponentStageStatus.IN_PROGRESS)
     return ComponentOut(
         id=component.id,
         assembly_id=component.assembly_id,
@@ -684,9 +683,7 @@ async def reserve_materials(
                             .first()
                         )
                         if not lot:
-                            raise ValueError(
-                                f"No eligible stock lot found for instance {instance.id}"
-                            )
+                            raise ValueError(f"No eligible stock lot found for instance {instance.id}")
 
                         reservation = MaterialReservation(
                             component_instance_id=instance.id,
@@ -710,9 +707,7 @@ async def reserve_materials(
                             reserved_at=datetime.utcnow(),
                         )
                     else:
-                        raise ValueError(
-                            f"Component {component.id} has no material or inventory link"
-                        )
+                        raise ValueError(f"Component {component.id} has no material or inventory link")
 
                     db.add(reservation)
                     instance.material_reserved = True
@@ -847,4 +842,3 @@ async def return_material(
     except ValueError as exc:
         db.rollback()
         _handle_value_error(exc)
-

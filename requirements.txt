@@ -16,6 +16,7 @@ pydantic==2.12.5
 SQLAlchemy==2.0.46
 sqlmodel==0.0.31
 psycopg2-binary==2.9.11
+alembic==1.15.2
 
 # --- Authentication & Security ---
 passlib[bcrypt]==1.7.4
@@ -26,6 +27,10 @@ bcrypt==5.0.0
 pandas==3.0.0
 openpyxl==3.1.5
 
+# --- PDF & Document Generation ---
+Jinja2>=3.1.0
+xhtml2pdf>=0.2.16
+
 # --- Utilities ---
 python-multipart==0.0.22
 python-dotenv==1.2.1
@@ -33,3 +38,5 @@ email-validator==2.3.0
 
 # --- Testing (dev only) ---
 pytest==9.0.2
+pytest-cov==6.1.1
+httpx==0.28.1

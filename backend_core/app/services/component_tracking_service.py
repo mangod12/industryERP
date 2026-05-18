@@ -15,39 +15,41 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy.orm import Session
 from sqlalchemy import and_
+from sqlalchemy.orm import Session
 
-from ..models_v3 import (
-    ComponentInstance,
-    Component,
-    Assembly,
-    Drawing,
-    StageTransition,
-    MaterialReservation,
-    StageConfig,
-    ComponentStageStatus,
-    ReservationStatus,
-    DEFAULT_STAGES,
-    DrawingStatus,
-)
-from ..models_v2 import StockLot, StockMovement, MovementType
 from ..models import Inventory
-
+from ..models_v2 import MovementType, StockLot, StockMovement
+from ..models_v3 import (
+    DEFAULT_STAGES,
+    Assembly,
+    Component,
+    ComponentInstance,
+    ComponentStageStatus,
+    Drawing,
+    DrawingStatus,
+    MaterialReservation,
+    ReservationStatus,
+    StageConfig,
+    StageTransition,
+)
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_next_sequence_number(db: Session) -> str:
     """Simple movement number generator (reuses existing pattern)."""
     from .inventory_service import get_next_sequence
+
     return get_next_sequence(db, "movement", "MOV")
 
 
 # =============================================================================
 # COMPONENT TRACKING SERVICE
 # =============================================================================
+
 
 class ComponentTrackingService:
     """Stage-based production tracking for v3 component instances."""
@@ -74,28 +76,20 @@ class ComponentTrackingService:
 
         Returns {instance_id, from_stage, to_stage, deduction_result}.
         """
-        instance = (
-            db.query(ComponentInstance)
-            .filter(ComponentInstance.id == instance_id)
-            .with_for_update()
-            .first()
-        )
+        instance = db.query(ComponentInstance).filter(ComponentInstance.id == instance_id).with_for_update().first()
         if not instance:
             raise ValueError(f"ComponentInstance {instance_id} not found")
         if instance.is_scrapped:
             raise ValueError(f"Instance {instance_id} is scrapped — cannot advance stage")
 
-        pipeline, from_stage, resolved_target = (
-            ComponentTrackingService._resolve_advance_target(db, instance, target_stage)
+        pipeline, from_stage, resolved_target = ComponentTrackingService._resolve_advance_target(
+            db, instance, target_stage
         )
 
-        deduction_result = ComponentTrackingService._maybe_deduct(
-            db, instance, pipeline, from_stage, user_id
-        )
+        deduction_result = ComponentTrackingService._maybe_deduct(db, instance, pipeline, from_stage, user_id)
 
         ComponentTrackingService._apply_stage_transition(
-            db, instance, from_stage, resolved_target,
-            user_id, station, remarks, deduction_result
+            db, instance, from_stage, resolved_target, user_id, station, remarks, deduction_result
         )
 
         db.flush()
@@ -117,17 +111,10 @@ class ComponentTrackingService:
         """Return (pipeline, from_stage, resolved_target) for advance_stage."""
         component = db.query(Component).filter(Component.id == instance.component_id).first()
         assembly = db.query(Assembly).filter(Assembly.id == component.assembly_id).first()
-        customer_id = (
-            db.query(Drawing.customer_id)
-            .filter(Drawing.id == assembly.drawing_id)
-            .scalar()
-        )
+        customer_id = db.query(Drawing.customer_id).filter(Drawing.id == assembly.drawing_id).scalar()
         pipeline = ComponentTrackingService._get_stage_pipeline(db, customer_id)
         from_stage = instance.current_stage
-        resolved = (
-            target_stage
-            or ComponentTrackingService._get_next_stage(pipeline, from_stage)
-        )
+        resolved = target_stage or ComponentTrackingService._get_next_stage(pipeline, from_stage)
         if resolved is None:
             raise ValueError(f"Instance {instance.id} is already at the last stage")
         ComponentTrackingService._validate_stage_order(pipeline, from_stage, resolved)
@@ -144,9 +131,7 @@ class ComponentTrackingService:
         """Trigger material deduction if the departing stage requires it."""
         stage_cfg = next((s for s in pipeline if s["stage_name"] == from_stage), {})
         if stage_cfg.get("auto_deduct_material") and not instance.material_consumed:
-            return ComponentTrackingService._deduct_material_for_component(
-                db, instance, user_id
-            )
+            return ComponentTrackingService._deduct_material_for_component(db, instance, user_id)
         return None
 
     @staticmethod
@@ -162,11 +147,7 @@ class ComponentTrackingService:
     ) -> None:
         """Write StageTransition record and mutate the instance fields."""
         prev_status = instance.stage_status.value if instance.stage_status else None
-        new_status = (
-            ComponentStageStatus.COMPLETED
-            if to_stage == "completed"
-            else ComponentStageStatus.IN_PROGRESS
-        )
+        new_status = ComponentStageStatus.COMPLETED if to_stage == "completed" else ComponentStageStatus.IN_PROGRESS
         transition = StageTransition(
             component_instance_id=instance.id,
             from_stage=from_stage,
@@ -208,9 +189,7 @@ class ComponentTrackingService:
         for iid in instance_ids:
             savepoint = db.begin_nested()
             try:
-                result = ComponentTrackingService.advance_stage(
-                    db, iid, user_id, target_stage, remarks, station
-                )
+                result = ComponentTrackingService.advance_stage(db, iid, user_id, target_stage, remarks, station)
                 savepoint.commit()
                 results.append(result)
             except (ValueError, Exception) as exc:
@@ -225,12 +204,7 @@ class ComponentTrackingService:
 
         Useful when a worker picks up a piece that is PENDING or ON_HOLD.
         """
-        instance = (
-            db.query(ComponentInstance)
-            .filter(ComponentInstance.id == instance_id)
-            .with_for_update()
-            .first()
-        )
+        instance = db.query(ComponentInstance).filter(ComponentInstance.id == instance_id).with_for_update().first()
         if not instance:
             raise ValueError(f"ComponentInstance {instance_id} not found")
 
@@ -261,9 +235,7 @@ class ComponentTrackingService:
         }
 
     @staticmethod
-    def hold_stage(
-        db: Session, instance_id: int, user_id: int, reason: str
-    ) -> dict:
+    def hold_stage(db: Session, instance_id: int, user_id: int, reason: str) -> dict:
         """
         Place a component instance on hold at its current stage.
 
@@ -272,12 +244,7 @@ class ComponentTrackingService:
         if not reason or not reason.strip():
             raise ValueError("A hold reason must be provided")
 
-        instance = (
-            db.query(ComponentInstance)
-            .filter(ComponentInstance.id == instance_id)
-            .with_for_update()
-            .first()
-        )
+        instance = db.query(ComponentInstance).filter(ComponentInstance.id == instance_id).with_for_update().first()
         if not instance:
             raise ValueError(f"ComponentInstance {instance_id} not found")
 
@@ -309,18 +276,11 @@ class ComponentTrackingService:
         }
 
     @staticmethod
-    def scrap_instance(
-        db: Session, instance_id: int, user_id: int, reason: str
-    ) -> dict:
+    def scrap_instance(db: Session, instance_id: int, user_id: int, reason: str) -> dict:
         """Mark a component as scrapped; logs waste movement if material consumed."""
         if not reason or not reason.strip():
             raise ValueError("A scrap reason must be provided")
-        instance = (
-            db.query(ComponentInstance)
-            .filter(ComponentInstance.id == instance_id)
-            .with_for_update()
-            .first()
-        )
+        instance = db.query(ComponentInstance).filter(ComponentInstance.id == instance_id).with_for_update().first()
         if not instance:
             raise ValueError(f"ComponentInstance {instance_id} not found")
         if instance.is_scrapped:
@@ -362,9 +322,7 @@ class ComponentTrackingService:
         """Log an OUTWARD_SCRAP movement when scrapping an already-consumed instance."""
         if not (instance.material_consumed and instance.stock_lot_id):
             return
-        component = db.query(Component).filter(
-            Component.id == instance.component_id
-        ).first()
+        component = db.query(Component).filter(Component.id == instance.component_id).first()
         weight_kg = Decimal(str(component.weight_each_kg)) if component else Decimal("0")
         if weight_kg <= 0:
             return
@@ -449,9 +407,7 @@ class ComponentTrackingService:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def _deduct_material_for_component(
-        db: Session, instance: ComponentInstance, user_id: int
-    ) -> dict:
+    def _deduct_material_for_component(db: Session, instance: ComponentInstance, user_id: int) -> dict:
         """
         Consume material for this instance.
 
@@ -462,9 +418,7 @@ class ComponentTrackingService:
         Returns a result dict with success, material_name, weight_deducted,
         lot_number (v2) or None (v1), and any warnings.
         """
-        component = db.query(Component).filter(
-            Component.id == instance.component_id
-        ).first()
+        component = db.query(Component).filter(Component.id == instance.component_id).first()
         if not component:
             return {"success": False, "warnings": ["Component not found"]}
 
@@ -475,17 +429,13 @@ class ComponentTrackingService:
         # v2 path: material_id present
         # ------------------------------------------------------------------
         if component.material_id:
-            return ComponentTrackingService._deduct_v2(
-                db, instance, component, weight_kg, user_id, warnings
-            )
+            return ComponentTrackingService._deduct_v2(db, instance, component, weight_kg, user_id, warnings)
 
         # ------------------------------------------------------------------
         # v1 fallback: inventory_id present
         # ------------------------------------------------------------------
         if component.inventory_id:
-            return ComponentTrackingService._deduct_v1(
-                db, instance, component, weight_kg, warnings
-            )
+            return ComponentTrackingService._deduct_v1(db, instance, component, weight_kg, warnings)
 
         warnings.append("No material link on component — skipping deduction")
         return {"success": False, "weight_deducted": 0, "warnings": warnings}
@@ -524,9 +474,7 @@ class ComponentTrackingService:
         instance.stock_lot_id = lot_id
         instance.heat_number = lot.heat_number
 
-        material_name = (
-            lot.material.name if lot.material else f"material_id={component.material_id}"
-        )
+        material_name = lot.material.name if lot.material else f"material_id={component.material_id}"
         return {
             "success": True,
             "material_name": material_name,
@@ -554,9 +502,7 @@ class ComponentTrackingService:
             .filter(
                 and_(
                     MaterialReservation.component_instance_id == instance.id,
-                    MaterialReservation.status.in_(
-                        [ReservationStatus.RESERVED, ReservationStatus.ISSUED]
-                    ),
+                    MaterialReservation.status.in_([ReservationStatus.RESERVED, ReservationStatus.ISSUED]),
                 )
             )
             .with_for_update()
@@ -608,12 +554,7 @@ class ComponentTrackingService:
         warnings: list,
     ) -> dict:
         """Consume weight from v1 Inventory by incrementing the used column."""
-        inv = (
-            db.query(Inventory)
-            .filter(Inventory.id == component.inventory_id)
-            .with_for_update()
-            .first()
-        )
+        inv = db.query(Inventory).filter(Inventory.id == component.inventory_id).with_for_update().first()
         if not inv:
             return {
                 "success": False,
@@ -625,8 +566,7 @@ class ComponentTrackingService:
         deduct = float(weight_kg)
         if available < deduct:
             warnings.append(
-                f"Inventory shortfall: need {deduct} kg, available {available} kg — "
-                "deducting what is available"
+                f"Inventory shortfall: need {deduct} kg, available {available} kg — deducting what is available"
             )
             deduct = available
 
@@ -635,6 +575,7 @@ class ComponentTrackingService:
 
         # Audit record for v1 deductions (mirrors v2 StockMovement)
         from ..models import MaterialUsage
+
         usage = MaterialUsage(
             customer_id=instance.component.assembly.drawing.customer_id,
             production_item_id=None,
@@ -655,9 +596,7 @@ class ComponentTrackingService:
         }
 
     @staticmethod
-    def _get_stage_pipeline(
-        db: Session, customer_id: Optional[int] = None
-    ) -> list:
+    def _get_stage_pipeline(db: Session, customer_id: Optional[int] = None) -> list:
         """
         Return the ordered stage pipeline for a customer.
 
@@ -699,7 +638,7 @@ class ComponentTrackingService:
             return None
 
         idx = names.index(current_stage)
-        remaining = pipeline[idx + 1:]
+        remaining = pipeline[idx + 1 :]
 
         for stage in remaining:
             if stage.get("is_mandatory", True):
@@ -708,9 +647,7 @@ class ComponentTrackingService:
         return "completed"
 
     @staticmethod
-    def _validate_stage_order(
-        pipeline: list, from_stage: str, to_stage: str
-    ) -> None:
+    def _validate_stage_order(pipeline: list, from_stage: str, to_stage: str) -> None:
         """
         Raise ValueError when to_stage does not come after from_stage in
         the pipeline, or when to_stage is unknown.
@@ -721,21 +658,16 @@ class ComponentTrackingService:
             final_stage = names[-1] if names else None
             if final_stage and from_stage != final_stage:
                 raise ValueError(
-                    f"Cannot jump to 'completed' from '{from_stage}'. "
-                    f"Must complete '{final_stage}' first."
+                    f"Cannot jump to 'completed' from '{from_stage}'. Must complete '{final_stage}' first."
                 )
             return
 
         if to_stage not in names:
-            raise ValueError(
-                f"Stage '{to_stage}' is not in the pipeline. "
-                f"Valid stages: {names}"
-            )
+            raise ValueError(f"Stage '{to_stage}' is not in the pipeline. Valid stages: {names}")
 
         if from_stage in names and names.index(to_stage) <= names.index(from_stage):
             raise ValueError(
-                f"Cannot move from '{from_stage}' to '{to_stage}' — "
-                "target stage must come after the current stage"
+                f"Cannot move from '{from_stage}' to '{to_stage}' — target stage must come after the current stage"
             )
 
     @staticmethod
@@ -762,18 +694,12 @@ class ComponentTrackingService:
         ComponentTrackingService._apply_progress_rollup(db, drawing, rows)
 
     @staticmethod
-    def _get_drawing_for_instance(
-        db: Session, instance: ComponentInstance
-    ) -> Optional[Drawing]:
+    def _get_drawing_for_instance(db: Session, instance: ComponentInstance) -> Optional[Drawing]:
         """Navigate instance → component → assembly → drawing."""
-        component = db.query(Component).filter(
-            Component.id == instance.component_id
-        ).first()
+        component = db.query(Component).filter(Component.id == instance.component_id).first()
         if not component:
             return None
-        assembly = db.query(Assembly).filter(
-            Assembly.id == component.assembly_id
-        ).first()
+        assembly = db.query(Assembly).filter(Assembly.id == component.assembly_id).first()
         if not assembly:
             return None
         return db.query(Drawing).filter(Drawing.id == assembly.drawing_id).first()
@@ -784,9 +710,7 @@ class ComponentTrackingService:
         total_count = len(rows)
         completed_count = sum(1 for inst, _ in rows if inst.is_completed)
 
-        completed_weight = sum(
-            float(comp.weight_each_kg) for inst, comp in rows if inst.is_completed
-        )
+        completed_weight = sum(float(comp.weight_each_kg) for inst, comp in rows if inst.is_completed)
         drawing.completed_weight_kg = Decimal(str(round(completed_weight, 3)))
 
         # assembly_id → [total, completed]

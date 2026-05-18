@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Challan Header Info -->
+<table class="info-grid">
+    <tr>
+        <td class="label">Challan No:</td>
+        <td class="value"><strong>{{ dispatch_number }}</strong></td>
+        <td class="label">Date:</td>
+        <td class="value">{{ dispatch_date | fmt_date }}</td>
+    </tr>
+</table>
+
+<!-- From / To -->
+<div class="section-heading">From</div>
+<table class="info-grid">
+    <tr>
+        <td class="label">Company:</td>
+        <td class="value">{{ company.name }}</td>
+    </tr>
+    {% if company.address %}
+    <tr>
+        <td class="label">Address:</td>
+        <td class="value">{{ company.address }}</td>
+    </tr>
+    {% endif %}
+    {% if company.gstin %}
+    <tr>
+        <td class="label">GSTIN:</td>
+        <td class="value">{{ company.gstin }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<div class="section-heading">To</div>
+<table class="info-grid">
+    <tr>
+        <td class="label">Customer:</td>
+        <td class="value">{{ customer.name }}</td>
+    </tr>
+    {% if customer.phone %}
+    <tr>
+        <td class="label">Phone:</td>
+        <td class="value">{{ customer.phone }}</td>
+    </tr>
+    {% endif %}
+</table>
+
+<!-- Transport Details -->
+<div class="section-heading">Transport Details</div>
+<table class="info-grid">
+    <tr>
+        <td class="label">Vehicle No:</td>
+        <td class="value">{{ vehicle_number }}</td>
+        <td class="label">Transporter:</td>
+        <td class="value">{{ transporter }}</td>
+    </tr>
+    <tr>
+        <td class="label">Driver Name:</td>
+        <td class="value">{{ driver_name }}</td>
+        <td class="label">Driver Contact:</td>
+        <td class="value">{{ driver_contact }}</td>
+    </tr>
+</table>
+
+<!-- Items Summary (no rates/values) -->
+<div class="section-heading">Items</div>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Stock Lot</th>
+            <th>Material</th>
+            <th>Heat No</th>
+            <th class="right">Qty</th>
+            <th class="right">Weight (KG)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in line_items %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ item.lot_number }}</td>
+            <td>{{ item.material_name }}<br><small>{{ item.material_code }}</small></td>
+            <td>{{ item.heat_number }}</td>
+            <td class="right">{{ item.dispatched_qty }}</td>
+            <td class="right">{{ item.dispatched_weight_kg | fmt_weight }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="5" class="right">Total Weight:</td>
+            <td class="right">{{ total_weight_kg | fmt_weight }}</td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Remarks -->
+{% if remarks %}
+<div class="section-heading">Remarks</div>
+<div class="remarks">{{ remarks }}</div>
+{% endif %}
+{% endblock %}
+
+{% block signatures %}
+<div class="signatures">
+    <div class="sig-block">
+        <div class="sig-line">Dispatched By</div>
+    </div>
+    <div class="sig-block">
+        <div class="sig-line">Received By (Driver)</div>
+    </div>
+    <div class="sig-block">
+        <div class="sig-line">Security Gate</div>
+    </div>
+</div>
+{% endblock %}

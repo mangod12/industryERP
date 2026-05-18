@@ -1,6 +1,7 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
 from . import models, schemas
 from .deps import get_db, require_role
@@ -10,7 +11,11 @@ router = APIRouter()
 
 @router.post("/", response_model=schemas.InstructionOut, status_code=201)
 @router.post("", response_model=schemas.InstructionOut, status_code=201)
-def post_instruction(instr_in: schemas.InstructionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss"))):
+def post_instruction(
+    instr_in: schemas.InstructionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss")),
+):
     instr = models.Instruction(message=instr_in.message, created_by=current_user.id)
     db.add(instr)
     db.flush()
@@ -22,7 +27,7 @@ def post_instruction(instr_in: schemas.InstructionCreate, db: Session = Depends(
         message=f"📋 New instruction from Boss: {instr_in.message[:100]}",
         level="info",
         category="instr_from_boss",
-        read=False
+        read=False,
     )
     db.add(notif)
     db.commit()
@@ -32,13 +37,20 @@ def post_instruction(instr_in: schemas.InstructionCreate, db: Session = Depends(
 
 @router.get("/", response_model=List[schemas.InstructionOut])
 @router.get("", response_model=List[schemas.InstructionOut])
-def list_instructions(db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor", "User"))):
+def list_instructions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss", "Software Supervisor", "User")),
+):
     items = db.query(models.Instruction).order_by(models.Instruction.created_at.desc()).all()
     return items
 
 
 @router.get("/{instr_id}", response_model=schemas.InstructionOut)
-def get_instruction(instr_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss", "Software Supervisor", "User"))):
+def get_instruction(
+    instr_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss", "Software Supervisor", "User")),
+):
     instr = db.query(models.Instruction).filter(models.Instruction.id == instr_id).first()
     if not instr:
         raise HTTPException(status_code=404, detail="Instruction not found")
@@ -46,11 +58,17 @@ def get_instruction(instr_id: int, db: Session = Depends(get_db), current_user: 
 
 
 @router.put("/{instr_id}", response_model=schemas.InstructionOut)
-def update_instruction(instr_id: int, instr_in: schemas.InstructionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss"))):
+def update_instruction(
+    instr_id: int,
+    instr_in: schemas.InstructionCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss")),
+):
     instr = db.query(models.Instruction).filter(models.Instruction.id == instr_id).first()
     if not instr:
         raise HTTPException(status_code=404, detail="Instruction not found")
     from datetime import datetime
+
     instr.message = instr_in.message
     instr.updated_at = datetime.utcnow()
     db.commit()
@@ -59,7 +77,9 @@ def update_instruction(instr_id: int, instr_in: schemas.InstructionCreate, db: S
 
 
 @router.delete("/{instr_id}", status_code=204)
-def delete_instruction(instr_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss"))):
+def delete_instruction(
+    instr_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss"))
+):
     instr = db.query(models.Instruction).filter(models.Instruction.id == instr_id).first()
     if not instr:
         raise HTTPException(status_code=404, detail="Instruction not found")

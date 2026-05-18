@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
 from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from . import models, schemas
-from .deps import get_db, get_current_user, require_role
+from .deps import get_current_user, get_db, require_role
 
 router = APIRouter()
 
@@ -12,32 +13,40 @@ router = APIRouter()
 @router.get("/", response_model=List[schemas.NotificationOut])
 def list_notifications(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     # return notifications addressed to the user, to their role, or global notifications
-    q = db.query(models.Notification).filter(
-        (models.Notification.user_id == current_user.id)
-        | (models.Notification.role == current_user.role)
-        | ((models.Notification.user_id == None) & (models.Notification.role == None))
-    ).order_by(models.Notification.created_at.desc())
-    
+    q = (
+        db.query(models.Notification)
+        .filter(
+            (models.Notification.user_id == current_user.id)
+            | (models.Notification.role == current_user.role)
+            | ((models.Notification.user_id == None) & (models.Notification.role == None))
+        )
+        .order_by(models.Notification.created_at.desc())
+    )
+
     all_notifs = q.all()
-    
+
     # --- Filtering based on User Preferences ---
     # Get user settings once
     s = db.query(models.NotificationSetting).filter(models.NotificationSetting.user_id == current_user.id).first()
     if not s:
         # fallback to role defaults
-        s = db.query(models.RoleNotificationSetting).filter(models.RoleNotificationSetting.role == current_user.role).first()
-    
+        s = (
+            db.query(models.RoleNotificationSetting)
+            .filter(models.RoleNotificationSetting.role == current_user.role)
+            .first()
+        )
+
     if not s:
         # if still no settings (unlikely but safe), show everything
         return all_notifs
-        
+
     filtered = []
     for n in all_notifs:
         cat = n.category
         if not cat:
             filtered.append(n)
             continue
-            
+
         # Check if this category is enabled in settings
         if hasattr(s, cat):
             is_enabled = getattr(s, cat, True)
@@ -45,10 +54,10 @@ def list_notifications(db: Session = Depends(get_db), current_user: models.User 
             is_enabled = s.get(cat, True)
         else:
             is_enabled = True
-            
+
         if is_enabled:
             filtered.append(n)
-            
+
     return filtered
 
 
@@ -70,13 +79,13 @@ def mark_read(ids: List[int], db: Session = Depends(get_db), current_user: model
 
 @router.post("")
 @router.post("/")
-def create_notification(n_in: schemas.NotificationCreate, db: Session = Depends(get_db), current_user: models.User = Depends(require_role("Boss"))):
+def create_notification(
+    n_in: schemas.NotificationCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role("Boss")),
+):
     n = models.Notification(
-        user_id=n_in.user_id, 
-        role=n_in.role, 
-        message=n_in.message, 
-        level=n_in.level,
-        category=n_in.category
+        user_id=n_in.user_id, role=n_in.role, message=n_in.message, level=n_in.level, category=n_in.category
     )
     db.add(n)
     db.commit()
@@ -90,7 +99,11 @@ def get_my_settings(db: Session = Depends(get_db), current_user: models.User = D
     if s:
         return s
     # fallback to role defaults
-    r = db.query(models.RoleNotificationSetting).filter(models.RoleNotificationSetting.role == current_user.role).first()
+    r = (
+        db.query(models.RoleNotificationSetting)
+        .filter(models.RoleNotificationSetting.role == current_user.role)
+        .first()
+    )
     if r:
         return r
     # default
@@ -104,12 +117,16 @@ def get_my_settings(db: Session = Depends(get_db), current_user: models.User = D
         "query_response": True,
         "low_inventory": True,
         "dispatch_completed": True,
-        "updated_at": None
+        "updated_at": None,
     }
 
 
 @router.put("/settings", response_model=schemas.NotificationSettingOut)
-def update_my_settings(s_in: schemas.NotificationSettingIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def update_my_settings(
+    s_in: schemas.NotificationSettingIn,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     s = db.query(models.NotificationSetting).filter(models.NotificationSetting.user_id == current_user.id).first()
     if not s:
         s = models.NotificationSetting(user_id=current_user.id)
@@ -120,17 +137,17 @@ def update_my_settings(s_in: schemas.NotificationSettingIn, db: Session = Depend
     if s_in.push is not None:
         s.push = s_in.push
     # per-event toggles
-    if hasattr(s_in, 'instr_from_boss') and s_in.instr_from_boss is not None:
+    if hasattr(s_in, "instr_from_boss") and s_in.instr_from_boss is not None:
         s.instr_from_boss = s_in.instr_from_boss
-    if hasattr(s_in, 'stage_changes') and s_in.stage_changes is not None:
+    if hasattr(s_in, "stage_changes") and s_in.stage_changes is not None:
         s.stage_changes = s_in.stage_changes
-    if hasattr(s_in, 'query_raised') and s_in.query_raised is not None:
+    if hasattr(s_in, "query_raised") and s_in.query_raised is not None:
         s.query_raised = s_in.query_raised
-    if hasattr(s_in, 'query_response') and s_in.query_response is not None:
+    if hasattr(s_in, "query_response") and s_in.query_response is not None:
         s.query_response = s_in.query_response
-    if hasattr(s_in, 'low_inventory') and s_in.low_inventory is not None:
+    if hasattr(s_in, "low_inventory") and s_in.low_inventory is not None:
         s.low_inventory = s_in.low_inventory
-    if hasattr(s_in, 'dispatch_completed') and s_in.dispatch_completed is not None:
+    if hasattr(s_in, "dispatch_completed") and s_in.dispatch_completed is not None:
         s.dispatch_completed = s_in.dispatch_completed
     db.add(s)
     db.commit()
@@ -147,7 +164,12 @@ def get_role_settings(role: str, db: Session = Depends(get_db)):
 
 
 @router.put("/roles/{role}", response_model=schemas.RoleNotificationSettingOut)
-def update_role_settings(role: str, s_in: schemas.RoleNotificationSettingIn, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def update_role_settings(
+    role: str,
+    s_in: schemas.RoleNotificationSettingIn,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     # allow only members of the role to update their role settings
     if current_user.role != role:
         raise HTTPException(status_code=403, detail="Can only update settings for your own role")
@@ -161,17 +183,17 @@ def update_role_settings(role: str, s_in: schemas.RoleNotificationSettingIn, db:
     if s_in.push is not None:
         r.push = s_in.push
     # per-event toggles
-    if hasattr(s_in, 'instr_from_boss') and s_in.instr_from_boss is not None:
+    if hasattr(s_in, "instr_from_boss") and s_in.instr_from_boss is not None:
         r.instr_from_boss = s_in.instr_from_boss
-    if hasattr(s_in, 'stage_changes') and s_in.stage_changes is not None:
+    if hasattr(s_in, "stage_changes") and s_in.stage_changes is not None:
         r.stage_changes = s_in.stage_changes
-    if hasattr(s_in, 'query_raised') and s_in.query_raised is not None:
+    if hasattr(s_in, "query_raised") and s_in.query_raised is not None:
         r.query_raised = s_in.query_raised
-    if hasattr(s_in, 'query_response') and s_in.query_response is not None:
+    if hasattr(s_in, "query_response") and s_in.query_response is not None:
         r.query_response = s_in.query_response
-    if hasattr(s_in, 'low_inventory') and s_in.low_inventory is not None:
+    if hasattr(s_in, "low_inventory") and s_in.low_inventory is not None:
         r.low_inventory = s_in.low_inventory
-    if hasattr(s_in, 'dispatch_completed') and s_in.dispatch_completed is not None:
+    if hasattr(s_in, "dispatch_completed") and s_in.dispatch_completed is not None:
         r.dispatch_completed = s_in.dispatch_completed
     db.add(r)
     db.commit()

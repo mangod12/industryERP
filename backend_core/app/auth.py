@@ -1,12 +1,12 @@
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
-from .deps import get_db, boss_or_supervisor
+
 from . import models, schemas
-from .security import verify_password, hash_password, create_access_token, RateLimiter
-import logging
+from .deps import boss_or_supervisor, get_db
+from .security import RateLimiter, create_access_token, hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
     if not is_allowed:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again in 5 minutes."
+            detail="Too many login attempts. Please try again in 5 minutes.",
         )
 
     ctype = (request.headers.get("content-type") or "").lower()
@@ -71,16 +71,16 @@ async def login(request: Request, db: Session = Depends(get_db)):
     except HTTPException:
         # Re-raise known HTTP errors unchanged
         raise
-    except Exception as e:
+    except Exception:
         import traceback
+
         logger.error(f"Unexpected login error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db), current_user=Depends(boss_or_supervisor)):
-    """Supervisor OR Boss only user registration. Attempts ORM insert but returns a clear error if DB schema mismatches.
-    """
+    """Supervisor OR Boss only user registration. Attempts ORM insert but returns a clear error if DB schema mismatches."""
     # Prevent duplicate username/email
     if db.query(models.User).filter(models.User.username == user_in.username).first():
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -95,22 +95,22 @@ def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db), cu
     # Frontend might send 'software_supervisor' -> we want 'Software Supervisor'
     role_map = {
         "boss": "Boss",
-        "software_supervisor": "Software Supervisor", 
+        "software_supervisor": "Software Supervisor",
         "user": "User",
         "store_keeper": "Store Keeper",
         "qa_inspector": "QA Inspector",
         "dispatch_operator": "Dispatch Operator",
         "fabricator": "Fabricator",
         "painter": "Painter",
-        "dispatch": "Dispatch"
+        "dispatch": "Dispatch",
     }
-    
+
     # 1. Try exact match first (if they sent "Boss")
     # 2. Try lower case lookup (if they sent "boss")
     # 3. Default to "User" if unknown
     final_role = user_in.role
     if user_in.role in role_map.values():
-        final_role = user_in.role # Already correct
+        final_role = user_in.role  # Already correct
     else:
         final_role = role_map.get(user_in.role.lower(), "User")
 

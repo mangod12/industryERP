@@ -15,22 +15,31 @@ Coexists with v1 (models.py) and v2 (models_v2.py).
 """
 
 from datetime import datetime
-from decimal import Decimal
 from enum import Enum
-from typing import Optional, List
 
 from sqlalchemy import (
-    Column, Integer, String, DateTime, ForeignKey, Text, Boolean,
-    Numeric, Enum as SQLEnum, Index, CheckConstraint, UniqueConstraint,
-    JSON
+    JSON,
+    Boolean,
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
 )
-from sqlalchemy.orm import relationship, validates
-from .db import Base
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy.orm import relationship
 
+from .db import Base
 
 # =============================================================================
 # ENUMS
 # =============================================================================
+
 
 class DrawingStatus(str, Enum):
     DRAFT = "draft"
@@ -45,6 +54,7 @@ class DrawingStatus(str, Enum):
 
 class ComponentStage(str, Enum):
     """Configurable stages — these are defaults."""
+
     CUTTING = "cutting"
     DRILLING = "drilling"
     FITTING = "fitting"
@@ -88,8 +98,10 @@ class DispositionAction(str, Enum):
 # STAGE CONFIGURATION
 # =============================================================================
 
+
 class StageConfig(Base):
     """Configurable stage pipeline per project. If none defined, defaults apply."""
+
     __tablename__ = "v3_stage_configs"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -123,11 +135,13 @@ DEFAULT_STAGES = [
 # DRAWING
 # =============================================================================
 
+
 class Drawing(Base):
     """
     A shop drawing — the primary production unit.
     Contains one or more assemblies, each with components.
     """
+
     __tablename__ = "v3_drawings"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -156,8 +170,7 @@ class Drawing(Base):
     revisions = relationship("DrawingRevision", back_populates="drawing", cascade="all, delete-orphan")
 
     __table_args__ = (
-        UniqueConstraint("drawing_number", "revision", "customer_id",
-                         name="uq_drawing_number_rev_customer"),
+        UniqueConstraint("drawing_number", "revision", "customer_id", name="uq_drawing_number_rev_customer"),
         Index("ix_drawing_customer", "customer_id"),
         Index("ix_drawing_status", "status"),
     )
@@ -167,11 +180,13 @@ class Drawing(Base):
 # ASSEMBLY (Main Mark)
 # =============================================================================
 
+
 class Assembly(Base):
     """
     A main mark / shipping mark within a drawing.
     One drawing may have multiple assembly types, each with a quantity.
     """
+
     __tablename__ = "v3_assemblies"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -189,20 +204,20 @@ class Assembly(Base):
     drawing = relationship("Drawing", back_populates="assemblies")
     components = relationship("Component", back_populates="assembly", cascade="all, delete-orphan")
 
-    __table_args__ = (
-        UniqueConstraint("drawing_id", "mark_number", name="uq_assembly_drawing_mark"),
-    )
+    __table_args__ = (UniqueConstraint("drawing_id", "mark_number", name="uq_assembly_drawing_mark"),)
 
 
 # =============================================================================
 # COMPONENT (Piece Mark)
 # =============================================================================
 
+
 class Component(Base):
     """
     An individual piece within an assembly.
     Links to material master or v1 inventory for deduction.
     """
+
     __tablename__ = "v3_components"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -226,8 +241,7 @@ class Component(Base):
 
     # Relationships
     assembly = relationship("Assembly", back_populates="components")
-    instances = relationship("ComponentInstance", back_populates="component",
-                             cascade="all, delete-orphan")
+    instances = relationship("ComponentInstance", back_populates="component", cascade="all, delete-orphan")
     material = relationship("MaterialMaster", foreign_keys=[material_id])
 
     __table_args__ = (
@@ -251,11 +265,13 @@ class Component(Base):
 # COMPONENT INSTANCE (Physical Piece Tracking)
 # =============================================================================
 
+
 class ComponentInstance(Base):
     """
     Tracks each physical piece through production stages independently.
     If Assembly has qty=3 and Component has qty_per_assembly=2, there are 6 instances.
     """
+
     __tablename__ = "v3_component_instances"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -265,8 +281,7 @@ class ComponentInstance(Base):
 
     # Current state
     current_stage = Column(String(50), default="cutting", nullable=False)
-    stage_status = Column(SQLEnum(ComponentStageStatus),
-                          default=ComponentStageStatus.PENDING, nullable=False)
+    stage_status = Column(SQLEnum(ComponentStageStatus), default=ComponentStageStatus.PENDING, nullable=False)
     stage_updated_at = Column(DateTime, nullable=True)
     stage_updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
@@ -290,14 +305,16 @@ class ComponentInstance(Base):
 
     # Relationships
     component = relationship("Component", back_populates="instances")
-    stage_transitions = relationship("StageTransition", back_populates="component_instance",
-                                     cascade="all, delete-orphan",
-                                     order_by="StageTransition.transitioned_at")
+    stage_transitions = relationship(
+        "StageTransition",
+        back_populates="component_instance",
+        cascade="all, delete-orphan",
+        order_by="StageTransition.transitioned_at",
+    )
     reservations = relationship("MaterialReservation", back_populates="component_instance")
 
     __table_args__ = (
-        UniqueConstraint("component_id", "instance_number",
-                         name="uq_instance_component_number"),
+        UniqueConstraint("component_id", "instance_number", name="uq_instance_component_number"),
         Index("ix_instance_stage", "current_stage"),
         Index("ix_instance_component", "component_id"),
     )
@@ -307,11 +324,13 @@ class ComponentInstance(Base):
 # STAGE TRANSITION (Immutable Audit Log)
 # =============================================================================
 
+
 class StageTransition(Base):
     """
     Immutable record of every stage change for a component instance.
     Never updated or deleted — append only.
     """
+
     __tablename__ = "v3_stage_transitions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -341,11 +360,13 @@ class StageTransition(Base):
 # MATERIAL RESERVATION
 # =============================================================================
 
+
 class MaterialReservation(Base):
     """
     Soft-locks stock for a component before fabrication.
     Lifecycle: RESERVED → ISSUED → CONSUMED (or RETURNED/CANCELLED)
     """
+
     __tablename__ = "v3_material_reservations"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -385,8 +406,10 @@ class MaterialReservation(Base):
 # DRAWING REVISION (ECN Support)
 # =============================================================================
 
+
 class DrawingRevision(Base):
     """Tracks revisions to a drawing with BOM diff."""
+
     __tablename__ = "v3_drawing_revisions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -403,12 +426,12 @@ class DrawingRevision(Base):
 
     # Relationships
     drawing = relationship("Drawing", back_populates="revisions")
-    changes = relationship("RevisionChange", back_populates="revision",
-                           cascade="all, delete-orphan")
+    changes = relationship("RevisionChange", back_populates="revision", cascade="all, delete-orphan")
 
 
 class RevisionChange(Base):
     """Individual component change within a revision."""
+
     __tablename__ = "v3_revision_changes"
 
     id = Column(Integer, primary_key=True, index=True)

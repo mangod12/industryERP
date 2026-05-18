@@ -1,33 +1,44 @@
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()  # Load .env before any module reads env vars
 
 from fastapi import FastAPI
-from .version import VERSION
 from fastapi.middleware.cors import CORSMiddleware
-from .db import create_db_and_tables  
+
 from .auth import router as auth_router
 from .customers import router as customers_router
-from .tracking import router as tracking_router
-from .queries import router as queries_router
+from .dashboard import router as dashboard_router
+from .db import create_db_and_tables
+from .excel import router as excel_router
 from .instructions import router as instructions_router
 from .inventory import router as inventory_router
-from .excel import router as excel_router
-from .notifications import router as notifications_router
-from .users import router as users_router
-from .dashboard import router as dashboard_router
-from .tracking_api import router as tracking_api_router
-from .scrap import router as scrap_router
 from .mappings import router as mappings_router
-
-
-# New v2 API routers for improved steel industry operations
-from .routers.inventory_v2 import router as inventory_v2_router
-from .routers.grn import router as grn_router
+from .notifications import router as notifications_router
+from .queries import router as queries_router
 from .routers.dispatch import router as dispatch_router
 
 # v3 Drawing-based production tracking
 from .routers.drawings_v3 import router as drawings_v3_router
+from .routers.grn import router as grn_router
+
+# New v2 API routers for improved steel industry operations
+from .routers.inventory_v2 import router as inventory_v2_router
+
+# Print format document generation
+from .routers.print_formats import router as print_formats_router
+
+# Report builder
+from .routers.reports import router as reports_router
+
+# System settings (company, naming series, config)
+from .routers.settings import router as settings_router
+from .scrap import router as scrap_router
+from .tracking import router as tracking_router
+from .tracking_api import router as tracking_api_router
+from .users import router as users_router
+from .version import VERSION
 
 
 def get_cors_origins():
@@ -59,8 +70,9 @@ def create_app() -> FastAPI:
         title="KumarBrothers Steel Industry ERP",
         description="Inventory Management System for Steel Industry with full traceability",
         version=VERSION,
-        redirect_slashes=True
+        redirect_slashes=True,
     )
+
     @app.get("/test-sanity")
     def test_sanity():
         return {"status": "ok"}
@@ -92,16 +104,22 @@ def create_app() -> FastAPI:
     app.include_router(mappings_router, prefix="/mappings", tags=["mappings"])
     app.include_router(tracking_router, prefix="/tracking", tags=["tracking"])
 
-
-
-    
     # New v2 routers (improved steel industry operations)
     app.include_router(inventory_v2_router)
     app.include_router(grn_router)
     app.include_router(dispatch_router)
 
+    # Print format document generation
+    app.include_router(print_formats_router)
+
     # v3 Drawing-based production tracking
     app.include_router(drawings_v3_router)
+
+    # Report builder
+    app.include_router(reports_router)
+
+    # System settings
+    app.include_router(settings_router)
 
     # --- Serve Frontend Static Files ---
     # We use a custom static handler instead of app.mount("/", StaticFiles(...))
@@ -110,11 +128,13 @@ def create_app() -> FastAPI:
     # /notifications (no slash) to 404 when the route is /notifications/ and
     # /customers/ (with slash) to 404 when the route is /customers.
     from pathlib import Path
+
     from fastapi.responses import FileResponse, HTMLResponse
 
     frontend_path = Path(__file__).resolve().parent.parent.parent / "kumar_frontend"
 
     if frontend_path.exists():
+
         @app.get("/{full_path:path}", include_in_schema=False)
         async def serve_frontend(full_path: str):
             """Serve static frontend files. Only matches actual files on disk."""
@@ -140,10 +160,7 @@ def create_app() -> FastAPI:
                     ".woff2": "font/woff2",
                     ".ttf": "font/ttf",
                 }
-                return FileResponse(
-                    str(file_path),
-                    media_type=media_types.get(suffix, "application/octet-stream")
-                )
+                return FileResponse(str(file_path), media_type=media_types.get(suffix, "application/octet-stream"))
 
             # Try with .html extension (for clean URLs)
             html_path = frontend_path / f"{full_path}.html"
@@ -151,20 +168,30 @@ def create_app() -> FastAPI:
                 return FileResponse(str(html_path), media_type="text/html")
 
             return HTMLResponse(status_code=404, content="Not Found")
-    
+
     @app.on_event("startup")
     def on_startup():
-        print("[backend_core] Creating database tables at startup...")
-        create_db_and_tables()
-        # Also create v2 tables
-        from .models_v2 import Base as BaseV2
-        from .db import engine
-        BaseV2.metadata.create_all(bind=engine)
-        # v3 tables use same Base as v1 — already created by create_db_and_tables()
-        from . import models_v3  # noqa: F401 — ensure v3 tables are registered
-        from .db import Base as BaseV1
-        BaseV1.metadata.create_all(bind=engine)
-        print("[backend_core] Database ready (v1 + v2 + v3 tables).")
+        env_mode = os.getenv("ENVIRONMENT", "development")
+
+        if env_mode == "production":
+            # In production, Alembic manages the schema.
+            # Run: alembic upgrade head  (before deploying new code)
+            print("[backend_core] Production mode — schema managed by Alembic.")
+        else:
+            # Development convenience: create_all() + seed admin user.
+            # This keeps the "just run it" experience for local dev.
+            print("[backend_core] Development mode — running create_all()...")
+            create_db_and_tables()
+            # Ensure v2 and v3 tables are also created
+            from . import (
+                models_accounting,  # noqa: F401 — register accounting tables
+                models_v2,  # noqa: F401 — register v2 tables
+                models_v3,  # noqa: F401 — register v3 tables
+            )
+            from .db import Base, engine
+
+            Base.metadata.create_all(bind=engine)
+            print("[backend_core] Database ready (v1 + v2 + v3 + accounting tables).")
 
     return app
 

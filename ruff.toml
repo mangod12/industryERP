@@ -1,0 +1,15 @@
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501", "E711", "E712"]  # E501: line length handled separately; E711/E712: SQLAlchemy requires == None/True/False in filter()
+
+[lint.per-file-ignores]
+"alembic/*" = ["E", "F", "W", "I"]
+"backend_core/app/main.py" = ["E402"]  # load_dotenv() must run before imports
+"tests/conftest.py" = ["E402"]  # sys.path manipulation before imports
+"tests/test_dashboard_settings.py" = ["E402"]
+"tests/test_every_page.py" = ["E402"]
+"tests/test_report_service.py" = ["E402"]
+"tests/test_workflow_engine.py" = ["E402"]
