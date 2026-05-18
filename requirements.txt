@@ -36,7 +36,3 @@ python-multipart==0.0.22
 python-dotenv==1.2.1
 email-validator==2.3.0
 
-# --- Testing (dev only) ---
-pytest==9.0.2
-pytest-cov==6.1.1
-httpx==0.28.1

@@ -2,9 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system deps for psycopg2
+# Install system deps for psycopg2 and xhtml2pdf (pycairo)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc && \
+    libpq-dev gcc libcairo2-dev pkg-config && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
