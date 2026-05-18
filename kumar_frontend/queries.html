@@ -10,7 +10,7 @@
   <link href="css/main.css" rel="stylesheet">
   <style>
     .query-card {
-      border-left: 4px solid #6c757d;
+      border-top: 3px solid #6c757d;
       transition: box-shadow 0.2s;
     }
 
@@ -19,15 +19,15 @@
     }
 
     .query-card.status-open {
-      border-left-color: #ffc107;
+      border-top-color: var(--warning-amber);
     }
 
     .query-card.status-in_progress {
-      border-left-color: #0d6efd;
+      border-top-color: var(--primary);
     }
 
     .query-card.status-closed {
-      border-left-color: #198754;
+      border-top-color: var(--accent-green);
     }
 
     .query-meta {
@@ -41,11 +41,11 @@
     }
 
     .admin-reply {
-      background: #f0f7ff;
-      border-left: 3px solid #0d6efd;
+      background: var(--primary-light);
+      border: 1px solid var(--border);
       padding: 10px 14px;
       margin-top: 10px;
-      border-radius: 4px;
+      border-radius: var(--radius);
     }
 
     .status-badge {
@@ -96,7 +96,7 @@
       <div class="col-12 mb-3">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <h2 class="fw-bold mb-0">Queries / Issues</h2>
+            <h1 class="fw-bold mb-0">Queries / Issues</h1>
             <small class="text-muted">Raise issues and track their status</small>
           </div>
           <div>
@@ -111,11 +111,11 @@
           <h5 class="mb-3"><i class="bi bi-plus-circle"></i> Submit a Query</h5>
           <form id="queryForm">
             <div class="mb-3">
-              <label class="form-label fw-bold">Title</label>
+              <label for="qTitle" class="form-label fw-bold">Title</label>
               <input type="text" id="qTitle" class="form-control" placeholder="Brief title for the issue" required>
             </div>
             <div class="mb-3">
-              <label class="form-label fw-bold">Description</label>
+              <label for="qMessage" class="form-label fw-bold">Description</label>
               <textarea id="qMessage" class="form-control" rows="4" placeholder="Describe the issue in detail..."
                 required></textarea>
             </div>
@@ -166,11 +166,11 @@
             <div id="replyQueryTitle" class="text-muted"></div>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-bold">Your Reply</label>
+            <label for="replyText" class="form-label fw-bold">Your Reply</label>
             <textarea id="replyText" class="form-control" rows="3" placeholder="Type your reply..."></textarea>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-bold">Update Status</label>
+            <label for="replyStatus" class="form-label fw-bold">Update Status</label>
             <select id="replyStatus" class="form-select">
               <option value="IN_PROGRESS">In Progress</option>
               <option value="CLOSED">Closed</option>
@@ -315,10 +315,10 @@
           if (showReply || showDelete) {
             actionsHtml = '<div class="mt-2">';
             if (showReply) {
-              actionsHtml += `<button class="btn btn-sm btn-outline-primary reply-btn me-1" data-id="${q.id}" data-title="${escapeHtml(q.title)}"><i class="bi bi-reply"></i> Reply</button>`;
+              actionsHtml += `<button type="button" class="btn btn-sm btn-outline-primary reply-btn me-1" data-id="${q.id}" data-title="${escapeHtml(q.title)}"><i class="bi bi-reply"></i> Reply</button>`;
             }
             if (showDelete) {
-              actionsHtml += `<button class="btn btn-sm btn-outline-danger del-query-btn" data-id="${q.id}"><i class="bi bi-trash"></i> Delete</button>`;
+              actionsHtml += `<button type="button" class="btn btn-sm btn-outline-danger del-query-btn" data-id="${q.id}"><i class="bi bi-trash"></i> Delete</button>`;
             }
             actionsHtml += '</div>';
           }

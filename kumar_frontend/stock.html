@@ -49,12 +49,12 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2 class="fw-bold mb-0">Stock Lots</h2>
+        <h1 class="fw-bold mb-0">Stock Lots</h1>
         <small class="text-muted">View all stock lots with heat traceability</small>
       </div>
       <div class="btn-group">
-        <button class="btn btn-outline-primary" id="btnExportCSV">Export CSV</button>
-        <button class="btn btn-outline-secondary" id="btnPrintReport">Print</button>
+        <button type="button" class="btn btn-outline-primary" id="btnExportCSV">Export CSV</button>
+        <button type="button" class="btn btn-outline-secondary" id="btnPrintReport">Print</button>
       </div>
     </div>
 
@@ -116,7 +116,7 @@
             </select>
           </div>
           <div class="col-md-2">
-            <button class="btn btn-outline-secondary w-100" id="btnClearFilters">Clear</button>
+            <button type="button" class="btn btn-outline-secondary w-100" id="btnClearFilters">Clear</button>
           </div>
         </div>
       </div>
@@ -310,7 +310,7 @@
             <td>${lot.location_code || '-'}</td>
             <td class="${lot.age_days > 90 ? 'age-old' : ''}">${lot.age_days}d</td>
             <td>
-              <button class="btn btn-sm btn-outline-primary view-lot" data-id="${lot.id}">View</button>
+              <button type="button" class="btn btn-sm btn-outline-primary view-lot" data-id="${lot.id}">View</button>
             </td>
           </tr>
         `).join('');

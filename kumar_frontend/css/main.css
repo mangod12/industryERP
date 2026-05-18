@@ -105,8 +105,8 @@ a:hover { color: var(--primary); opacity: 0.85; }
   outline-offset: 2px;
 }
 
-/* Allow subtle micro-interactions, not a blanket kill */
-*, *::before, *::after {
+/* Targeted micro-interactions (scoped, not blanket *) */
+.btn, .nav-link, .form-control, .form-select, .card, .badge, .stat-card, .activity-item, .file-drop, a {
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
@@ -120,7 +120,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
 /* ========== 4. Navbar ========== */
 .kb-navbar {
   background: var(--primary);
-  color: #fff;
+  color: oklch(98% 0.003 250);
   box-shadow: var(--shadow);
   border-radius: var(--radius-lg);
   padding: var(--sp-3) var(--sp-4);
@@ -129,7 +129,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
 .kb-navbar .navbar-brand {
   font-weight: 700;
   font-size: 1.05rem;
-  color: #fff;
+  color: oklch(98% 0.003 250);
 }
 
 .kb-navbar .nav-link {
@@ -142,19 +142,19 @@ a:hover { color: var(--primary); opacity: 0.85; }
 }
 
 .kb-navbar .nav-link:hover {
-  color: #fff !important;
+  color: oklch(98% 0.003 250) !important;
   background: rgba(255, 255, 255, 0.12);
 }
 
 .kb-navbar .nav-link.active {
   font-weight: 700;
-  color: #fff !important;
+  color: oklch(98% 0.003 250) !important;
   background: rgba(255, 255, 255, 0.15);
 }
 
 .role-badge {
   background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  color: oklch(98% 0.003 250);
   border-radius: var(--radius-sm);
   padding: var(--sp-2) var(--sp-3);
   font-weight: 600;
@@ -292,13 +292,13 @@ a:hover { color: var(--primary); opacity: 0.85; }
 
 .btn-primary, .btn-kb {
   background: var(--primary);
-  color: #fff;
+  color: oklch(98% 0.003 250);
   border: none;
 }
 
 .btn-primary:hover, .btn-kb:hover {
   background: oklch(40% 0.15 250);
-  color: #fff;
+  color: oklch(98% 0.003 250);
 }
 
 .btn-outline-primary, .btn-kb-outline {
@@ -315,18 +315,18 @@ a:hover { color: var(--primary); opacity: 0.85; }
 
 .btn-danger {
   background: var(--danger-red);
-  color: #fff;
+  color: oklch(98% 0.003 250);
   border: none;
 }
 
 .btn-danger:hover {
   background: oklch(48% 0.2 25);
-  color: #fff;
+  color: oklch(98% 0.003 250);
 }
 
 .btn-success {
   background: var(--accent-green);
-  color: #fff;
+  color: oklch(98% 0.003 250);
   border: none;
 }
 
@@ -443,7 +443,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
 
 /* ========== 16. Print Styles ========== */
 @media print {
-  body { background: #fff; color: #000; font-size: 11pt; }
+  body { background: var(--surface-raised); color: var(--text-primary); font-size: 11pt; }
   .kb-navbar, .btn, .btn-kb, .btn-kb-outline, .file-drop, nav { display: none !important; }
   .card, .card.kb-card, .stat-card, .kpi-card {
     box-shadow: none;
@@ -451,7 +451,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
     break-inside: avoid;
   }
   .table thead th { background: #eee; }
-  .table tbody tr { background: #fff; }
-  a { color: #000; text-decoration: none; }
+  .table tbody tr { background: var(--surface-raised); }
+  a { color: var(--text-primary); text-decoration: none; }
   .container-fluid.main-container { max-width: 100%; padding: 0; }
 }

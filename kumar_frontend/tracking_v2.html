@@ -56,12 +56,13 @@
     }
 
     .tracking-card {
-      background: white;
+      background: var(--surface-raised);
       border-radius: 8px;
       padding: 12px;
       margin-bottom: 10px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      border-left: 4px solid #e5e7eb;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--border);
       transition: all 0.2s ease;
     }
 
@@ -71,19 +72,23 @@
     }
 
     .tracking-card.fabrication {
-      border-left-color: #f59e0b;
+      border-top-color: var(--stage-fab-fg);
+      background: var(--stage-fab-bg);
     }
 
     .tracking-card.painting {
-      border-left-color: #3b82f6;
+      border-top-color: var(--stage-paint-fg);
+      background: var(--stage-paint-bg);
     }
 
     .tracking-card.dispatch {
-      border-left-color: #10b981;
+      border-top-color: var(--stage-dispatch-fg);
+      background: var(--stage-dispatch-bg);
     }
 
     .tracking-card.completed {
-      border-left-color: #6b7280;
+      border-top-color: var(--stage-complete-fg);
+      background: var(--stage-complete-bg);
     }
 
     .card-title {
@@ -186,8 +191,8 @@
     }
 
     .complete-btn.dispatch {
-      background: #d1fae5;
-      color: #065f46;
+      background: var(--stage-complete-bg);
+      color: var(--stage-complete-fg);
     }
 
     .complete-btn.dispatch:hover {
@@ -244,8 +249,8 @@
     }
 
     .stat-pill.dispatch {
-      background: #d1fae5;
-      color: #065f46;
+      background: var(--stage-complete-bg);
+      color: var(--stage-complete-fg);
     }
 
     .stat-pill.completed {
@@ -287,12 +292,13 @@
 
     /* Drawing Tracking Cards */
     .drawing-card {
-      background: white;
+      background: var(--surface-raised);
       border-radius: 8px;
       padding: 12px;
       margin-bottom: 10px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      border-left: 4px solid #6366f1;
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--primary);
       transition: all 0.2s ease;
     }
 
@@ -353,7 +359,7 @@
     .stage-tag.welding { background: #fee2e2; color: #991b1b; }
     .stage-tag.painting { background: #dbeafe; color: #1e40af; }
     .stage-tag.qc { background: #f3f4f6; color: #374151; }
-    .stage-tag.dispatch { background: #d1fae5; color: #065f46; }
+    .stage-tag.dispatch { background: var(--stage-complete-bg); color: var(--stage-complete-fg); }
   </style>
 </head>
 
@@ -390,29 +396,29 @@
         <!-- Tracking Tabs -->
         <ul class="nav nav-tabs mb-3">
           <li class="nav-item">
-            <button class="nav-link active" id="tab-active" onclick="showActiveTab()">
+            <button type="button" class="nav-link active" id="tab-active" onclick="showActiveTab()">
               Active
             </button>
           </li>
           <li class="nav-item">
-            <button class="nav-link" id="tab-completed" onclick="showCompletedTab()">
+            <button type="button" class="nav-link" id="tab-completed" onclick="showCompletedTab()">
               Completed
             </button>
           </li>
           <li class="nav-item">
-            <button class="nav-link" id="tab-drawings" onclick="showDrawingsTab()">
+            <button type="button" class="nav-link" id="tab-drawings" onclick="showDrawingsTab()">
               📐 Drawings
             </button>
           </li>
         </ul>
 
-        <h2 class="fw-bold mb-0">Production Tracking</h2>
+        <h1 class="fw-bold mb-0">Production Tracking</h1>
         <small class="text-muted">Fabrication → Painting → Dispatch</small>
       </div>
       <div class="d-flex align-items-center gap-3">
         <span class="last-updated">Last updated: <span id="lastUpdate">-</span></span>
-        <button class="btn btn-outline-primary btn-sm" onclick="loadTrackingData()">🔄 Refresh</button>
-        <button class="btn btn-success btn-sm" onclick="downloadDispatchReport()">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTrackingData()">🔄 Refresh</button>
+        <button type="button" class="btn btn-success btn-sm" onclick="downloadDispatchReport()">
           📥 Dispatch Report
         </button>
         <!-- Pagination Controls -->
@@ -424,27 +430,27 @@
     <div class="filter-bar">
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
-          <label class="form-label small">Search</label>
+          <label for="searchInput" class="form-label small">Search</label>
           <input type="text" class="form-control" id="searchInput" placeholder="Item name, code, customer, section...">
         </div>
         <div class="col-md-2">
-          <label class="form-label small">Customer</label>
+          <label for="filterCustomer" class="form-label small">Customer</label>
           <select class="form-select" id="filterCustomer">
             <option value="">All Customers</option>
           </select>
         </div>
         <div class="col-md-2">
-          <label class="form-label small">View</label>
+          <label for="viewMode" class="form-label small">View</label>
           <select class="form-select" id="viewMode">
             <option value="kanban">Kanban Board</option>
             <option value="table">Table View</option>
           </select>
         </div>
         <div class="col-md-2">
-          <button class="btn btn-primary w-100" onclick="applyFilters()">🔍 Search</button>
+          <button type="button" class="btn btn-primary w-100" onclick="applyFilters()">🔍 Search</button>
         </div>
         <div class="col-md-2">
-          <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">Clear</button>
+          <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">Clear</button>
         </div>
       </div>
     </div>
@@ -568,7 +574,7 @@
           </table>
         </div>
 
-        <button class="btn btn-success btn-sm mt-2" onclick="downloadDispatchReport()">
+        <button type="button" class="btn btn-success btn-sm mt-2" onclick="downloadDispatchReport()">
           📥 Download Dispatch Report
         </button>
       </div>
@@ -580,20 +586,20 @@
     <div class="filter-bar mb-3">
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
-          <label class="form-label small">Search</label>
+          <label for="drawingSearchInput" class="form-label small">Search</label>
           <input type="text" class="form-control" id="drawingSearchInput" placeholder="Drawing number, title, project ref...">
         </div>
         <div class="col-md-3">
-          <label class="form-label small">Customer</label>
+          <label for="drawingFilterCustomer" class="form-label small">Customer</label>
           <select class="form-select" id="drawingFilterCustomer">
             <option value="">All Customers</option>
           </select>
         </div>
         <div class="col-md-2 d-grid">
-          <button class="btn btn-primary" onclick="loadDrawingTracking()">🔍 Search</button>
+          <button type="button" class="btn btn-primary" onclick="loadDrawingTracking()">🔍 Search</button>
         </div>
         <div class="col-md-2 d-grid">
-          <button class="btn btn-outline-secondary" onclick="clearDrawingFilters()">Clear</button>
+          <button type="button" class="btn btn-outline-secondary" onclick="clearDrawingFilters()">Clear</button>
         </div>
       </div>
     </div>
@@ -804,9 +810,9 @@
 
       el.innerHTML = `
         <div class="d-flex align-items-center">
-          <button class="btn btn-sm btn-outline-secondary me-2" ${page <= 1 ? 'disabled' : ''} onclick="prevPage()">Prev</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary me-2" ${page <= 1 ? 'disabled' : ''} onclick="prevPage()">Prev</button>
           <div class="small-muted">Page ${page} of ${totalPages}</div>
-          <button class="btn btn-sm btn-outline-secondary ms-2" ${page >= totalPages ? 'disabled' : ''} onclick="nextPage()">Next</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary ms-2" ${page >= totalPages ? 'disabled' : ''} onclick="nextPage()">Next</button>
         </div>
       `;
     }
@@ -940,9 +946,9 @@
           <div class="qty-control mt-2">
              <label class="small me-2">Quantity to move:</label>
              <div class="input-group input-group-sm" style="width: 120px;" ${actionTooltip}>
-                <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, -1, ${initialQty})" ${!isVisibleAction ? 'disabled' : ''}>-</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="updateQty(${item.id}, -1, ${initialQty})" ${!isVisibleAction ? 'disabled' : ''}>-</button>
                 <input type="number" class="form-control text-center" id="qty-${item.id}" value="${initialQty}" min="1" max="${initialQty}" readonly>
-                <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, 1, ${initialQty})" ${!isVisibleAction ? 'disabled' : ''}>+</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="updateQty(${item.id}, 1, ${initialQty})" ${!isVisibleAction ? 'disabled' : ''}>+</button>
              </div>
              <div class="small text-muted mt-1" id="weight-info-${item.id}">
                 Weight: ${weight.toFixed(3)} kg | Total: ${(initialQty * weight).toFixed(3)} kg
@@ -959,7 +965,7 @@
           `).join('')}
           <div class="checklist-add" style="${!isVisibleAction ? 'display: none;' : ''}">
             <input type="text" placeholder="Add checklist item..." id="newCheck-${item.id}" onkeypress="if(event.key==='Enter') addChecklistItem(${item.id})">
-            <button onclick="addChecklistItem(${item.id})">+</button>
+            <button type="button" onclick="addChecklistItem(${item.id})">+</button>
           </div>
         </div>
         
@@ -967,7 +973,7 @@
           ? '<div class="text-center mt-2 text-success small">✅ Fully Completed</div>'
           : (showCompleteBtn
             ? `
-                  <button class="complete-btn ${stage}" ${!canComplete ? 'disabled' : ''} onclick="advanceStage(${item.id}, '${stage}')">
+                  <button type="button" class="complete-btn ${stage}" ${!canComplete ? 'disabled' : ''} onclick="advanceStage(${item.id}, '${stage}')">
                     ✓ Complete ${stage.charAt(0).toUpperCase() + stage.slice(1)}
                   </button>
                 `
@@ -1017,7 +1023,7 @@
           <td>${checklistDone}/${checklist.length}</td>
           <td>
             ${stage !== 'completed' ? `
-              <button class="btn btn-sm btn-outline-success" onclick="advanceStage(${item.id}, '${stage}')">
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="advanceStage(${item.id}, '${stage}')">
                 Complete
               </button>
             ` : '✅'}
@@ -1489,7 +1495,7 @@
         stageTags += `<span class="stage-tag ${escapeHtml(stageName)}">${escapeHtml(stageName)}: ${Number(count)}</span>`;
       });
       if (drawing.completed_instances > 0) {
-        stageTags += `<span class="stage-tag" style="background:#d1fae5;color:#065f46">done: ${drawing.completed_instances}</span>`;
+        stageTags += `<span class="stage-tag dispatch">done: ${drawing.completed_instances}</span>`;
       }
 
       return `

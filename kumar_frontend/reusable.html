@@ -7,9 +7,9 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="css/main.css" rel="stylesheet">
   <style>
-    .grade-A { border-left: 4px solid #28a745; }
-    .grade-B { border-left: 4px solid #ffc107; }
-    .grade-C { border-left: 4px solid #dc3545; }
+    .grade-A { border-top: 3px solid var(--accent-green); }
+    .grade-B { border-top: 3px solid var(--warning-amber); }
+    .grade-C { border-top: 3px solid var(--danger-red); }
     .match-card { border: 2px solid #0d6efd; background: #f0f7ff; }
   </style>
 </head>
@@ -43,13 +43,13 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="fw-bold mb-0">Reusable Stock</h2>
+      <h1 class="fw-bold mb-0">Reusable Stock</h1>
       <small class="text-muted">Offcuts and leftover pieces available for reuse. Use before cutting new material!</small>
     </div>
     <div>
-      <button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#findMatchModal">🔍 Find Match</button>
-      <button class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#addReusableModal">+ Add Reusable</button>
-      <button class="btn btn-outline-primary ms-2" onclick="refreshReusable()">🔄 Refresh</button>
+      <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#findMatchModal">🔍 Find Match</button>
+      <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#addReusableModal">+ Add Reusable</button>
+      <button type="button" class="btn btn-outline-primary ms-2" onclick="refreshReusable()">🔄 Refresh</button>
     </div>
   </div>
 
@@ -86,11 +86,11 @@
     <div class="card-body">
       <div class="row g-3 align-items-end">
         <div class="col-md-3">
-          <label class="form-label">Search Material</label>
+          <label for="fMaterial" class="form-label">Search Material</label>
           <input type="text" class="form-control" id="fMaterial" placeholder="Material name...">
         </div>
         <div class="col-md-2">
-          <label class="form-label">Quality Grade</label>
+          <label for="fGrade" class="form-label">Quality Grade</label>
           <select class="form-select" id="fGrade">
             <option value="">All</option>
             <option value="A">A - Good</option>
@@ -99,15 +99,15 @@
           </select>
         </div>
         <div class="col-md-2">
-          <label class="form-label">Min Length (mm)</label>
+          <label for="fMinLength" class="form-label">Min Length (mm)</label>
           <input type="number" class="form-control" id="fMinLength">
         </div>
         <div class="col-md-2">
-          <label class="form-label">Max Length (mm)</label>
+          <label for="fMaxLength" class="form-label">Max Length (mm)</label>
           <input type="number" class="form-control" id="fMaxLength">
         </div>
         <div class="col-md-3">
-          <button class="btn btn-primary" onclick="refreshReusable()">Search</button>
+          <button type="button" class="btn btn-primary" onclick="refreshReusable()">Search</button>
           <label class="ms-3">
             <input type="checkbox" id="fAvailableOnly" checked> Available Only
           </label>
@@ -158,20 +158,20 @@
         
         <div class="row g-3 mb-4">
           <div class="col-md-5">
-            <label class="form-label">Material Name *</label>
+            <label for="matchMaterial" class="form-label">Material Name *</label>
             <input type="text" class="form-control" id="matchMaterial" placeholder="e.g., UB203X133X25">
           </div>
           <div class="col-md-4">
-            <label class="form-label">Required Length (mm) *</label>
+            <label for="matchLength" class="form-label">Required Length (mm) *</label>
             <input type="number" class="form-control" id="matchLength" placeholder="e.g., 2000">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Tolerance (mm)</label>
+            <label for="matchTolerance" class="form-label">Tolerance (mm)</label>
             <input type="number" class="form-control" id="matchTolerance" value="50">
           </div>
         </div>
         
-        <button class="btn btn-primary mb-3" onclick="findMatches()">🔍 Search Matches</button>
+        <button type="button" class="btn btn-primary mb-3" onclick="findMatches()">🔍 Search Matches</button>
         
         <div id="matchResults" class="d-none">
           <h6>Matching Pieces:</h6>
@@ -192,34 +192,34 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label">Material Name *</label>
+          <label for="newMaterial" class="form-label">Material Name *</label>
           <input type="text" class="form-control" id="newMaterial" placeholder="e.g., UB203X133X25">
         </div>
         <div class="mb-3">
-          <label class="form-label">Dimensions (text) *</label>
+          <label for="newDimensions" class="form-label">Dimensions (text) *</label>
           <input type="text" class="form-control" id="newDimensions" placeholder="e.g., 1500mm x 150mm beam section">
         </div>
         <div class="row">
           <div class="col-4 mb-3">
-            <label class="form-label">Length (mm)</label>
+            <label for="newLength" class="form-label">Length (mm)</label>
             <input type="number" class="form-control" id="newLength">
           </div>
           <div class="col-4 mb-3">
-            <label class="form-label">Width (mm)</label>
+            <label for="newWidth" class="form-label">Width (mm)</label>
             <input type="number" class="form-control" id="newWidth">
           </div>
           <div class="col-4 mb-3">
-            <label class="form-label">Weight (kg) *</label>
+            <label for="newWeight" class="form-label">Weight (kg) *</label>
             <input type="number" step="0.01" class="form-control" id="newWeight" value="0">
           </div>
         </div>
         <div class="row">
           <div class="col-6 mb-3">
-            <label class="form-label">Quantity</label>
+            <label for="newQty" class="form-label">Quantity</label>
             <input type="number" class="form-control" id="newQty" value="1">
           </div>
           <div class="col-6 mb-3">
-            <label class="form-label">Quality Grade</label>
+            <label for="newGrade" class="form-label">Quality Grade</label>
             <select class="form-select" id="newGrade">
               <option value="A">A - Good (no defects)</option>
               <option value="B">B - Minor Defects</option>
@@ -228,7 +228,7 @@
           </div>
         </div>
         <div class="mb-3">
-          <label class="form-label">Notes</label>
+          <label for="newNotes" class="form-label">Notes</label>
           <textarea class="form-control" id="newNotes" rows="2"></textarea>
         </div>
       </div>
@@ -322,8 +322,8 @@ function renderTable(items) {
       <td><small class="text-muted">${item.source_item_id ? `Item #${item.source_item_id}` : '-'}</small></td>
       <td>
         ${item.is_available ? `
-          <button class="btn btn-sm btn-outline-success" onclick="returnToInventory(${item.id})">↩ Return</button>
-          <button class="btn btn-sm btn-outline-danger ms-1" onclick="markAsScrap(${item.id})">🗑 Scrap</button>
+          <button type="button" class="btn btn-sm btn-outline-success" onclick="returnToInventory(${item.id})">↩ Return</button>
+          <button type="button" class="btn btn-sm btn-outline-danger ms-1" onclick="markAsScrap(${item.id})">🗑 Scrap</button>
         ` : '<span class="badge bg-secondary">Used</span>'}
       </td>
     `;
@@ -364,7 +364,7 @@ async function findMatches() {
             </div>
             <div class="text-end">
               <span class="${wasteClass}">Waste: ${m.waste_mm.toFixed(0)}mm</span><br>
-              <button class="btn btn-sm btn-success mt-2" onclick="useReusable(${m.id})">✓ Use This</button>
+              <button type="button" class="btn btn-sm btn-success mt-2" onclick="useReusable(${m.id})">✓ Use This</button>
             </div>
           </div>
         `;

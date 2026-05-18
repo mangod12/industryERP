@@ -7,8 +7,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="css/main.css">
   <style>
-    .grn-card { border-left: 4px solid #198754; }
-    .pending-card { border-left: 4px solid #ffc107; }
+    .grn-card { border-top: 3px solid var(--accent-green); }
+    .pending-card { border-top: 3px solid var(--warning-amber); }
     .status-badge { font-size: 0.75rem; }
     .line-item-row:hover { background-color: #f8f9fa; }
     .weight-display { font-family: monospace; font-size: 1.1rem; }
@@ -42,10 +42,10 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2 class="fw-bold mb-0">Goods Receipt Notes</h2>
+        <h1 class="fw-bold mb-0">Goods Receipt Notes</h1>
         <small class="text-muted">Manage inward material receipts with QA inspection</small>
       </div>
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGRNModal" data-permission="grn:create">
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newGRNModal" data-permission="grn:create">
         <i class="bi bi-plus-lg"></i> New GRN
       </button>
     </div>
@@ -145,33 +145,33 @@
           <form id="newGRNForm">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label">Vendor *</label>
+                <label for="grnVendor" class="form-label">Vendor *</label>
                 <select class="form-select" id="grnVendor" required>
                   <option value="">Select Vendor</option>
                 </select>
               </div>
               <div class="col-md-6">
-                <label class="form-label">Vendor Invoice No.</label>
+                <label for="grnInvoiceNo" class="form-label">Vendor Invoice No.</label>
                 <input type="text" class="form-control" id="grnInvoiceNo">
               </div>
               <div class="col-md-6">
-                <label class="form-label">Invoice Date</label>
+                <label for="grnInvoiceDate" class="form-label">Invoice Date</label>
                 <input type="date" class="form-control" id="grnInvoiceDate">
               </div>
               <div class="col-md-6">
-                <label class="form-label">Vehicle Number</label>
+                <label for="grnVehicle" class="form-label">Vehicle Number</label>
                 <input type="text" class="form-control" id="grnVehicle" placeholder="e.g., MH12AB1234">
               </div>
               <div class="col-md-6">
-                <label class="form-label">Driver Name</label>
+                <label for="grnDriverName" class="form-label">Driver Name</label>
                 <input type="text" class="form-control" id="grnDriverName">
               </div>
               <div class="col-md-6">
-                <label class="form-label">Driver Contact</label>
+                <label for="grnDriverContact" class="form-label">Driver Contact</label>
                 <input type="tel" class="form-control" id="grnDriverContact">
               </div>
               <div class="col-12">
-                <label class="form-label">Remarks</label>
+                <label for="grnRemarks" class="form-label">Remarks</label>
                 <textarea class="form-control" id="grnRemarks" rows="2"></textarea>
               </div>
             </div>
@@ -218,7 +218,7 @@
           <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Weighment Data</span>
-              <button class="btn btn-sm btn-outline-primary" id="btnAddWeighment" data-permission="grn:create">
+              <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddWeighment" data-permission="grn:create">
                 Record Weighment
               </button>
             </div>
@@ -244,7 +244,7 @@
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Line Items</span>
-              <button class="btn btn-sm btn-outline-success" id="btnAddLineItem" data-permission="grn:create">
+              <button type="button" class="btn btn-sm btn-outline-success" id="btnAddLineItem" data-permission="grn:create">
                 + Add Item
               </button>
             </div>
@@ -289,27 +289,27 @@
         <div class="modal-body">
           <form id="addLineItemForm">
             <div class="mb-3">
-              <label class="form-label">Material *</label>
+              <label for="lineItemMaterial" class="form-label">Material *</label>
               <select class="form-select" id="lineItemMaterial" required>
                 <option value="">Select Material</option>
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">Heat Number</label>
+              <label for="lineItemHeatNo" class="form-label">Heat Number</label>
               <input type="text" class="form-control" id="lineItemHeatNo" placeholder="Mill heat number">
             </div>
             <div class="row mb-3">
               <div class="col-6">
-                <label class="form-label">Received Qty *</label>
+                <label for="lineItemQty" class="form-label">Received Qty *</label>
                 <input type="number" step="0.001" class="form-control" id="lineItemQty" required>
               </div>
               <div class="col-6">
-                <label class="form-label">Weight (KG) *</label>
+                <label for="lineItemWeight" class="form-label">Weight (KG) *</label>
                 <input type="number" step="0.001" class="form-control" id="lineItemWeight" required>
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label">Rate (per unit)</label>
+              <label for="lineItemRate" class="form-label">Rate (per unit)</label>
               <input type="number" step="0.01" class="form-control" id="lineItemRate">
             </div>
           </form>
@@ -386,7 +386,7 @@
             <td><span class="badge bg-${getStatusColor(grn.status)}">${grn.status}</span></td>
             <td><span class="badge bg-${getQAStatusColor(grn.qa_status)}">${grn.qa_status || 'pending'}</span></td>
             <td>
-              <button class="btn btn-sm btn-outline-primary view-grn" data-id="${grn.id}">View</button>
+              <button type="button" class="btn btn-sm btn-outline-primary view-grn" data-id="${grn.id}">View</button>
             </td>
           </tr>
         `).join('');
@@ -539,8 +539,8 @@
               <td class="weight-display">${item.weight_kg.toFixed(3)}</td>
               <td><span class="badge bg-${getQAStatusColor(item.qa_status)}">${item.qa_status || 'pending'}</span></td>
               <td>
-                <button class="btn btn-sm btn-outline-success qa-approve" data-id="${item.id}" data-permission="qa:approve">✓</button>
-                <button class="btn btn-sm btn-outline-danger qa-reject" data-id="${item.id}" data-permission="qa:reject">✗</button>
+                <button type="button" class="btn btn-sm btn-outline-success qa-approve" data-id="${item.id}" data-permission="qa:approve">✓</button>
+                <button type="button" class="btn btn-sm btn-outline-danger qa-reject" data-id="${item.id}" data-permission="qa:reject">✗</button>
               </td>
             </tr>
           `).join('');

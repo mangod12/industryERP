@@ -10,7 +10,7 @@
     .scrap-pending { background-color: #fff3cd !important; }
     .scrap-disposed { background-color: #f8d7da !important; }
     .scrap-returned { background-color: #d1e7dd !important; }
-    .grouped-item { border-left: 4px solid #0d6efd; }
+    .grouped-item { background: var(--primary-light); border: 1px solid var(--border); }
     .drop-zone { border: 2px dashed #ccc; padding: 40px; text-align: center; cursor: pointer; }
     .drop-zone.dragover { border-color: #0d6efd; background: #f0f7ff; }
   </style>
@@ -46,13 +46,13 @@
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="fw-bold mb-0">Scrap Inventory</h2>
+      <h1 class="fw-bold mb-0">Scrap Inventory</h1>
       <small class="text-muted">Track scrap materials after dispatch. Upload CSV or add manually.</small>
     </div>
     <div>
-      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadScrapModal">📤 Upload Scrap CSV</button>
-      <button class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#addScrapModal">+ Add Scrap</button>
-      <button class="btn btn-outline-primary ms-2" onclick="refreshScrap()">🔄 Refresh</button>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadScrapModal">📤 Upload Scrap CSV</button>
+      <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#addScrapModal">+ Add Scrap</button>
+      <button type="button" class="btn btn-outline-primary ms-2" onclick="refreshScrap()">🔄 Refresh</button>
     </div>
   </div>
 
@@ -89,11 +89,11 @@
     <div class="card-body">
       <div class="row g-3 align-items-end">
         <div class="col-md-3">
-          <label class="form-label">Search Material</label>
+          <label for="fMaterial" class="form-label">Search Material</label>
           <input type="text" class="form-control" id="fMaterial" placeholder="Material name...">
         </div>
         <div class="col-md-2">
-          <label class="form-label">Status</label>
+          <label for="fStatus" class="form-label">Status</label>
           <select class="form-select" id="fStatus">
             <option value="">All</option>
             <option value="pending">Pending</option>
@@ -104,7 +104,7 @@
           </select>
         </div>
         <div class="col-md-2">
-          <label class="form-label">Reason</label>
+          <label for="fReason" class="form-label">Reason</label>
           <select class="form-select" id="fReason">
             <option value="">All</option>
             <option value="cutting_waste">Cutting Waste</option>
@@ -115,11 +115,11 @@
           </select>
         </div>
         <div class="col-md-2">
-          <button class="btn btn-primary w-100" onclick="refreshScrap()">Search</button>
+          <button type="button" class="btn btn-primary w-100" onclick="refreshScrap()">Search</button>
         </div>
         <div class="col-md-3 text-end">
-          <button class="btn btn-outline-success" onclick="bulkAction('return_to_inventory')">↩ Return Selected</button>
-          <button class="btn btn-outline-danger ms-1" onclick="bulkAction('dispose')">🗑 Dispose Selected</button>
+          <button type="button" class="btn btn-outline-success" onclick="bulkAction('return_to_inventory')">↩ Return Selected</button>
+          <button type="button" class="btn btn-outline-danger ms-1" onclick="bulkAction('dispose')">🗑 Dispose Selected</button>
         </div>
       </div>
     </div>
@@ -168,7 +168,7 @@
         </div>
         
         <div class="mb-3">
-          <label class="form-label">Select Customer/Project (Optional)</label>
+          <label for="uploadCustomerId" class="form-label">Select Customer/Project (Optional)</label>
           <select class="form-select" id="uploadCustomerId">
             <option value="">-- No Customer --</option>
           </select>
@@ -215,25 +215,25 @@
       </div>
       <div class="modal-body">
         <div class="mb-3">
-          <label class="form-label">Material Name *</label>
+          <label for="scrapMaterial" class="form-label">Material Name *</label>
           <input type="text" class="form-control" id="scrapMaterial" placeholder="e.g., UB203X133X25">
         </div>
         <div class="mb-3">
-          <label class="form-label">Dimensions</label>
+          <label for="scrapDimensions" class="form-label">Dimensions</label>
           <input type="text" class="form-control" id="scrapDimensions" placeholder="e.g., 500mm x 100mm">
         </div>
         <div class="row">
           <div class="col-6 mb-3">
-            <label class="form-label">Weight (kg) *</label>
+            <label for="scrapWeight" class="form-label">Weight (kg) *</label>
             <input type="number" step="0.01" class="form-control" id="scrapWeight" value="0">
           </div>
           <div class="col-6 mb-3">
-            <label class="form-label">Quantity</label>
+            <label for="scrapQty" class="form-label">Quantity</label>
             <input type="number" class="form-control" id="scrapQty" value="1">
           </div>
         </div>
         <div class="mb-3">
-          <label class="form-label">Reason Code *</label>
+          <label for="scrapReason" class="form-label">Reason Code *</label>
           <select class="form-select" id="scrapReason">
             <option value="cutting_waste">Cutting Waste</option>
             <option value="leftover">Leftover</option>
@@ -243,7 +243,7 @@
           </select>
         </div>
         <div class="mb-3">
-          <label class="form-label">Notes</label>
+          <label for="scrapNotes" class="form-label">Notes</label>
           <textarea class="form-control" id="scrapNotes" rows="2"></textarea>
         </div>
       </div>
@@ -266,16 +266,16 @@
       <div class="modal-body">
         <p id="actionItemInfo"></p>
         <div class="d-grid gap-2">
-          <button class="btn btn-success btn-lg" onclick="performAction('return')">
+          <button type="button" class="btn btn-success btn-lg" onclick="performAction('return')">
             ↩ Return to Inventory<br><small>Add back to raw materials</small>
           </button>
-          <button class="btn btn-info btn-lg" onclick="performAction('reusable')">
+          <button type="button" class="btn btn-info btn-lg" onclick="performAction('reusable')">
             ♻ Move to Reusable Stock<br><small>Save as offcut for future use</small>
           </button>
-          <button class="btn btn-warning btn-lg" onclick="performAction('dispose')">
+          <button type="button" class="btn btn-warning btn-lg" onclick="performAction('dispose')">
             🗑 Mark as Disposed<br><small>Cannot be used, log as waste</small>
           </button>
-          <button class="btn btn-secondary btn-lg" onclick="performAction('sell')">
+          <button type="button" class="btn btn-secondary btn-lg" onclick="performAction('sell')">
             💰 Mark as Sold<br><small>Sold to scrap dealer</small>
           </button>
         </div>
@@ -389,7 +389,7 @@ function renderScrapTable(records) {
       <td><small>${new Date(r.created_at).toLocaleDateString()}</small></td>
       <td>
         ${r.status === 'pending' ? `
-          <button class="btn btn-sm btn-outline-primary" onclick="openActionModal(${r.id}, '${escapeHtml(r.material_name)}', ${r.weight_kg})">
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="openActionModal(${r.id}, '${escapeHtml(r.material_name)}', ${r.weight_kg})">
             Action
           </button>
         ` : '-'}

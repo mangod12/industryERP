@@ -45,16 +45,16 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2 class="fw-bold mb-0">Raw Materials Inventory</h2>
+        <h1 class="fw-bold mb-0">Raw Materials Inventory</h1>
         <small class="text-muted">Raw material availability and usage tracking. Materials auto-deduct when fabrication
           completes.</small>
       </div>
       <div>
-        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#mappingsModal">🔗 Material
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#mappingsModal">🔗 Material
           Mappings</button>
-        <button class="btn btn-kb ms-2" data-bs-toggle="modal" data-bs-target="#addMaterialModal">+ Add
+        <button type="button" class="btn btn-kb ms-2" data-bs-toggle="modal" data-bs-target="#addMaterialModal">+ Add
           Material</button>
-        <button class="btn btn-outline-secondary ms-2" onclick="refreshInventory()">🔄 Refresh</button>
+        <button type="button" class="btn btn-outline-secondary ms-2" onclick="refreshInventory()">🔄 Refresh</button>
       </div>
     </div>
 
@@ -67,7 +67,7 @@
               <small class="text-muted">Total Stock (Purchased)</small>
               <h4 id="statTotalPurchased">0</h4>
             </div>
-            <button class="btn btn-sm btn-outline-danger reset-btn d-none" onclick="resetStock()"
+            <button type="button" class="btn btn-sm btn-outline-danger reset-btn d-none" onclick="resetStock()"
               title="Reset Total Stock (Clear Everything)">
               ✕ Reset
             </button>
@@ -81,7 +81,7 @@
               <small class="text-muted">Total Consumed</small>
               <h4 id="statTotalConsumed">0</h4>
             </div>
-            <button class="btn btn-sm btn-outline-warning reset-btn d-none" onclick="resetConsumed()"
+            <button type="button" class="btn btn-sm btn-outline-warning reset-btn d-none" onclick="resetConsumed()"
               title="Reset Consumed Only">
               ✕ Reset
             </button>
@@ -108,12 +108,12 @@
         <div class="row g-3 align-items-end">
 
           <div class="col-md-3">
-            <label class="form-label">Search Material</label>
+            <label for="fName" class="form-label">Search Material</label>
             <input type="text" class="form-control" id="fName" placeholder="Name / Code / Section">
           </div>
 
           <div class="col-md-2">
-            <label class="form-label">Category</label>
+            <label for="fCategory" class="form-label">Category</label>
             <select class="form-select" id="fCategory">
               <option value="">All</option>
               <option value="steel">Steel</option>
@@ -123,17 +123,17 @@
           </div>
 
           <div class="col-md-2">
-            <label class="form-label">Min Quantity</label>
+            <label for="fQtyMin" class="form-label">Min Quantity</label>
             <input type="number" class="form-control" id="fQtyMin">
           </div>
 
           <div class="col-md-2">
-            <label class="form-label">Max Quantity</label>
+            <label for="fQtyMax" class="form-label">Max Quantity</label>
             <input type="number" class="form-control" id="fQtyMax">
           </div>
 
           <div class="col-md-2">
-            <label class="form-label">Unit</label>
+            <label for="fUnit" class="form-label">Unit</label>
             <select class="form-select" id="fUnit">
               <option value="">All</option>
               <option value="kg">KG</option>
@@ -193,11 +193,11 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Material Name *</label>
+            <label for="newName" class="form-label">Material Name *</label>
             <input type="text" class="form-control" id="newName" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Unit</label>
+            <label for="newUnit" class="form-label">Unit</label>
             <select class="form-select" id="newUnit">
               <option value="kg">KG</option>
               <option value="pcs">PCS</option>
@@ -208,11 +208,11 @@
           </div>
           <div class="row">
             <div class="col-6 mb-3">
-              <label class="form-label">Total Quantity *</label>
+              <label for="newTotal" class="form-label">Total Quantity *</label>
               <input type="number" step="0.01" class="form-control" id="newTotal" value="0">
             </div>
             <div class="col-6 mb-3">
-              <label class="form-label">Already Used</label>
+              <label for="newUsed" class="form-label">Already Used</label>
               <input type="number" step="0.01" class="form-control" id="newUsed" value="0">
             </div>
           </div>
@@ -246,17 +246,17 @@
 
           <div class="row g-2 mb-3 align-items-end">
             <div class="col-md-5">
-              <label class="form-label small fw-bold">Excel/Tracking Name</label>
+              <label for="mapExcelName" class="form-label small fw-bold">Excel/Tracking Name</label>
               <input type="text" class="form-control" id="mapExcelName" placeholder="e.g. Main Beam">
             </div>
             <div class="col-md-5">
-              <label class="form-label small fw-bold">Map to Inventory Material</label>
+              <label for="mapMaterialId" class="form-label small fw-bold">Map to Inventory Material</label>
               <select class="form-select" id="mapMaterialId">
                 <option value="">-- Select Material --</option>
               </select>
             </div>
             <div class="col-md-2 d-grid">
-              <button class="btn btn-primary" onclick="saveMapping()">Add</button>
+              <button type="button" class="btn btn-primary" onclick="saveMapping()">Add</button>
             </div>
           </div>
 
@@ -359,8 +359,8 @@
             <td class="remaining-qty"><strong>${remaining.toFixed(2)}</strong></td>
             <td><span class="badge ${statusClass}">${statusText}</span></td>
             <td>
-              <button class="btn btn-sm btn-outline-primary edit-btn">Edit</button>
-              <button class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
+              <button type="button" class="btn btn-sm btn-outline-primary edit-btn">Edit</button>
+              <button type="button" class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
             </td>
           `;
         tbody.appendChild(tr);
@@ -465,8 +465,8 @@
           <td>-</td>
           <td>-</td>
           <td>
-            <button class="btn btn-sm btn-success save-btn">Save</button>
-            <button class="btn btn-sm btn-secondary cancel-btn">Cancel</button>
+            <button type="button" class="btn btn-sm btn-success save-btn">Save</button>
+            <button type="button" class="btn btn-sm btn-secondary cancel-btn">Cancel</button>
           </td>
         `;
 
@@ -581,7 +581,7 @@
             <td>${escapeHtml(m.excel_name)}</td>
             <td>${escapeHtml(m.material ? m.material.name : 'Unknown')}</td>
             <td>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteMapping(${m.id})">Delete</button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMapping(${m.id})">Delete</button>
             </td>
           </tr>
         `).join('');

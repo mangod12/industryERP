@@ -70,7 +70,7 @@
 
     .kanban-card {
       border: 1px solid rgba(11, 36, 71, 0.08);
-      border-left: 4px solid #1d4ed8;
+      border-top: 3px solid var(--primary);
       border-radius: 10px;
       padding: 0.85rem;
       margin-bottom: 0.75rem;
@@ -177,7 +177,7 @@
   <div class="container-fluid main-container">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
       <div>
-        <h2 class="fw-bold mb-0">Drawings & Production</h2>
+        <h1 class="fw-bold mb-0">Drawings & Production</h1>
         <small class="text-muted">Release drawings, track assemblies, and move live steel through production stages.</small>
       </div>
       <div class="d-flex flex-wrap align-items-center gap-2 page-actions">
@@ -192,13 +192,13 @@
     <div class="filter-card">
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
-          <label class="form-label">Customer</label>
+          <label for="filterCustomer" class="form-label">Customer</label>
           <select class="form-select" id="filterCustomer">
             <option value="">All Customers</option>
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Status</label>
+          <label for="filterStatus" class="form-label">Status</label>
           <select class="form-select" id="filterStatus">
             <option value="">All Statuses</option>
             <option value="draft">Draft</option>
@@ -208,7 +208,7 @@
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Search</label>
+          <label for="searchInput" class="form-label">Search</label>
           <input type="text" class="form-control" id="searchInput"
             placeholder="Drawing no, title, customer, project ref">
         </div>
@@ -288,25 +288,25 @@
           </div>
           <div class="modal-body">
             <div class="mb-3">
-              <label class="form-label">Drawing Number *</label>
+              <label for="drawingNumber" class="form-label">Drawing Number *</label>
               <input type="text" class="form-control" id="drawingNumber" required>
             </div>
             <div class="mb-3">
-              <label class="form-label">Title *</label>
+              <label for="drawingTitle" class="form-label">Title *</label>
               <input type="text" class="form-control" id="drawingTitle" required>
             </div>
             <div class="mb-3">
-              <label class="form-label">Customer *</label>
+              <label for="drawingCustomer" class="form-label">Customer *</label>
               <select class="form-select" id="drawingCustomer" required>
                 <option value="">Select customer</option>
               </select>
             </div>
             <div class="mb-3">
-              <label class="form-label">Project Ref</label>
+              <label for="drawingProjectRef" class="form-label">Project Ref</label>
               <input type="text" class="form-control" id="drawingProjectRef">
             </div>
             <div class="mb-0">
-              <label class="form-label">Notes</label>
+              <label for="drawingNotes" class="form-label">Notes</label>
               <textarea class="form-control" id="drawingNotes" rows="3"></textarea>
             </div>
           </div>

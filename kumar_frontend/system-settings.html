@@ -102,7 +102,7 @@
   <div class="settings-layout">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
-        <h3 class="fw-bold mb-0">System Settings</h3>
+        <h1 class="h3 fw-bold mb-0">System Settings</h1>
         <small class="text-muted">Manage company profile, naming series, and system configuration</small>
       </div>
       <a href="settings.html" class="btn btn-sm btn-outline-secondary">Back to Settings</a>
@@ -136,28 +136,28 @@
         <form id="companyForm">
           <div class="row g-3">
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Company Name</label>
+              <label for="company_name" class="form-label fw-semibold">Company Name</label>
               <input type="text" class="form-control" id="company_name" placeholder="Kumar Brothers Steel">
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">GSTIN</label>
+              <label for="company_gstin" class="form-label fw-semibold">GSTIN</label>
               <input type="text" class="form-control" id="company_gstin" placeholder="22AAAAA0000A1Z5">
             </div>
             <div class="col-12">
-              <label class="form-label fw-semibold">Address</label>
+              <label for="company_address" class="form-label fw-semibold">Address</label>
               <textarea class="form-control" id="company_address" rows="2"
                 placeholder="Full company address"></textarea>
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-semibold">Phone</label>
+              <label for="company_phone" class="form-label fw-semibold">Phone</label>
               <input type="text" class="form-control" id="company_phone" placeholder="+91-XXXX-XXXXXX">
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-semibold">Email</label>
+              <label for="company_email" class="form-label fw-semibold">Email</label>
               <input type="email" class="form-control" id="company_email" placeholder="info@company.com">
             </div>
             <div class="col-md-4">
-              <label class="form-label fw-semibold">Logo URL</label>
+              <label for="company_logo_url" class="form-label fw-semibold">Logo URL</label>
               <input type="url" class="form-control" id="company_logo_url" placeholder="https://...">
             </div>
           </div>
@@ -196,7 +196,7 @@
       <div class="tab-pane fade" id="configPane" role="tabpanel">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h5 class="mb-0">System Configuration</h5>
-          <button class="btn btn-sm btn-outline-primary" onclick="showAddConfigModal()" data-role="Boss">
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="showAddConfigModal()" data-role="Boss">
             + Add Config
           </button>
         </div>
@@ -244,11 +244,11 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label fw-semibold">Key</label>
+            <label for="newConfigKey" class="form-label fw-semibold">Key</label>
             <input type="text" class="form-control" id="newConfigKey" placeholder="config_key_name">
           </div>
           <div class="mb-3">
-            <label class="form-label fw-semibold">Value</label>
+            <label for="newConfigValue" class="form-label fw-semibold">Value</label>
             <input type="text" class="form-control" id="newConfigValue" placeholder="value">
           </div>
         </div>
@@ -358,7 +358,7 @@
                 id="fmt_${escHtml(seq.sequence_name)}" value="${escHtml(seq.format_str || '')}">
             </td>
             <td>
-              <button class="btn btn-sm btn-outline-primary" data-role="Boss"
+              <button type="button" class="btn btn-sm btn-outline-primary" data-role="Boss"
                 onclick="saveNamingSeries('${escHtml(seq.sequence_name)}')">Save</button>
             </td>
           </tr>
@@ -414,7 +414,7 @@
               ${cfg.description ? '<small class="text-muted">' + escHtml(cfg.description) + '</small>' : ''}
             </div>
             <div class="config-actions">
-              <button class="btn btn-sm btn-outline-primary" data-role="Boss"
+              <button type="button" class="btn btn-sm btn-outline-primary" data-role="Boss"
                 onclick="saveSystemConfig('${escHtml(cfg.key)}')">Save</button>
             </div>
           </div>

@@ -40,12 +40,12 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2 class="fw-bold mb-0">Customers & Projects</h2>
+        <h1 class="fw-bold mb-0">Customers & Projects</h1>
         <small class="text-muted">Overview of all active and completed customer projects</small>
       </div>
       <div class="d-flex gap-2">
-        <button class="btn btn-outline-primary" onclick="applyCustomerFilters()">🔄 Refresh</button>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">+ Add
+        <button type="button" class="btn btn-outline-primary" onclick="applyCustomerFilters()">🔄 Refresh</button>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">+ Add
           Customer</button>
       </div>
     </div>
@@ -56,12 +56,12 @@
         <div class="row g-3 align-items-end">
 
           <div class="col-md-4">
-            <label class="form-label">Search Customer / Project</label>
+            <label for="searchCustomer" class="form-label">Search Customer / Project</label>
             <input type="text" class="form-control" id="searchCustomer" placeholder="Customer or project name">
           </div>
 
           <div class="col-md-3">
-            <label class="form-label">Project Status</label>
+            <label for="filterProjectStatus" class="form-label">Project Status</label>
             <select class="form-select" id="filterProjectStatus">
               <option value="">All</option>
               <option value="active">Active</option>
@@ -70,7 +70,7 @@
           </div>
 
           <div class="col-md-3">
-            <label class="form-label">Stage Focus</label>
+            <label for="filterStage" class="form-label">Stage Focus</label>
             <select class="form-select" id="filterStage">
               <option value="">All</option>
               <option value="Fabrication">Fabrication</option>
@@ -129,11 +129,11 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Customer Name *</label>
+            <label for="newCustomerName" class="form-label">Customer Name *</label>
             <input type="text" class="form-control" id="newCustomerName" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Project Details</label>
+            <label for="newProjectDetails" class="form-label">Project Details</label>
             <textarea class="form-control" id="newProjectDetails" rows="2"></textarea>
           </div>
         </div>
@@ -165,13 +165,13 @@
             </ol>
           </div>
           <div class="mb-3">
-            <label class="form-label fw-bold">Select Excel/CSV File</label>
+            <label for="trackingExcelFile" class="form-label fw-bold">Select Excel/CSV File</label>
             <input type="file" class="form-control" id="trackingExcelFile" accept=".xlsx,.csv">
           </div>
 
           <!-- Inventory Selection for Deduction -->
           <div class="mb-3">
-            <label class="form-label fw-bold">Deduct Weight From Inventory (Optional)</label>
+            <label for="deductFromInventory" class="form-label fw-bold">Deduct Weight From Inventory (Optional)</label>
             <select class="form-select" id="deductFromInventory">
               <option value="">-- Don't deduct (tracking only) --</option>
             </select>
@@ -271,9 +271,9 @@
               <td>${statusBadge}</td>
               <td>
                 <a class="btn btn-sm btn-kb me-1" href="customer_details.html?id=${c.id}">View</a>
-                <button class="btn btn-sm btn-outline-success me-1" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')">📤 Upload Excel</button>
-                <button class="btn btn-warning btn-sm me-1" data-permission="customers:delete" onclick="softDeleteCustomer(${c.id}, '${escapeHtml(c.name)}')">Soft Delete</button>
-                <button class="btn btn-danger btn-sm" data-permission="customers:hard_delete" onclick="confirmHardDelete(${c.id}, '${escapeHtml(c.name)}')">Hard Delete</button>
+                <button type="button" class="btn btn-sm btn-outline-success me-1" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')">📤 Upload Excel</button>
+                <button type="button" class="btn btn-warning btn-sm me-1" data-permission="customers:delete" onclick="softDeleteCustomer(${c.id}, '${escapeHtml(c.name)}')">Soft Delete</button>
+                <button type="button" class="btn btn-danger btn-sm" data-permission="customers:hard_delete" onclick="confirmHardDelete(${c.id}, '${escapeHtml(c.name)}')">Hard Delete</button>
               </td>
             `;
           tbody.appendChild(row);
@@ -397,7 +397,7 @@
                    <select class="form-select form-select-sm mapping-selector" data-profile="${escapeHtml(profile)}" style="width: 150px;">
                      <option value="">-- Link to --</option>
                    </select>
-                   <button class="btn btn-sm btn-outline-primary py-0" onclick="quickMap(this)">Link</button>
+                   <button type="button" class="btn btn-sm btn-outline-primary py-0" onclick="quickMap(this)">Link</button>
                  </div>`;
             });
 

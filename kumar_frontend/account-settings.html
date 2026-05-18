@@ -194,6 +194,7 @@
 <body>
 
   <div class="profile-container">
+    <h1 class="visually-hidden">My Profile</h1>
 
     <div class="kb-card">
       <div class="card-header-custom">
@@ -244,7 +245,7 @@
         <form id="changePwForm" class="security-section">
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label small fw-bold">Current Password</label>
+              <label for="oldPw" class="form-label small fw-bold">Current Password</label>
               <div class="input-group">
                 <input type="password" id="oldPw" class="form-control" placeholder="••••••••" required>
                 <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
@@ -253,7 +254,7 @@
               </div>
             </div>
             <div class="col-md-4">
-              <label class="form-label small fw-bold">New Password</label>
+              <label for="newPw" class="form-label small fw-bold">New Password</label>
               <div class="input-group">
                 <input type="password" id="newPw" class="form-control" placeholder="New secure password" required
                   minlength="8">
@@ -263,7 +264,7 @@
               </div>
             </div>
             <div class="col-md-4">
-              <label class="form-label small fw-bold">Confirm New</label>
+              <label for="confirmPw" class="form-label small fw-bold">Confirm New</label>
               <div class="input-group">
                 <input type="password" id="confirmPw" class="form-control" placeholder="Repeat password" required
                   minlength="8">
@@ -283,7 +284,7 @@
     </div>
 
     <div class="logout-btn-wrapper">
-      <button id="manualLogout" class="btn btn-logout"><i class="bi bi-box-arrow-right me-2"></i>Sign Out of
+      <button type="button" id="manualLogout" class="btn btn-logout"><i class="bi bi-box-arrow-right me-2"></i>Sign Out of
         Session</button>
     </div>
 

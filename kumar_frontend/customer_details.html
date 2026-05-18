@@ -71,55 +71,55 @@
   <div class="container-fluid main-container">
     <div class="mb-3 d-flex justify-content-between align-items-center">
       <div>
-        <h3 id="custName">Customer Name</h3>
+        <h1 class="h3" id="custName">Customer Name</h1>
         <div class="small-muted" id="custProject">Project Name</div>
         <div class="mt-1">Current Stage: <strong id="custStage">-</strong></div>
       </div>
       <div>
         <a href="customers.html" class="btn btn-kb">Back to Customers</a>
-        <button class="btn btn-success ms-2" onclick="location.reload()">🔄 Refresh</button>
+        <button type="button" class="btn btn-success ms-2" onclick="location.reload()">🔄 Refresh</button>
       </div>
     </div>
 
     <!-- Stage Summary Cards -->
     <div class="row g-3 mb-3" id="stageSummaryCards">
       <div class="col-md-2">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #6c757d;">
+        <div class="card p-3 stat-card" style="border-top: 3px solid #6c757d;">
           <small class="text-muted">Total Items</small>
           <h4 id="custTotalItems" class="mb-0">0</h4>
           <small class="text-muted">All production items</small>
         </div>
       </div>
       <div class="col-md-2">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #dc3545;">
+        <div class="card p-3 stat-card" style="border-top: 3px solid var(--danger-red);">
           <small class="text-muted">Pending</small>
           <h4 id="custStagePending" class="text-secondary mb-0">0</h4>
           <small class="text-muted">Not yet started</small>
         </div>
       </div>
       <div class="col-md-2">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #ffc107;">
+        <div class="card p-3 stat-card stage-fabrication">
           <small class="text-muted">Fabrication</small>
           <h4 id="custStageFab" class="text-warning mb-0">0</h4>
           <small class="text-muted">In fabrication</small>
         </div>
       </div>
       <div class="col-md-2">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #17a2b8;">
+        <div class="card p-3 stat-card stage-painting">
           <small class="text-muted">Painting</small>
           <h4 id="custStagePaint" class="text-info mb-0">0</h4>
           <small class="text-muted">In painting</small>
         </div>
       </div>
       <div class="col-md-2">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #fd7e14;">
+        <div class="card p-3 stat-card stage-dispatch">
           <small class="text-muted">Dispatch</small>
           <h4 id="custStageDispatch" class="text-orange mb-0">0</h4>
           <small class="text-muted">Ready / in dispatch</small>
         </div>
       </div>
       <div class="col-md-2">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #28a745;">
+        <div class="card p-3 stat-card stage-completed">
           <small class="text-muted">Completed</small>
           <h4 id="custStageCompleted" class="text-success mb-0">0</h4>
           <small class="text-muted">Fully done</small>
@@ -307,14 +307,14 @@
             <div class="text-end">
               <div class="mb-1">Current: <strong>${itemStage}</strong></div>
               ${fabStatus !== 'completed' ? `
-                <button class="btn btn-sm btn-outline-warning me-1" onclick="startStage(${item.id}, 'fabrication')">Start Fab</button>
-                <button class="btn btn-sm btn-warning" onclick="completeStage(${item.id}, 'fabrication')">Complete Fab</button>
+                <button type="button" class="btn btn-sm btn-outline-warning me-1" onclick="startStage(${item.id}, 'fabrication')">Start Fab</button>
+                <button type="button" class="btn btn-sm btn-warning" onclick="completeStage(${item.id}, 'fabrication')">Complete Fab</button>
               ` : paintStatus !== 'completed' ? `
-                <button class="btn btn-sm btn-outline-info me-1" onclick="startStage(${item.id}, 'painting')">Start Paint</button>
-                <button class="btn btn-sm btn-info" onclick="completeStage(${item.id}, 'painting')">Complete Paint</button>
+                <button type="button" class="btn btn-sm btn-outline-info me-1" onclick="startStage(${item.id}, 'painting')">Start Paint</button>
+                <button type="button" class="btn btn-sm btn-info" onclick="completeStage(${item.id}, 'painting')">Complete Paint</button>
               ` : dispStatus !== 'completed' ? `
-                <button class="btn btn-sm btn-outline-success me-1" onclick="startStage(${item.id}, 'dispatch')">Start Dispatch</button>
-                <button class="btn btn-sm btn-success" onclick="completeStage(${item.id}, 'dispatch')">Complete Dispatch</button>
+                <button type="button" class="btn btn-sm btn-outline-success me-1" onclick="startStage(${item.id}, 'dispatch')">Start Dispatch</button>
+                <button type="button" class="btn btn-sm btn-success" onclick="completeStage(${item.id}, 'dispatch')">Complete Dispatch</button>
               ` : '<span class="badge bg-success">✓ Fully Completed</span>'}
             </div>
           </div>
