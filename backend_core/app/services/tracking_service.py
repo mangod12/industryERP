@@ -182,9 +182,7 @@ class TrackingService:
                     if V2_BRIDGE_ENABLED:
                         from .inventory_bridge import InventoryBridgeService
 
-                        InventoryBridgeService.bridge_deduction(
-                            db, inv_item, qty, f"fabrication:{item.id}", user_id
-                        )
+                        InventoryBridgeService.bridge_deduction(db, inv_item, qty, f"fabrication:{item.id}", user_id)
 
                     # Log the material usage
                     usage = models.MaterialUsage(

@@ -49,9 +49,7 @@ class InventoryBridgeService:
     """Bridges v1 inventory operations into v2 stock ledger."""
 
     @staticmethod
-    def find_matching_v2_lot(
-        db: Session, inventory_item: Inventory
-    ) -> Optional[StockLot]:
+    def find_matching_v2_lot(db: Session, inventory_item: Inventory) -> Optional[StockLot]:
         """Find a v2 StockLot matching a v1 Inventory item.
 
         Match strategy:
@@ -140,8 +138,7 @@ class InventoryBridgeService:
 
         if lot is None:
             logger.warning(
-                "V2 bridge: no matching lot for v1 Inventory id=%s name='%s'. "
-                "Skipping v2 movement creation.",
+                "V2 bridge: no matching lot for v1 Inventory id=%s name='%s'. Skipping v2 movement creation.",
                 inventory_item.id,
                 inventory_item.name,
             )
@@ -150,9 +147,7 @@ class InventoryBridgeService:
         # Use a savepoint so that bridge failures don't poison the session
         savepoint = db.begin_nested()
         try:
-            weight_kg = Decimal(str(qty_deducted)).quantize(
-                Decimal("0.001"), rounding=ROUND_HALF_UP
-            )
+            weight_kg = Decimal(str(qty_deducted)).quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
 
             weight_before = lot.current_weight_kg
             weight_after = weight_before - weight_kg
@@ -160,8 +155,7 @@ class InventoryBridgeService:
             # Clamp to zero if we'd go negative (v1 allows negative, v2 doesn't)
             if weight_after < 0:
                 logger.warning(
-                    "V2 bridge: deduction of %.3f kg exceeds lot %s available %.3f kg. "
-                    "Clamping to available.",
+                    "V2 bridge: deduction of %.3f kg exceeds lot %s available %.3f kg. Clamping to available.",
                     float(weight_kg),
                     lot.lot_number,
                     float(weight_before),
@@ -314,22 +308,13 @@ class InventoryBridgeService:
 
         # Find v2-only materials (have active lots but no v1 match)
         v2_only = []
-        all_v2_material_ids = (
-            db.query(StockLot.material_id)
-            .filter(StockLot.is_active == True)
-            .distinct()
-            .all()
-        )
+        all_v2_material_ids = db.query(StockLot.material_id).filter(StockLot.is_active == True).distinct().all()
 
         for (mat_id,) in all_v2_material_ids:
             if mat_id in matched_material_ids:
                 continue
 
-            material = (
-                db.query(MaterialMaster)
-                .filter(MaterialMaster.id == mat_id)
-                .first()
-            )
+            material = db.query(MaterialMaster).filter(MaterialMaster.id == mat_id).first()
             if material is None:
                 continue
 
