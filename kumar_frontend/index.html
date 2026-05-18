@@ -6,37 +6,181 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>KumarBrothers | Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <link rel="stylesheet" href="css/main.css">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+    :root {
+      --primary: #1e5a8a;
+      --primary-light: #e8f0f8;
+      --accent-green: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --surface: #f5f7fb;
+      --surface-raised: #ffffff;
+      --text-primary: #1a1d23;
+      --text-secondary: #6b7280;
+    }
+
+    /* --- Stat cards --- */
     .stat-card {
-      transition: transform 0.2s;
+      background: var(--surface-raised);
+      border-radius: 10px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e5e7eb;
+      border-top: 3px solid var(--primary);
     }
 
-    .stat-card:hover {
-      transform: translateY(-2px);
+    .stat-card .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
     }
 
-    .low-stock-alert {
-      background-color: #fff3cd;
-      border-left: 4px solid #ffc107;
+    .stat-card .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
     }
 
+    .stat-card .stat-detail {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    /* Stage-specific card tints */
+    .stage-fabrication {
+      background: #fffbeb;
+      border-top-color: var(--warning);
+    }
+
+    .stage-painting {
+      background: #ecfeff;
+      border-top-color: #0891b2;
+    }
+
+    .stage-dispatch {
+      background: #f0fdf4;
+      border-top-color: var(--accent-green);
+    }
+
+    .stage-completed {
+      background: #f3f4f6;
+      border-top-color: #6b7280;
+    }
+
+    /* --- Alert items (no border-left) --- */
+    .alert-tinted {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .alert-tinted-success {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: var(--accent-green);
+    }
+
+    /* --- Activity feed (no border-left) --- */
+    .activity-item {
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      background: var(--surface);
+      border-radius: 8px;
+      border: none;
+      border-left: none;
+    }
+
+    .activity-item strong {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    .activity-item small {
+      font-size: 12px;
+    }
+
+    /* --- Loss analytics metric tiles --- */
+    .metric-tile {
+      text-align: center;
+      padding: 16px 12px;
+      background: var(--surface);
+      border-radius: 8px;
+    }
+
+    .metric-tile .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .metric-tile .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    /* --- Tables --- */
+    .table thead.thead-clean th {
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: none;
+      padding: 10px 12px;
+    }
+
+    .table .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    /* --- Section heading --- */
+    .section-heading {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-primary);
+      margin-bottom: 0;
+    }
+
+    /* --- Refresh indicator --- */
     .refresh-indicator {
       font-size: 0.75rem;
-      color: #6c757d;
+      color: var(--text-secondary);
     }
 
-    .activity-item {
-      border-left: 3px solid #0d6efd;
-      padding-left: 10px;
-      margin-bottom: 8px;
+    /* --- Low stock alert (override old style) --- */
+    .low-stock-alert {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
     }
   </style>
 </head>
 
 <body>
 
-  <!-- NAVBAR (shared markup used across pages) -->
+  <!-- NAVBAR -->
   <nav class="kb-navbar d-flex align-items-center justify-content-between" role="navigation"
     aria-label="Main navigation">
     <div class="d-flex align-items-center gap-3">
@@ -48,8 +192,8 @@
         <a class="nav-link text-white ms-3" href="reusable.html">Reusable</a>
         <a class="nav-link text-white ms-3" href="customers.html">Customers</a>
         <a class="nav-link text-white ms-3" href="tracking_v2.html">Tracking</a>
-          <a class="nav-link text-white ms-3" href="drawings.html">Drawings</a>
-        <a class="nav-link text-white ms-3" href="queries.html">Querys</a>
+        <a class="nav-link text-white ms-3" href="drawings.html">Drawings</a>
+        <a class="nav-link text-white ms-3" href="queries.html">Queries</a>
         <a class="nav-link text-white ms-3" href="instructions.html">Instructions</a>
         <a class="nav-link text-white ms-3" href="settings.html">Settings</a>
         <a class="nav-link text-white ms-3" href="register.html" data-permission="users:create">Register</a>
@@ -60,7 +204,7 @@
       <!-- Notification Bell -->
       <div class="dropdown">
         <button class="btn btn-link text-white position-relative p-0 me-2" type="button" data-bs-toggle="dropdown">
-          <span style="font-size: 1.2rem;">🔔</span>
+          <i class="bi bi-bell" style="font-size: 1.15rem;"></i>
           <span id="notifBadge"
             class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
             style="font-size: 0.6rem;">
@@ -82,73 +226,75 @@
     <!-- Dashboard Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h2 class="fw-bold mb-0">Dashboard</h2>
+        <h2 class="fw-bold mb-0" style="font-family: 'Inter', system-ui, sans-serif;">Dashboard</h2>
         <small class="text-muted">Real-time overview of operations</small>
       </div>
       <div>
         <span class="refresh-indicator me-2">Last updated: <span id="lastUpdate">-</span></span>
-        <button class="btn btn-sm btn-outline-primary" onclick="refreshDashboard()">🔄 Refresh</button>
+        <button class="btn btn-sm btn-outline-primary" onclick="refreshDashboard()">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
       </div>
     </div>
 
     <!-- Raw Materials Summary -->
     <div class="row g-3 mb-4">
       <div class="col-md-3">
-        <div class="card p-3 stat-card">
-          <small class="text-muted">Total Raw Materials</small>
-          <h4 id="totalMaterials">0 Items</h4>
+        <div class="stat-card">
+          <div class="stat-label">Total Raw Materials</div>
+          <div class="stat-value" id="totalMaterials">0 Items</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 stat-card">
-          <small class="text-muted">Total Stock (kg)</small>
-          <h4 id="totalStockValue">0</h4>
-          <small class="text-success" id="stockPurchased">Purchased: 0 kg</small>
+        <div class="stat-card">
+          <div class="stat-label">Total Stock (kg)</div>
+          <div class="stat-value" id="totalStockValue">0</div>
+          <div class="stat-detail text-success" id="stockPurchased">Purchased: 0 kg</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 stat-card">
-          <small class="text-muted">Total Consumed (kg)</small>
-          <h4 id="totalConsumed" class="text-danger">0</h4>
-          <small class="text-muted" id="utilizationPct">Utilization: 0%</small>
+        <div class="stat-card">
+          <div class="stat-label">Total Consumed (kg)</div>
+          <div class="stat-value text-danger" id="totalConsumed">0</div>
+          <div class="stat-detail" id="utilizationPct">Utilization: 0%</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 stat-card">
-          <small class="text-muted">Low Stock Alerts</small>
-          <h4 id="lowStockCount" class="text-warning">0 Items</h4>
+        <div class="stat-card" style="border-top-color: var(--warning);">
+          <div class="stat-label">Low Stock Alerts</div>
+          <div class="stat-value" style="color: var(--warning);" id="lowStockCount">0 Items</div>
         </div>
       </div>
     </div>
 
     <!-- Stage Summary Cards -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-4">
       <div class="col-md-3">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #ffc107;">
-          <small class="text-muted">Fabrication</small>
-          <h4 id="stageFabrication">0 Jobs</h4>
-          <small class="text-muted">Items in fabrication stage</small>
+        <div class="stat-card stage-fabrication">
+          <div class="stat-label">Fabrication</div>
+          <div class="stat-value" id="stageFabrication">0 Jobs</div>
+          <div class="stat-detail">Items in fabrication stage</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #17a2b8;">
-          <small class="text-muted">Painting</small>
-          <h4 id="stagePainting">0 Jobs</h4>
-          <small class="text-muted">Items in painting stage</small>
+        <div class="stat-card stage-painting">
+          <div class="stat-label">Painting</div>
+          <div class="stat-value" id="stagePainting">0 Jobs</div>
+          <div class="stat-detail">Items in painting stage</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #28a745;">
-          <small class="text-muted">Dispatch</small>
-          <h4 id="stageDispatch">0 Jobs</h4>
-          <small class="text-muted">Ready for dispatch</small>
+        <div class="stat-card stage-dispatch">
+          <div class="stat-label">Dispatch</div>
+          <div class="stat-value" id="stageDispatch">0 Jobs</div>
+          <div class="stat-detail">Ready for dispatch</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 stat-card" style="border-left: 4px solid #6c757d;">
-          <small class="text-muted">Completed</small>
-          <h4 id="stageCompleted">0 Jobs</h4>
-          <small class="text-muted">Fully dispatched</small>
+        <div class="stat-card stage-completed">
+          <div class="stat-label">Completed</div>
+          <div class="stat-value" id="stageCompleted">0 Jobs</div>
+          <div class="stat-detail">Fully dispatched</div>
         </div>
       </div>
     </div>
@@ -159,47 +305,47 @@
         <div class="card shadow-sm border-0">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="fw-semibold mb-0">📊 Loss Analytics (Last 30 Days)</h5>
+              <h5 class="section-heading">Loss Analytics (30 Days)</h5>
               <div>
-                <a href="scrap.html" class="btn btn-sm btn-outline-warning me-2">View Scrap →</a>
-                <a href="reusable.html" class="btn btn-sm btn-outline-success">View Reusable →</a>
+                <a href="scrap.html" class="btn btn-sm btn-outline-warning me-2">View Scrap</a>
+                <a href="reusable.html" class="btn btn-sm btn-outline-success">View Reusable</a>
               </div>
             </div>
             <div class="row g-3">
               <div class="col-md-2">
-                <div class="text-center p-3 bg-light rounded">
-                  <small class="text-muted d-block">Scrap Rate</small>
-                  <h4 id="scrapRate" class="text-danger mb-0">0%</h4>
+                <div class="metric-tile">
+                  <div class="metric-label">Scrap Rate</div>
+                  <div class="metric-value text-danger" id="scrapRate">0%</div>
                 </div>
               </div>
               <div class="col-md-2">
-                <div class="text-center p-3 bg-light rounded">
-                  <small class="text-muted d-block">Total Scrap</small>
-                  <h4 id="totalScrap" class="text-warning mb-0">0 kg</h4>
+                <div class="metric-tile">
+                  <div class="metric-label">Total Scrap</div>
+                  <div class="metric-value" style="color: var(--warning);" id="totalScrap">0 kg</div>
                 </div>
               </div>
               <div class="col-md-2">
-                <div class="text-center p-3 bg-light rounded">
-                  <small class="text-muted d-block">Reusable Stock</small>
-                  <h4 id="reusableStock" class="text-success mb-0">0 kg</h4>
+                <div class="metric-tile">
+                  <div class="metric-label">Reusable Stock</div>
+                  <div class="metric-value text-success" id="reusableStock">0 kg</div>
                 </div>
               </div>
               <div class="col-md-2">
-                <div class="text-center p-3 bg-light rounded">
-                  <small class="text-muted d-block">Recovery Rate</small>
-                  <h4 id="recoveryRate" class="text-info mb-0">0%</h4>
+                <div class="metric-tile">
+                  <div class="metric-label">Recovery Rate</div>
+                  <div class="metric-value" style="color: #0891b2;" id="recoveryRate">0%</div>
                 </div>
               </div>
               <div class="col-md-2">
-                <div class="text-center p-3 bg-light rounded">
-                  <small class="text-muted d-block">Pending Review</small>
-                  <h4 id="pendingScrap" class="text-warning mb-0">0 kg</h4>
+                <div class="metric-tile">
+                  <div class="metric-label">Pending Review</div>
+                  <div class="metric-value" style="color: var(--warning);" id="pendingScrap">0 kg</div>
                 </div>
               </div>
               <div class="col-md-2">
-                <div class="text-center p-3 bg-light rounded">
-                  <small class="text-muted d-block">Est. Loss Value</small>
-                  <h4 id="lossValue" class="text-danger mb-0">₹0</h4>
+                <div class="metric-tile">
+                  <div class="metric-label">Est. Loss Value</div>
+                  <div class="metric-value text-danger" id="lossValue">&#8377;0</div>
                 </div>
               </div>
             </div>
@@ -209,13 +355,13 @@
     </div>
 
     <!-- Mid Section: Inventory + Alerts -->
-    <div class="row g-4 mb-3">
+    <div class="row g-4 mb-4">
       <div class="col-md-8">
         <div class="card p-4 kb-card">
-          <h6 class="kb-section-title">Raw Materials Overview</h6>
+          <h6 class="section-heading mb-3">Raw Materials Overview</h6>
           <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-            <table class="table table-sm">
-              <thead>
+            <table class="table table-sm align-middle">
+              <thead class="thead-clean">
                 <tr>
                   <th>Material</th>
                   <th>Total</th>
@@ -235,7 +381,7 @@
       </div>
       <div class="col-md-4">
         <div class="card p-4 kb-card">
-          <h6 class="kb-section-title">Alerts & Notifications</h6>
+          <h6 class="section-heading mb-3">Alerts and Notifications</h6>
           <div id="alertsContainer">
             <div class="text-muted">Loading alerts...</div>
           </div>
@@ -247,13 +393,13 @@
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-semibold mb-0">Live Production Status</h5>
-          <a href="tracking.html" class="btn btn-sm btn-outline-primary">View All Tracking →</a>
+          <h5 class="section-heading">Live Production Status</h5>
+          <a href="tracking.html" class="btn btn-sm btn-outline-primary">View All Tracking</a>
         </div>
 
         <div class="table-responsive">
           <table class="table align-middle">
-            <thead class="table-light">
+            <thead class="thead-clean">
               <tr>
                 <th>Customer</th>
                 <th>Item</th>
@@ -275,7 +421,7 @@
     <!-- Recent Activity -->
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-body">
-        <h5 class="fw-semibold mb-3">Recent Activity</h5>
+        <h5 class="section-heading mb-3">Recent Activity</h5>
         <div id="recentActivity">
           <div class="text-muted">Loading recent activity...</div>
         </div>
@@ -351,9 +497,9 @@
               const tr = document.createElement('tr');
               tr.innerHTML = `
               <td>${escapeHtml(item.name)}</td>
-              <td>${(item.total || 0).toFixed(2)} ${escapeHtml(item.unit || '')}</td>
-              <td>${(item.used || 0).toFixed(2)}</td>
-              <td>${remaining.toFixed(2)}</td>
+              <td class="mono">${(item.total || 0).toFixed(2)} ${escapeHtml(item.unit || '')}</td>
+              <td class="mono">${(item.used || 0).toFixed(2)}</td>
+              <td class="mono">${remaining.toFixed(2)}</td>
               <td><span class="badge ${statusClass}">${statusText}</span></td>
             `;
               invBody.appendChild(tr);
@@ -369,12 +515,12 @@
         if (inv.low_stock_items && inv.low_stock_items.length > 0) {
           inv.low_stock_items.forEach(item => {
             const div = document.createElement('div');
-            div.className = 'alert low-stock-alert py-2 mb-2';
-            div.innerHTML = `<strong>⚠️ Low Stock:</strong> ${escapeHtml(item.name)} - Only ${item.available.toFixed(2)} remaining`;
+            div.className = 'alert-tinted';
+            div.innerHTML = `<strong>Low Stock:</strong> ${escapeHtml(item.name)} &mdash; Only <span class="mono">${item.available.toFixed(2)}</span> remaining`;
             alertsContainer.appendChild(div);
           });
         } else {
-          alertsContainer.innerHTML = '<div class="text-success">✓ All materials are at healthy stock levels</div>';
+          alertsContainer.innerHTML = '<div class="alert-tinted alert-tinted-success">All materials are at healthy stock levels</div>';
         }
 
         // Update recent activity
@@ -386,7 +532,7 @@
             div.className = 'activity-item';
             div.innerHTML = `
             <strong>${escapeHtml(act.item_name)}</strong>
-            <br><small class="text-muted">${act.stage} - ${act.status} ${act.timestamp ? '• ' + new Date(act.timestamp).toLocaleString() : ''}</small>
+            <br><small class="text-muted">${act.stage} - ${act.status} ${act.timestamp ? '&bull; ' + new Date(act.timestamp).toLocaleString() : ''}</small>
           `;
             activityContainer.appendChild(div);
           });

@@ -1,204 +1,457 @@
-/* Modernized KumarBrothers frontend styles
-   - Follow the user's design principles: clean spacing, soft shadows, consistent colors
-   - Keep JS-dependent classes (like .low-stock, .table, .form-control) intact
-*/
+/* KBSteel ERP - Design System Stylesheet
+   Steel-blue anchor, warm neutrals, OKLCH palette
+   For bright plant offices, 15" monitors, 8hr daily use
+   ---------------------------------------------------- */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
-:root{
-  --brand-dark: #0b2447;
-  --brand-steel: #6b7280;
-  --accent: #2563eb;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --bg: #f5f7fb;
-  --muted: #6c757d;
-  --card-bg: #ffffff;
-  --max-width: 1100px;
+/* ========== 1. Custom Properties ========== */
+:root {
+  /* Brand palette (OKLCH with hex fallbacks) */
+  --primary: oklch(45% 0.15 250);
+  --primary-hex: #1a5f9e;
+  --primary-light: oklch(92% 0.03 250);
+  --primary-light-hex: #e0eaf5;
+  --accent-green: oklch(65% 0.18 145);
+  --accent-green-hex: #2a9d5c;
+  --warning-amber: oklch(75% 0.15 75);
+  --warning-amber-hex: #c8950a;
+  --danger-red: oklch(55% 0.2 25);
+  --danger-red-hex: #c33b2e;
+  --surface: oklch(97% 0.005 250);
+  --surface-hex: #f4f6f9;
+  --surface-raised: oklch(99% 0.003 250);
+  --surface-raised-hex: #fbfcfd;
+  --text-primary: oklch(25% 0.01 250);
+  --text-primary-hex: #1a2030;
+  --text-secondary: oklch(50% 0.01 250);
+  --text-secondary-hex: #6b7280;
+  --border: oklch(88% 0.01 250);
+  --border-hex: #d5dbe3;
+
+  /* Stage colors */
+  --stage-fab-bg: oklch(92% 0.04 250);
+  --stage-fab-fg: oklch(35% 0.12 250);
+  --stage-paint-bg: oklch(92% 0.04 75);
+  --stage-paint-fg: oklch(40% 0.12 75);
+  --stage-dispatch-bg: oklch(92% 0.04 300);
+  --stage-dispatch-fg: oklch(35% 0.12 300);
+  --stage-complete-bg: oklch(92% 0.04 145);
+  --stage-complete-fg: oklch(35% 0.12 145);
+
+  /* Typography */
+  --font-body: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Spacing scale */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.25rem;
+  --sp-6: 1.5rem;
+  --sp-8: 2rem;
+
+  /* Layout */
+  --max-width: 1400px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+
+  /* Bootstrap overrides */
+  --bs-primary: var(--primary-hex);
+  --bs-danger: var(--danger-red-hex);
+  --bs-success: var(--accent-green-hex);
+  --bs-warning: var(--warning-amber-hex);
 }
 
-html, body { height: 100%; }
-body{
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  background: var(--bg);
-  color: #0f1724;
-  margin:0;
-  font-size:15px;
-  -webkit-font-smoothing:antialiased;
+/* ========== 2. Base Styles ========== */
+html, body { height: 100%; overflow-x: hidden; }
+
+body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  background: var(--surface);
+  color: var(--text-primary);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.container-fluid.main-container{ padding-top:20px; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
 
-/* Navbar */
-.kb-navbar{
-  /* Use a dark navbar to match existing markup that applies `text-white` to links */
-  background: linear-gradient(90deg,var(--brand-dark), #0f3a60);
+h2 { font-size: 1.5rem; }
+h4 { font-size: 1.15rem; }
+h5 { font-size: 1.05rem; font-weight: 700; color: var(--primary); }
+
+a { color: var(--primary); }
+a:hover { color: var(--primary); opacity: 0.85; }
+
+::selection { background: var(--primary-light); }
+
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Allow subtle micro-interactions, not a blanket kill */
+*, *::before, *::after {
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+/* ========== 3. Layout ========== */
+.container-fluid.main-container {
+  padding: var(--sp-5) var(--sp-4);
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+/* ========== 4. Navbar ========== */
+.kb-navbar {
+  background: var(--primary);
   color: #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.12);
-  border-radius: 10px;
-  padding: 10px 16px;
-}
-.kb-navbar .navbar-brand{ font-weight:700; font-size:1.05rem; color:#ffffff; }
-.kb-navbar .nav-link{ color: rgba(255,255,255,0.95) !important; margin-right:12px; }
-.kb-navbar .nav-link.active{ font-weight:700; color:rgba(255,255,255,0.95) !important; }
-
-/* If you prefer a light navbar, remove `text-white` on the links in HTML or adjust styles here. */
-.role-badge{ background:#fff; color:var(--brand-dark); border-radius:6px; padding:6px 10px; font-weight:600; }
-
-/* Cards */
-.card.kb-card{ background:var(--card-bg); border-radius:10px; border:none; box-shadow:0 6px 18px rgba(11,36,71,0.06); }
-.kb-section-title{ font-size:1rem; font-weight:700; color:var(--brand-dark); }
-
-/* Headings */
-h4, h5 { font-weight:700; color:var(--brand-dark); }
-
-/* Instruction box */
-.instruction-box{ background:#fffef6; border-left:6px solid var(--accent); padding:14px; border-radius:8px; }
-.instruction-meta{ font-size:0.9rem; color:var(--muted); }
-
-/* Tables */
-.table { border-collapse: separate; border-spacing: 0 10px; width:100%; }
-.table thead th{ background: transparent; color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.6px; }
-.table tbody tr{ background:var(--card-bg); box-shadow:0 2px 8px rgba(0,0,0,0.04); border-radius:8px; }
-.table th, .table td { vertical-align: middle; padding:12px; border:none; }
-.low-stock{ background: linear-gradient(90deg, rgba(245,158,11,0.06), transparent); border-left:4px solid var(--warning); }
-
-/* KPI small card */
-.kpi-card h3 { font-weight: 700; margin: .25rem 0; font-size: 1.35rem; }
-.kpi-card small { color: var(--muted); }
-.kpi-card .badge { font-size: .75rem; padding: 6px 8px; }
-
-/* Status badges */
-.badge-success { background: #22c55e; color: #fff; }
-.badge-warning { background: #facc15; color: #111827; }
-
-/* Status badges */
-.badge-status{ padding:6px 10px; border-radius:999px; font-weight:700; }
-.status-inprogress{ background:#fff3cd; color:#856404; }
-.status-completed{ background:#d4edda; color:#155724; }
-
-/* Buttons */
-.btn-kb{ background: var(--brand-dark); color:#fff; border:none; border-radius:8px; padding:10px 14px; font-weight:700; }
-.btn-kb-outline{ background:transparent; border:1px solid var(--brand-dark); color:var(--brand-dark); border-radius:8px; padding:8px 12px; }
-
-/* Form styling */
-.form-control{ border-radius:8px; border:1px solid #e6e9ee; padding:10px 12px; }
-.form-control:focus{ box-shadow: 0 0 0 4px rgba(37,99,235,0.08); border-color:var(--accent); }
-.file-drop{ border:1px dashed #d1d5db; padding:14px; border-radius:8px; text-align:center; background:var(--card-bg); }
-
-/* Utilities */
-.mb-10{ margin-bottom:10px; }
-.mt-10{ margin-top:10px; }
-.p-12{ padding:12px; }
-.small-muted{ color:var(--muted); font-size:0.95rem; }
-
-/* Grid helpers */
-.grid-3 { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
-@media (max-width: 992px) { .grid-3 { grid-template-columns: 1fr; } }
-
-/* Accessibility */
-.btn, .btn-kb, .btn-kb-outline { min-height:40px; }
-
-/* Keep existing JS hooks intact */
-/* No IDs/classes renamed to avoid breaking scripts */
-
-
-/* Global UI Tweaks: applied per user request */
-body {
-  background-color: #f6f7fb;
+  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-3) var(--sp-4);
 }
 
-.card {
-  border-radius: 12px;
+.kb-navbar .navbar-brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #fff;
 }
 
-h2, h3, h4, h5 {
-  letter-spacing: 0.3px;
+.kb-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-right: var(--sp-3);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
 }
 
-/* Global consistency styles (ERP-style) */
-body {
-  font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
-  background-color: #f6f7fb; /* soft neutral background */
-  color: #2c2f33;
+.kb-navbar .nav-link:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-h1, h2, h3, h4, h5 {
+.kb-navbar .nav-link.active {
+  font-weight: 700;
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.role-badge {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  padding: var(--sp-2) var(--sp-3);
   font-weight: 600;
-  letter-spacing: 0.3px;
+  font-size: 0.8rem;
 }
 
-h2 { font-size: 1.6rem; }
-h5 { font-size: 1.05rem; }
-
-.card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+/* ========== 5. Cards ========== */
+.card, .card.kb-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
-.table th {
-  font-size: 0.85rem;
-  font-weight: 600;
+.kb-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* ========== 6. Tables ========== */
+.table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.table thead th {
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  color: #6c757d;
+  letter-spacing: 0.05em;
+  padding: var(--sp-3) var(--sp-3);
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.table tbody tr {
+  background: var(--surface-raised);
+}
+
+.table tbody tr:nth-child(even) {
+  background: var(--surface);
+}
+
+.table tbody tr:hover {
+  background: var(--primary-light);
+}
+
+.table th, .table td {
+  vertical-align: middle;
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--border);
 }
 
 .table td { font-size: 0.9rem; }
-.table tbody tr:hover { background-color: #f1f3f6; }
 
-.btn { border-radius: 8px; font-weight: 500; }
-.btn-primary { background-color: #0d6efd; border: none; }
-.btn-primary:hover { background-color: #0b5ed7; }
+/* Right-align numeric columns (apply .text-end or use this) */
+.table .col-number,
+.table td[data-type="number"] {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
 
-.badge { padding: .45em .65em; font-weight:500; font-size: .75rem; border-radius:6px; }
+.table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-.form-control, .form-select { border-radius:8px; font-size:0.9rem; }
+/* ========== 7. Numbers & Mono ========== */
+.kb-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
 
-/* Reduce flashy transitions: keep UI stable for factory use */
-* { transition: none !important; }
+/* ========== 8. Stage Indicators (background tint, no side-stripe) ========== */
+.stage-fabrication { background: var(--stage-fab-bg); color: var(--stage-fab-fg); }
+.stage-painting    { background: var(--stage-paint-bg); color: var(--stage-paint-fg); }
+.stage-dispatch    { background: var(--stage-dispatch-bg); color: var(--stage-dispatch-fg); }
+.stage-completed   { background: var(--stage-complete-bg); color: var(--stage-complete-fg); }
 
-/* RESPONSIVENESS: mobile + tablet improvements (desktop-first) */
-/* Ensure page headers stack on small screens */
+/* ========== 9. Status Badges ========== */
+.badge {
+  padding: 0.35em 0.65em;
+  font-weight: 600;
+  font-size: 0.75rem;
+  border-radius: 999px;
+}
+
+.badge-status { padding: 0.35em 0.75em; border-radius: 999px; font-weight: 600; }
+.badge-success, .status-completed { background: var(--stage-complete-bg); color: var(--stage-complete-fg); }
+.badge-warning, .status-inprogress { background: var(--stage-paint-bg); color: var(--stage-paint-fg); }
+.badge-danger { background: oklch(92% 0.04 25); color: oklch(40% 0.15 25); }
+
+/* ========== 10. Stat Cards (no hero-metric) ========== */
+.stat-card, .kpi-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.stat-card .stat-label,
+.kpi-card small {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-1);
+  display: block;
+}
+
+.stat-card .stat-value,
+.kpi-card h3 {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: var(--sp-1) 0;
+  color: var(--text-primary);
+}
+
+.kpi-card .badge { font-size: 0.75rem; padding: 0.3em 0.55em; }
+
+/* ========== 11. Buttons ========== */
+.btn {
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.9rem;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+}
+
+.btn-primary, .btn-kb {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+}
+
+.btn-primary:hover, .btn-kb:hover {
+  background: oklch(40% 0.15 250);
+  color: #fff;
+}
+
+.btn-outline-primary, .btn-kb-outline {
+  background: transparent;
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+  border-radius: var(--radius);
+}
+
+.btn-outline-primary:hover, .btn-kb-outline:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.btn-danger {
+  background: var(--danger-red);
+  color: #fff;
+  border: none;
+}
+
+.btn-danger:hover {
+  background: oklch(48% 0.2 25);
+  color: #fff;
+}
+
+.btn-success {
+  background: var(--accent-green);
+  color: #fff;
+  border: none;
+}
+
+/* Touch target sizing */
+.btn, .btn-kb, .btn-kb-outline { min-height: 44px; padding-top: 0.55rem; padding-bottom: 0.55rem; }
+
+/* ========== 12. Forms ========== */
+.form-control, .form-select {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  background: var(--surface-raised);
+}
+
+.form-control:focus, .form-select:focus {
+  box-shadow: 0 0 0 3px oklch(45% 0.15 250 / 0.15);
+  border-color: var(--primary);
+  outline: none;
+}
+
+.file-drop {
+  border: 2px dashed var(--border);
+  padding: var(--sp-4);
+  border-radius: var(--radius);
+  text-align: center;
+  background: var(--surface);
+}
+
+.file-drop:hover { border-color: var(--primary); background: var(--primary-light); }
+
+/* ========== 13. Alerts (tinted backgrounds, no side-stripe) ========== */
+.instruction-box {
+  background: oklch(95% 0.03 250);
+  border: 1px solid oklch(85% 0.05 250);
+  padding: var(--sp-4);
+  border-radius: var(--radius);
+}
+
+.instruction-meta { font-size: 0.875rem; color: var(--text-secondary); }
+
+.alert-warning, .low-stock {
+  background: oklch(95% 0.04 75);
+  color: oklch(35% 0.1 75);
+  border: 1px solid oklch(88% 0.06 75);
+  border-radius: var(--radius);
+}
+
+.alert-danger {
+  background: oklch(95% 0.04 25);
+  color: oklch(35% 0.12 25);
+  border: 1px solid oklch(88% 0.06 25);
+  border-radius: var(--radius);
+}
+
+.alert-success {
+  background: var(--stage-complete-bg);
+  color: var(--stage-complete-fg);
+  border: 1px solid oklch(85% 0.05 145);
+  border-radius: var(--radius);
+}
+
+.alert-info {
+  background: var(--primary-light);
+  color: oklch(35% 0.1 250);
+  border: 1px solid oklch(85% 0.04 250);
+  border-radius: var(--radius);
+}
+
+/* Activity items (used in index.html) - tinted, no side-stripe */
+.activity-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+/* ========== 14. Utilities ========== */
+.mb-10 { margin-bottom: 10px; }
+.mt-10 { margin-top: 10px; }
+.p-12  { padding: 12px; }
+.small-muted { color: var(--text-secondary); font-size: 0.875rem; }
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-4); }
+
+/* ========== 15. Responsive ========== */
 @media (max-width: 768px) {
-  /* Make top-level header rows stack vertically and align start */
   .main-container > .d-flex.justify-content-between,
   .main-container > .d-flex.justify-content-between.align-items-center,
   .main-container > .d-flex.justify-content-between.align-items-start {
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 0.5rem;
+    gap: var(--sp-2);
   }
 
-  /* Reduce heading sizes for mobile safety */
   h2 { font-size: 1.3rem; }
-
-  /* Buttons full width on small screens to improve touch targets */
   .btn { width: 100%; }
-
-  /* Forms: inputs stretch full width and have breathing room */
-  .form-control, .form-select { width: 100% !important; margin-bottom: 0.5rem; }
-
-  /* Make KPI cards stack nicely */
+  .form-control, .form-select { width: 100% !important; margin-bottom: var(--sp-2); }
   .kpi-card { text-align: left; }
-
-  /* Smaller table font on mobile for readability */
   table { font-size: 0.85rem; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .container-fluid.main-container { padding-left: 12px; padding-right: 12px; }
 }
 
-/* Tablet tweaks */
-@media (min-width: 769px) and (max-width: 1024px){
-  .btn { min-height: 44px; }
+@media (min-width: 769px) and (max-width: 1024px) {
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Prevent horizontal overflow except for tables (allow scrolling there) */
-html, body { overflow-x: hidden; }
-.table-responsive { overflow-x: auto; }
-
-/* Ensure main container has side padding on small screens so content doesn't touch edges */
-.container-fluid.main-container{ padding-left: 12px; padding-right: 12px; }
-
-/* Ensure tappable size and spacing */
-.btn, .btn-kb, .btn-kb-outline { min-height: 44px; padding-top: .55rem; padding-bottom: .55rem; }
-
-
+/* ========== 16. Print Styles ========== */
+@media print {
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .kb-navbar, .btn, .btn-kb, .btn-kb-outline, .file-drop, nav { display: none !important; }
+  .card, .card.kb-card, .stat-card, .kpi-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+  }
+  .table thead th { background: #eee; }
+  .table tbody tr { background: #fff; }
+  a { color: #000; text-decoration: none; }
+  .container-fluid.main-container { max-width: 100%; padding: 0; }
+}

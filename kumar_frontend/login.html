@@ -12,96 +12,182 @@
 
   <!-- Custom CSS -->
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+
+    :root {
+      --primary: #1e5a8a;
+      --primary-light: #e8f0f8;
+      --accent-green: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --surface: #f5f7fb;
+      --surface-raised: #ffffff;
+      --text-primary: #1a1d23;
+      --text-secondary: #6b7280;
+    }
+
     body {
-      background: linear-gradient(135deg, #1f2933, #374151);
+      background-color: var(--surface);
       height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      margin: 0;
+    }
+
+    .login-wrapper {
+      width: 100%;
+      max-width: 420px;
+      padding: 16px;
     }
 
     .login-card {
-      background: #ffffff;
+      background: var(--surface-raised);
       width: 100%;
-      max-width: 420px;
-      border-radius: 8px;
-      padding: 30px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 36px 32px 28px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
     }
 
-    .login-title {
+    .login-brand {
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 4px;
+    }
+
+    .login-brand-name {
+      font-family: 'Inter', system-ui, sans-serif;
       font-weight: 700;
-      font-size: 24px;
-      color: #1f2933;
+      font-size: 22px;
+      color: var(--primary);
+      letter-spacing: 0.2px;
     }
 
     .login-subtitle {
       text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      font-weight: 400;
+    }
+
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .form-control {
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      padding: 10px 12px;
       font-size: 14px;
-      color: #6b7280;
-      margin-bottom: 25px;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30, 90, 138, 0.1);
     }
 
     .btn-login {
-      background-color: #1f2933;
+      background-color: var(--primary);
       color: #fff;
       font-weight: 600;
+      font-size: 14px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
     }
 
     .btn-login:hover {
-      background-color: #111827;
+      background-color: #174d76;
+      color: #fff;
+    }
+
+    .btn-login:active {
+      background-color: #13415f;
     }
 
     .footer-text {
       text-align: center;
-      margin-top: 20px;
-      font-size: 12px;
-      color: #9ca3af;
+      margin-top: 24px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .register-link {
+      text-align: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .register-link small {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .register-link .btn {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .input-group .btn-outline-secondary {
+      border-color: #d1d5db;
+      color: var(--text-secondary);
+    }
+
+    .input-group .btn-outline-secondary:hover {
+      background-color: var(--surface);
+      color: var(--text-primary);
     }
   </style>
 </head>
 
 <body>
 
-  <div class="login-card">
-    <div class="login-title">🏗️ KumarBrothers</div>
-    <div class="login-subtitle">
-      Fabrication & Production Tracking System
-    </div>
-
-    <form id="loginForm">
-      <div class="mb-3">
-        <label class="form-label">Email / Username</label>
-        <input type="text" class="form-control" placeholder="Enter your email or username" required>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-brand-name">KumarBrothers Steel</div>
+      </div>
+      <div class="login-subtitle">
+        Production Tracking System
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Password</label>
-        <div class="input-group">
-          <input type="password" class="form-control" placeholder="Enter password" required>
-          <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
-            <i class="bi bi-eye"></i>
-          </button>
+      <form id="loginForm">
+        <div class="mb-3">
+          <label class="form-label">Email / Username</label>
+          <input type="text" class="form-control" placeholder="Enter your email or username" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <input type="password" class="form-control" placeholder="Enter password" required>
+            <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-login w-100">
+          Login
+        </button>
+      </form>
+
+      <div class="register-link">
+        <small>Don't have an account?</small>
+        <div class="mt-2">
+          <a href="register.html" class="btn btn-outline-primary btn-sm">Create an account</a>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-login w-100">
-        Login
-      </button>
-    </form>
-
-    <div class="text-center mt-3">
-      <small class="text-muted">Don't have an account?</small>
-      <div class="mt-2">
-        <a href="register.html" class="btn btn-outline-primary btn-sm">Create an account</a>
+      <div class="footer-text">
+        &copy; 2026 KumarBrothers. Internal Use Only.
       </div>
-    </div>
-
-    <div class="footer-text">
-      © 2026 KumarBrothers. Internal Use Only.
     </div>
   </div>
 
