@@ -7,6 +7,7 @@
   <title>KumarBrothers | My Profile</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/main.css">
   <style>
     :root {
       --kb-bg: #f8fafc;
@@ -193,6 +194,104 @@
 
 <body>
 
+  <!-- TOP BAR -->
+  <header class="kb-topbar">
+    <div class="d-flex align-items-center gap-3">
+      <button class="kb-hamburger" onclick="document.querySelector('.kb-sidebar').classList.toggle('open');document.querySelector('.kb-sidebar-overlay').classList.toggle('open')" type="button" aria-label="Toggle navigation">
+        <i class="bi bi-list"></i>
+      </button>
+      <a href="index.html" class="brand">KumarBrothers Steel</a>
+    </div>
+    <div class="topbar-right">
+      <div class="dropdown">
+        <button class="btn btn-link p-0 position-relative" type="button" data-bs-toggle="dropdown" style="color: oklch(98% 0.003 250);">
+          <i class="bi bi-bell" style="font-size: 1.1rem;"></i>
+          <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.6rem;">0</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" id="notifDropdownList" style="width: 300px; max-height: 400px; overflow-y: auto;">
+          <li><span class="dropdown-item text-muted">Loading...</span></li>
+        </ul>
+      </div>
+      <div class="role-badge" id="current-role" aria-live="polite">Loading...</div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div class="kb-sidebar-overlay" onclick="document.querySelector('.kb-sidebar').classList.remove('open');this.classList.remove('open')"></div>
+
+  <!-- SIDEBAR NAV -->
+  <nav class="kb-sidebar" aria-label="Main navigation">
+    <div class="nav-group-label">Main</div>
+    <a href="index.html" class="nav-item" data-page="index">
+      <i class="bi bi-grid me-2"></i>Dashboard
+    </a>
+
+    <div class="nav-group-label">Operations</div>
+    <a href="tracking_v2.html" class="nav-item" data-page="tracking_v2">
+      <i class="bi bi-kanban me-2"></i>Tracking
+    </a>
+    <a href="drawings.html" class="nav-item" data-page="drawings">
+      <i class="bi bi-rulers me-2"></i>Drawings
+    </a>
+    <a href="customers.html" class="nav-item" data-page="customers">
+      <i class="bi bi-people me-2"></i>Customers
+    </a>
+
+    <div class="nav-group-label">Inventory</div>
+    <a href="raw_material.html" class="nav-item" data-page="raw_material">
+      <i class="bi bi-box-seam me-2"></i>Raw Materials
+    </a>
+    <a href="materials.html" class="nav-item" data-page="materials">
+      <i class="bi bi-archive me-2"></i>Materials Master
+    </a>
+    <a href="stock.html" class="nav-item" data-page="stock">
+      <i class="bi bi-stack me-2"></i>Stock Overview
+    </a>
+    <a href="grn.html" class="nav-item" data-page="grn">
+      <i class="bi bi-truck me-2"></i>Goods Receipt
+    </a>
+
+    <div class="nav-group-label">Outbound</div>
+    <a href="dispatch.html" class="nav-item" data-page="dispatch">
+      <i class="bi bi-send me-2"></i>Dispatch
+    </a>
+    <a href="scrap.html" class="nav-item" data-page="scrap">
+      <i class="bi bi-recycle me-2"></i>Scrap
+    </a>
+    <a href="reusable.html" class="nav-item" data-page="reusable">
+      <i class="bi bi-arrow-repeat me-2"></i>Reusable
+    </a>
+
+    <div class="nav-group-label">System</div>
+    <a href="queries.html" class="nav-item" data-page="queries">
+      <i class="bi bi-chat-dots me-2"></i>Queries
+    </a>
+    <a href="instructions.html" class="nav-item" data-page="instructions">
+      <i class="bi bi-megaphone me-2"></i>Instructions
+    </a>
+    <a href="settings.html" class="nav-item" data-page="settings">
+      <i class="bi bi-gear me-2"></i>Settings
+    </a>
+    <a href="register.html" class="nav-item" data-page="register" data-permission="users:create">
+      <i class="bi bi-person-plus me-2"></i>Register User
+    </a>
+
+    <div class="nav-divider"></div>
+    <a href="#" class="nav-item nav-logout kb-logout">
+      <i class="bi bi-box-arrow-left me-2"></i>Logout
+    </a>
+  </nav>
+
+  <!-- Active page highlighting -->
+  <script>
+  (function() {
+    var page = location.pathname.split('/').pop().replace('.html', '') || 'index';
+    var active = document.querySelector('.kb-sidebar .nav-item[data-page="' + page + '"]');
+    if (active) active.classList.add('active');
+  })();
+  </script>
+
+  <main class="kb-main">
   <div class="profile-container">
     <h1 class="visually-hidden">My Profile</h1>
 
@@ -289,6 +388,8 @@
     </div>
 
   </div>
+
+  </main>
 
   <script src="js/config.js?v=20260416"></script>
   <script>

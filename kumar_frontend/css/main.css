@@ -112,46 +112,162 @@ a:hover { color: var(--primary); opacity: 0.85; }
 
 /* ========== 3. Layout ========== */
 .container-fluid.main-container {
-  padding: var(--sp-5) var(--sp-4);
+  padding: 0;
   max-width: var(--max-width);
-  margin: 0 auto;
+  margin: 0;
 }
 
-/* ========== 4. Navbar ========== */
-.kb-navbar {
+/* ========== 4. Layout: Top Bar + Sidebar ========== */
+
+/* Top bar - slim header */
+.kb-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
   background: var(--primary);
   color: oklch(98% 0.003 250);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-4);
+  z-index: 1030;
   box-shadow: var(--shadow);
-  border-radius: var(--radius-lg);
-  padding: var(--sp-3) var(--sp-4);
 }
 
-.kb-navbar .navbar-brand {
+.kb-topbar .brand {
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   color: oklch(98% 0.003 250);
+  text-decoration: none;
 }
 
-.kb-navbar .nav-link {
-  color: rgba(255, 255, 255, 0.9) !important;
-  font-weight: 500;
-  font-size: 0.9rem;
-  margin-right: var(--sp-3);
-  border-radius: var(--radius-sm);
-  padding: var(--sp-2) var(--sp-3);
+.kb-topbar .brand:hover {
+  color: oklch(98% 0.003 250);
+  opacity: 0.9;
 }
 
-.kb-navbar .nav-link:hover {
-  color: oklch(98% 0.003 250) !important;
-  background: rgba(255, 255, 255, 0.12);
+.kb-topbar .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
 }
 
-.kb-navbar .nav-link.active {
+/* Sidebar */
+.kb-sidebar {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  background: var(--surface-raised);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: var(--sp-4) 0;
+  z-index: 1020;
+  transition: transform 0.2s ease;
+}
+
+.kb-sidebar .nav-group-label {
+  font-size: 0.6875rem;
   font-weight: 700;
-  color: oklch(98% 0.003 250) !important;
-  background: rgba(255, 255, 255, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  padding: var(--sp-4) var(--sp-5) var(--sp-2);
 }
 
+.kb-sidebar .nav-item {
+  display: block;
+  padding: 0.5rem 1.25rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0 var(--sp-2);
+  border-radius: var(--radius-sm);
+}
+
+.kb-sidebar .nav-item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.kb-sidebar .nav-item.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.kb-sidebar .nav-divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--sp-3) var(--sp-5);
+}
+
+.kb-sidebar .nav-item.nav-logout {
+  color: var(--danger-red);
+}
+
+.kb-sidebar .nav-item.nav-logout:hover {
+  background: oklch(95% 0.04 25);
+}
+
+/* Main content area */
+.kb-main {
+  margin-left: 240px;
+  margin-top: 56px;
+  padding: var(--sp-5) var(--sp-6);
+  min-height: calc(100vh - 56px);
+}
+
+/* Hamburger toggle for mobile */
+.kb-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: oklch(98% 0.003 250);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+/* Sidebar overlay on mobile */
+.kb-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: oklch(0% 0 0 / 0.4);
+  z-index: 1019;
+}
+
+/* Mobile: sidebar slides in from left */
+@media (max-width: 991px) {
+  .kb-hamburger { display: block; }
+
+  .kb-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .kb-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .kb-sidebar-overlay.open {
+    display: block;
+  }
+
+  .kb-main {
+    margin-left: 0;
+  }
+}
+
+/* Old navbar - hidden (kept for backward compat until all pages migrate) */
+.kb-navbar { display: none; }
+
+/* Role badge (used in topbar) */
 .role-badge {
   background: rgba(255, 255, 255, 0.15);
   color: oklch(98% 0.003 250);
@@ -444,7 +560,9 @@ a:hover { color: var(--primary); opacity: 0.85; }
 /* ========== 16. Print Styles ========== */
 @media print {
   body { background: var(--surface-raised); color: var(--text-primary); font-size: 11pt; }
-  .kb-navbar, .btn, .btn-kb, .btn-kb-outline, .file-drop, nav { display: none !important; }
+  .kb-navbar, .kb-topbar, .kb-sidebar, .kb-sidebar-overlay, .kb-hamburger,
+  .btn, .btn-kb, .btn-kb-outline, .file-drop, nav { display: none !important; }
+  .kb-main { margin-left: 0; margin-top: 0; }
   .card, .card.kb-card, .stat-card, .kpi-card {
     box-shadow: none;
     border: 1px solid #ccc;
