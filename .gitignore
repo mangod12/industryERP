@@ -61,3 +61,10 @@ kbsteel-main/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Node / Playwright
+node_modules/
+package-lock.json
+package.json
+test-results/
+playwright-report/
