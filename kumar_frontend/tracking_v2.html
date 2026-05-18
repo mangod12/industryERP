@@ -19,7 +19,8 @@
     .kanban-column {
       flex: 1;
       min-width: 300px;
-      background: #f8f9fa;
+      background: #f8fbfe;
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 12px;
     }
@@ -31,24 +32,29 @@
       padding: 8px 12px;
       border-radius: 6px;
       margin-bottom: 12px;
-      color: white;
+      color: var(--text-primary);
       font-weight: 600;
+      border: 1px solid transparent;
     }
 
     .fabrication-header {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      background: #fff4db;
+      border-color: #e3b252;
     }
 
     .painting-header {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      background: #e8f2fb;
+      border-color: #9fc8ed;
     }
 
     .dispatch-header {
-      background: linear-gradient(135deg, #10b981, #059669);
+      background: #e6f7ee;
+      border-color: #91d4af;
     }
 
     .completed-header {
-      background: linear-gradient(135deg, #6b7280, #4b5563);
+      background: #edf1f6;
+      border-color: #c9d2de;
     }
 
     .kanban-cards {
@@ -218,11 +224,12 @@
 
     /* Search & Filter Bar */
     .filter-bar {
-      background: white;
+      background: var(--surface-raised);
+      border: 1px solid var(--border);
       border-radius: 8px;
       padding: 16px;
       margin-bottom: 20px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--shadow-sm);
     }
 
     /* Summary Stats */
@@ -280,7 +287,8 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(248, 251, 254, 0.76);
+      backdrop-filter: blur(2px);
       display: none;
       justify-content: center;
       align-items: center;
@@ -361,6 +369,23 @@
     .stage-tag.painting { background: #dbeafe; color: #1e40af; }
     .stage-tag.qc { background: #f3f4f6; color: #374151; }
     .stage-tag.dispatch { background: var(--stage-complete-bg); color: var(--stage-complete-fg); }
+
+    @media (max-width: 991px) {
+      .kanban-board {
+        overflow-x: auto;
+        min-height: auto;
+        padding-bottom: 8px;
+      }
+
+      .kanban-column {
+        flex: 0 0 82vw;
+        min-width: 280px;
+      }
+
+      .stage-stats {
+        flex-wrap: wrap;
+      }
+    }
   </style>
 </head>
 
@@ -481,7 +506,7 @@
           </li>
           <li class="nav-item">
             <button type="button" class="nav-link" id="tab-drawings" onclick="showDrawingsTab()">
-              📐 Drawings
+              <i class="bi bi-rulers"></i> Drawings
             </button>
           </li>
         </ul>
@@ -491,9 +516,9 @@
       </div>
       <div class="d-flex align-items-center gap-3">
         <span class="last-updated">Last updated: <span id="lastUpdate">-</span></span>
-        <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTrackingData()">🔄 Refresh</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="loadTrackingData()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
         <button type="button" class="btn btn-success btn-sm" onclick="downloadDispatchReport()">
-          📥 Dispatch Report
+          <i class="bi bi-download"></i> Dispatch Report
         </button>
         <!-- Pagination Controls -->
         <div id="pagination" class="ms-3"></div>
@@ -521,7 +546,7 @@
           </select>
         </div>
         <div class="col-md-2">
-          <button type="button" class="btn btn-primary w-100" onclick="applyFilters()">🔍 Search</button>
+          <button type="button" class="btn btn-primary w-100" onclick="applyFilters()"><i class="bi bi-search"></i> Search</button>
         </div>
         <div class="col-md-2">
           <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">Clear</button>
@@ -531,10 +556,10 @@
 
     <!-- Stage Stats Summary -->
     <div class="stage-stats">
-      <span class="stat-pill fabrication">🔧 Fabrication: <span id="countFab">0</span></span>
-      <span class="stat-pill painting">🎨 Painting: <span id="countPaint">0</span></span>
-      <span class="stat-pill dispatch">🚚 Dispatch: <span id="countDispatch">0</span></span>
-      <span class="stat-pill completed">✅ Completed: <span id="countComplete">0</span></span>
+      <span class="stat-pill fabrication">Fabrication: <span id="countFab">0</span></span>
+      <span class="stat-pill painting">Painting: <span id="countPaint">0</span></span>
+      <span class="stat-pill dispatch">Dispatch: <span id="countDispatch">0</span></span>
+      <span class="stat-pill completed">Completed: <span id="countComplete">0</span></span>
     </div>
 
     <!-- Kanban Board View -->
@@ -542,7 +567,7 @@
       <div id="kanbanView" class="kanban-board">
         <div class="kanban-column">
           <div class="kanban-column-header fabrication-header">
-            <span>🔧 Fabrication</span>
+            <span>Fabrication</span>
             <span class="badge bg-white text-dark" id="fabCount">0</span>
           </div>
           <div class="kanban-cards" id="fabCards"></div>
@@ -550,7 +575,7 @@
 
         <div class="kanban-column">
           <div class="kanban-column-header painting-header">
-            <span>🎨 Painting</span>
+            <span>Painting</span>
             <span class="badge bg-white text-dark" id="paintCount">0</span>
           </div>
           <div class="kanban-cards" id="paintCards"></div>
@@ -558,7 +583,7 @@
 
         <div class="kanban-column">
           <div class="kanban-column-header dispatch-header">
-            <span>🚚 Dispatch</span>
+            <span>Dispatch</span>
             <span class="badge bg-white text-dark" id="dispatchCount">0</span>
           </div>
           <div class="kanban-cards" id="dispatchCards"></div>
@@ -566,7 +591,7 @@
 
         <div class="kanban-column">
           <div class="kanban-column-header completed-header">
-            <span>✅ Completed</span>
+            <span>Completed</span>
             <span class="badge bg-white text-dark" id="completeCount">0</span>
           </div>
           <div class="kanban-cards" id="completeCards"></div>
@@ -649,7 +674,7 @@
         </div>
 
         <button type="button" class="btn btn-success btn-sm mt-2" onclick="downloadDispatchReport()">
-          📥 Download Dispatch Report
+          <i class="bi bi-download"></i> Download Dispatch Report
         </button>
       </div>
     </div>
@@ -670,7 +695,7 @@
           </select>
         </div>
         <div class="col-md-2 d-grid">
-          <button type="button" class="btn btn-primary" onclick="loadDrawingTracking()">🔍 Search</button>
+          <button type="button" class="btn btn-primary" onclick="loadDrawingTracking()"><i class="bi bi-search"></i> Search</button>
         </div>
         <div class="col-md-2 d-grid">
           <button type="button" class="btn btn-outline-secondary" onclick="clearDrawingFilters()">Clear</button>
@@ -680,38 +705,38 @@
 
     <!-- Drawing Stage Stats -->
     <div class="stage-stats mb-3">
-      <span class="stat-pill fabrication">🔧 Fabrication: <span id="dwgCountFab">0</span></span>
-      <span class="stat-pill painting">🎨 Painting: <span id="dwgCountPaint">0</span></span>
-      <span class="stat-pill dispatch">🚚 Dispatch: <span id="dwgCountDispatch">0</span></span>
-      <span class="stat-pill completed">✅ Completed: <span id="dwgCountComplete">0</span></span>
+      <span class="stat-pill fabrication">Fabrication: <span id="dwgCountFab">0</span></span>
+      <span class="stat-pill painting">Painting: <span id="dwgCountPaint">0</span></span>
+      <span class="stat-pill dispatch">Dispatch: <span id="dwgCountDispatch">0</span></span>
+      <span class="stat-pill completed">Completed: <span id="dwgCountComplete">0</span></span>
     </div>
 
     <!-- Drawing Kanban Board -->
     <div id="drawingKanbanView" class="kanban-board">
       <div class="kanban-column">
         <div class="kanban-column-header fabrication-header">
-          <span>🔧 Fabrication</span>
+          <span>Fabrication</span>
           <span class="badge bg-white text-dark" id="dwgFabCount">0</span>
         </div>
         <div class="kanban-cards" id="dwgFabCards"></div>
       </div>
       <div class="kanban-column">
         <div class="kanban-column-header painting-header">
-          <span>🎨 Painting</span>
+          <span>Painting</span>
           <span class="badge bg-white text-dark" id="dwgPaintCount">0</span>
         </div>
         <div class="kanban-cards" id="dwgPaintCards"></div>
       </div>
       <div class="kanban-column">
         <div class="kanban-column-header dispatch-header">
-          <span>🚚 Dispatch</span>
+          <span>Dispatch</span>
           <span class="badge bg-white text-dark" id="dwgDispatchCount">0</span>
         </div>
         <div class="kanban-cards" id="dwgDispatchCards"></div>
       </div>
       <div class="kanban-column">
         <div class="kanban-column-header completed-header">
-          <span>✅ Completed</span>
+          <span>Completed</span>
           <span class="badge bg-white text-dark" id="dwgCompleteCount">0</span>
         </div>
         <div class="kanban-cards" id="dwgCompleteCards"></div>
@@ -970,7 +995,7 @@
       // Show empty state if no items
       Object.entries(containers).forEach(([stage, container]) => {
         if (container.children.length === 0) {
-          container.innerHTML = '<div class="text-muted text-center py-4 small">No items</div>';
+          container.innerHTML = '<div class="kb-empty-state py-3 small"><i class="bi bi-inbox"></i>No items</div>';
         }
       });
     }
@@ -1554,7 +1579,7 @@
 
       Object.entries(containers).forEach(([stage, container]) => {
         if (container.innerHTML.trim() === '') {
-          container.innerHTML = '<div class="text-muted text-center py-4 small">No drawings</div>';
+          container.innerHTML = '<div class="kb-empty-state py-3 small"><i class="bi bi-inbox"></i>No drawings</div>';
         }
       });
     }

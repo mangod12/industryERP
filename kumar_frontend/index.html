@@ -548,7 +548,7 @@
               invBody.appendChild(tr);
             });
           } else {
-            invBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No materials found. <a href="raw_material.html">Add Raw Materials</a></td></tr>';
+            invBody.innerHTML = '<tr><td colspan="5"><div class="kb-empty-state"><i class="bi bi-box-seam"></i>No materials found. <a href="raw_material.html">Add Raw Materials</a></div></td></tr>';
           }
         }
 
@@ -563,7 +563,7 @@
             alertsContainer.appendChild(div);
           });
         } else {
-          alertsContainer.innerHTML = '<div class="alert-tinted alert-tinted-success">All materials are at healthy stock levels</div>';
+          alertsContainer.innerHTML = '<div class="alert-tinted alert-tinted-success"><i class="bi bi-check-circle me-1"></i> All materials are at healthy stock levels</div>';
         }
 
         // Update recent activity
@@ -580,7 +580,7 @@
             activityContainer.appendChild(div);
           });
         } else {
-          activityContainer.innerHTML = '<div class="text-muted">No recent activity</div>';
+          activityContainer.innerHTML = '<div class="kb-empty-state py-3"><i class="bi bi-clock-history"></i>No recent activity</div>';
         }
 
         // Fetch live production items
@@ -610,7 +610,7 @@
               prodBody.appendChild(tr);
             });
           } else {
-            prodBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No production items. <a href="customers.html">Upload tracking Excel for a customer</a></td></tr>';
+            prodBody.innerHTML = '<tr><td colspan="5"><div class="kb-empty-state"><i class="bi bi-kanban"></i>No production items. <a href="customers.html">Upload tracking Excel for a customer</a></div></td></tr>';
           }
         }
 
@@ -703,7 +703,7 @@
         const container = document.getElementById('alertsContainer');
         if (container) {
           if (notifs.length === 0) {
-            container.innerHTML = '<div class="text-muted small">No new alerts</div>';
+            container.innerHTML = '<div class="kb-empty-state py-3 small"><i class="bi bi-bell"></i>No new alerts</div>';
           } else {
             container.innerHTML = notifs.slice(0, 5).map(n => `
               <div class="alert alert-light border mb-2 p-2">

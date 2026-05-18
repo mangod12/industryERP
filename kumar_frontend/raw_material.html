@@ -127,11 +127,11 @@
           completes.</small>
       </div>
       <div>
-        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#mappingsModal">🔗 Material
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#mappingsModal"><i class="bi bi-link-45deg"></i> Material
           Mappings</button>
-        <button type="button" class="btn btn-kb ms-2" data-bs-toggle="modal" data-bs-target="#addMaterialModal">+ Add
+        <button type="button" class="btn btn-kb ms-2" data-bs-toggle="modal" data-bs-target="#addMaterialModal"><i class="bi bi-plus-lg"></i> Add
           Material</button>
-        <button type="button" class="btn btn-outline-secondary ms-2" onclick="refreshInventory()">🔄 Refresh</button>
+        <button type="button" class="btn btn-outline-secondary ms-2" onclick="refreshInventory()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
       </div>
     </div>
 
@@ -255,7 +255,9 @@
     </div>
 
     <!-- Empty / No Results State -->
-    <div class="text-center text-muted py-4 d-none" id="noInventoryResults">No materials found matching the criteria.
+    <div class="kb-empty-state d-none" id="noInventoryResults">
+      <i class="bi bi-box-seam"></i>
+      No materials found matching the criteria.
     </div>
 
   </div>
@@ -437,8 +439,10 @@
             <td class="remaining-qty mono"><strong>${remaining.toFixed(2)}</strong></td>
             <td><span class="badge ${statusClass}">${statusText}</span></td>
             <td>
-              <button type="button" class="btn btn-sm btn-outline-primary edit-btn">Edit</button>
-              <button type="button" class="btn btn-sm btn-outline-danger delete-btn">Delete</button>
+              <div class="table-actions">
+                <button type="button" class="btn btn-sm btn-outline-primary edit-btn"><i class="bi bi-pencil"></i> Edit</button>
+                <button type="button" class="btn btn-sm btn-outline-danger delete-btn"><i class="bi bi-trash"></i> Delete</button>
+              </div>
             </td>
           `;
         tbody.appendChild(tr);
@@ -543,8 +547,10 @@
           <td>-</td>
           <td>-</td>
           <td>
-            <button type="button" class="btn btn-sm btn-success save-btn">Save</button>
-            <button type="button" class="btn btn-sm btn-secondary cancel-btn">Cancel</button>
+            <div class="table-actions">
+              <button type="button" class="btn btn-sm btn-success save-btn"><i class="bi bi-check-lg"></i> Save</button>
+              <button type="button" class="btn btn-sm btn-secondary cancel-btn">Cancel</button>
+            </div>
           </td>
         `;
 
@@ -659,7 +665,7 @@
             <td>${escapeHtml(m.excel_name)}</td>
             <td>${escapeHtml(m.material ? m.material.name : 'Unknown')}</td>
             <td>
-              <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMapping(${m.id})">Delete</button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteMapping(${m.id})"><i class="bi bi-trash"></i> Delete</button>
             </td>
           </tr>
         `).join('');

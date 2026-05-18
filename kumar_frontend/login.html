@@ -15,7 +15,7 @@
   <style>
     body {
       background-color: var(--surface);
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -26,7 +26,7 @@
     .login-wrapper {
       width: 100%;
       max-width: 420px;
-      padding: 16px;
+      padding: 20px;
     }
 
     .login-card {
@@ -34,7 +34,8 @@
       width: 100%;
       border-radius: 12px;
       padding: 36px 32px 28px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
     }
 
     .login-brand {
@@ -47,7 +48,8 @@
       font-weight: 700;
       font-size: 22px;
       color: var(--primary);
-      letter-spacing: 0.2px;
+      letter-spacing: 0;
+      line-height: 1.15;
     }
 
     .login-subtitle {
@@ -88,8 +90,21 @@
     }
 
     .btn-login:hover {
-      background-color: #174d76;
+      background-color: var(--primary-dark);
       color: #fff;
+    }
+
+    .login-status .alert {
+      margin-top: 16px;
+      margin-bottom: 0;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 480px) {
+      body { align-items: flex-start; padding-top: 56px; }
+      .login-card { padding: 28px 20px 24px; }
+      .login-brand-name { font-size: 20px; }
     }
 
     .btn-login:active {
@@ -191,6 +206,7 @@
     document.getElementById("loginForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       const form = this;
+      const submitBtn = form.querySelector('button[type="submit"]');
       const username = form.querySelector('input[type=text]').value.trim();
       const password = form.querySelector('.input-group input').value.trim();
 
@@ -203,6 +219,10 @@
       form.appendChild(statusEl);
 
       try {
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Signing in';
+        }
         const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
         const payload = { username, password };
         const res = await fetch(`${API_BASE}/auth/login`, {
@@ -213,7 +233,7 @@
         const data = await res.json();
         if (!res.ok) {
           const detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
-          statusEl.innerHTML = `<div class='text-danger mt-2'>${detail || 'Login failed'}</div>`;
+          statusEl.innerHTML = `<div class='alert alert-danger'>${detail || 'Login failed'}</div>`;
           return;
         }
 
@@ -225,10 +245,15 @@
           localStorage.setItem('kb_role', data.role || 'User');
         }
 
-        statusEl.innerHTML = `<div class='text-success mt-2'>Login successful! Redirecting...</div>`;
+        statusEl.innerHTML = `<div class='alert alert-success'>Login successful. Redirecting...</div>`;
         setTimeout(() => { window.location.href = 'index.html'; }, 500);
       } catch (err) {
-        statusEl.innerHTML = `<div class='text-danger mt-2'>Login error: ${err.message}</div>`;
+        statusEl.innerHTML = `<div class='alert alert-danger'>Login error: ${err.message}</div>`;
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Login';
+        }
       }
     });
   </script>

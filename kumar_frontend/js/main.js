@@ -15,9 +15,14 @@
     const loader = document.createElement('div');
     loader.id = 'globalLoader';
     loader.className = 'position-fixed top-0 start-0 w-100 h-100 d-none justify-content-center align-items-center';
-    loader.style.background = 'rgba(255,255,255,0.6)';
+    loader.style.background = 'rgba(248,251,254,0.72)';
     loader.style.zIndex = '2000';
-    loader.innerHTML = `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>`;
+    loader.innerHTML = `
+      <div class="kb-loading-surface px-4 py-3 shadow-sm">
+        <div class="spinner-border text-primary" role="status"></div>
+        <span class="fw-semibold">Loading</span>
+      </div>
+    `;
     document.body.appendChild(loader);
 
     // Create toast container

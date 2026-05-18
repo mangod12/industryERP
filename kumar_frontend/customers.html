@@ -117,8 +117,8 @@
         <small class="text-muted">Overview of all active and completed customer projects</small>
       </div>
       <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-primary" onclick="applyCustomerFilters()">🔄 Refresh</button>
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal">+ Add
+        <button type="button" class="btn btn-outline-primary" onclick="applyCustomerFilters()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCustomerModal"><i class="bi bi-plus-lg"></i> Add
           Customer</button>
       </div>
     </div>
@@ -187,8 +187,10 @@
     </div>
 
     <!-- Empty / No Results State -->
-    <div class="text-center text-muted py-4 d-none" id="noCustomerResults">No customers found matching the selected
-      filters.</div>
+    <div class="kb-empty-state d-none" id="noCustomerResults">
+      <i class="bi bi-search"></i>
+      No customers found matching the selected filters.
+    </div>
 
   </div>
   </main>
@@ -284,8 +286,8 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-warning" id="previewExcelBtn">🔍 Preview & Check Materials</button>
-          <button type="button" class="btn btn-primary" id="importExcelBtn" disabled>✅ Import & Start Tracking</button>
+          <button type="button" class="btn btn-warning" id="previewExcelBtn"><i class="bi bi-search"></i> Preview & Check Materials</button>
+          <button type="button" class="btn btn-primary" id="importExcelBtn" disabled><i class="bi bi-check2-circle"></i> Import & Start Tracking</button>
         </div>
       </div>
     </div>
@@ -344,14 +346,16 @@
               <td>${escapeHtml(curStage)}</td>
               <td>${statusBadge}</td>
               <td>
-                <a class="btn btn-sm btn-primary me-1" href="customer_details.html?id=${c.id}">View</a>
-                <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')">Upload Excel</button>
+                <div class="table-actions">
+                <a class="btn btn-sm btn-primary" href="customer_details.html?id=${c.id}"><i class="bi bi-eye"></i> View</a>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')"><i class="bi bi-upload"></i> Upload</button>
                 <div class="dropdown d-inline-block">
                   <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">More</button>
                   <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="#" data-permission="customers:delete" onclick="softDeleteCustomer(${c.id}, '${escapeHtml(c.name)}'); return false;">Soft Delete</a></li>
                     <li><a class="dropdown-item text-danger" href="#" data-permission="customers:hard_delete" onclick="confirmHardDelete(${c.id}, '${escapeHtml(c.name)}'); return false;">Hard Delete</a></li>
                   </ul>
+                </div>
                 </div>
               </td>
             `;
@@ -434,7 +438,7 @@
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
 
-        document.getElementById('uploadStatus').innerHTML = '<span class="text-info">🔄 Analyzing file and checking materials...</span>';
+        document.getElementById('uploadStatus').innerHTML = '<span class="text-info"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Analyzing file and checking materials...</span>';
 
         try {
           // Use the new preview-import endpoint that checks material matching
@@ -580,7 +584,7 @@
           importUrl += `?inventory_id=${inventoryId}`;
         }
 
-        document.getElementById('uploadStatus').innerHTML = '<span class="text-info">🔄 Importing tracking items...</span>';
+        document.getElementById('uploadStatus').innerHTML = '<span class="text-info"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Importing tracking items...</span>';
         this.disabled = true;
 
         try {
