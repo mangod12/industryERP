@@ -142,11 +142,11 @@
           <div class="d-flex justify-content-between">
             <div>
               <small class="text-muted">Total Stock (Purchased)</small>
-              <h4 id="statTotalPurchased">0</h4>
+              <h4 id="statTotalPurchased" class="mono">0</h4>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-danger reset-btn d-none" onclick="resetStock()"
+            <button type="button" class="btn btn-sm btn-outline-secondary reset-btn d-none" onclick="resetStock()"
               title="Reset Total Stock (Clear Everything)">
-              ✕ Reset
+              Reset
             </button>
           </div>
         </div>
@@ -156,11 +156,11 @@
           <div class="d-flex justify-content-between">
             <div>
               <small class="text-muted">Total Consumed</small>
-              <h4 id="statTotalConsumed">0</h4>
+              <h4 id="statTotalConsumed" class="mono">0</h4>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-warning reset-btn d-none" onclick="resetConsumed()"
+            <button type="button" class="btn btn-sm btn-outline-secondary reset-btn d-none" onclick="resetConsumed()"
               title="Reset Consumed Only">
-              ✕ Reset
+              Reset
             </button>
           </div>
         </div>
@@ -168,13 +168,13 @@
       <div class="col-md-3">
         <div class="card p-3 h-100">
           <small class="text-muted">Current Available</small>
-          <h4 id="statCurrentStock">0</h4>
+          <h4 id="statCurrentStock" class="mono">0</h4>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card p-3 h-100">
           <small class="text-muted">Low Stock Items</small>
-          <h4 id="statLowStock" class="text-danger">0</h4>
+          <h4 id="statLowStock" class="text-danger mono">0</h4>
         </div>
       </div>
     </div>
@@ -432,9 +432,9 @@
         tr.innerHTML = `
             <td class="inv-name">${escapeHtml(item.name)}</td>
             <td class="inv-unit">${escapeHtml(item.unit || '-')}</td>
-            <td class="inv-total">${Number(item.total).toFixed(2)}</td>
-            <td class="inv-used">${Number(item.used).toFixed(2)}</td>
-            <td class="remaining-qty"><strong>${remaining.toFixed(2)}</strong></td>
+            <td class="inv-total mono">${Number(item.total).toFixed(2)}</td>
+            <td class="inv-used mono">${Number(item.used).toFixed(2)}</td>
+            <td class="remaining-qty mono"><strong>${remaining.toFixed(2)}</strong></td>
             <td><span class="badge ${statusClass}">${statusText}</span></td>
             <td>
               <button type="button" class="btn btn-sm btn-outline-primary edit-btn">Edit</button>

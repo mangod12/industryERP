@@ -340,14 +340,19 @@
           row.innerHTML = `
               <td>${escapeHtml(c.name || '')}</td>
               <td>${escapeHtml(c.project || c.project_details || c.name || '')}</td>
-              <td>${escapeHtml(String(totalItems))}</td>
+              <td class="mono">${escapeHtml(String(totalItems))}</td>
               <td>${escapeHtml(curStage)}</td>
               <td>${statusBadge}</td>
               <td>
-                <a class="btn btn-sm btn-kb me-1" href="customer_details.html?id=${c.id}">View</a>
-                <button type="button" class="btn btn-sm btn-outline-success me-1" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')">📤 Upload Excel</button>
-                <button type="button" class="btn btn-warning btn-sm me-1" data-permission="customers:delete" onclick="softDeleteCustomer(${c.id}, '${escapeHtml(c.name)}')">Soft Delete</button>
-                <button type="button" class="btn btn-danger btn-sm" data-permission="customers:hard_delete" onclick="confirmHardDelete(${c.id}, '${escapeHtml(c.name)}')">Hard Delete</button>
+                <a class="btn btn-sm btn-primary me-1" href="customer_details.html?id=${c.id}">View</a>
+                <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')">Upload Excel</button>
+                <div class="dropdown d-inline-block">
+                  <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">More</button>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" data-permission="customers:delete" onclick="softDeleteCustomer(${c.id}, '${escapeHtml(c.name)}'); return false;">Soft Delete</a></li>
+                    <li><a class="dropdown-item text-danger" href="#" data-permission="customers:hard_delete" onclick="confirmHardDelete(${c.id}, '${escapeHtml(c.name)}'); return false;">Hard Delete</a></li>
+                  </ul>
+                </div>
               </td>
             `;
           tbody.appendChild(row);

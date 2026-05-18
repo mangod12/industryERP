@@ -527,7 +527,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
 .p-12  { padding: 12px; }
 .small-muted { color: var(--text-secondary); font-size: 0.875rem; }
 
-.text-mono {
+.mono, .text-mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
