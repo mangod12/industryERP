@@ -1,178 +1,125 @@
 # KumarBrothers Steel ERP
 
+Production-oriented ERP for a steel fabrication workflow. The system tracks customers, drawings, raw material receipts, inventory lots, production stages, dispatch, scrap, accounting records, reports, and role-based access.
+
 [![CI](https://github.com/mangod12/industryERP/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/ci.yml)
 [![Deploy](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml)
 
-Production ERP running daily operations at a steel fabrication business. 172 endpoints, 6-role RBAC, FastAPI + PostgreSQL on Cloud SQL + Cloud Run.
+## What Is In This Repo
 
----
-
-## Live Demo
-
-| | URL |
-|---|---|
-| **App** | [kbsteel-backend-498310931350.asia-south1.run.app](https://kbsteel-backend-498310931350.asia-south1.run.app) |
-| **API Docs** | [/docs](https://kbsteel-backend-498310931350.asia-south1.run.app/docs) |
-| **Version** | [/version](https://kbsteel-backend-498310931350.asia-south1.run.app/version) |
-
-### Demo Credentials
-
-| Username | Password | Role |
+| Area | Path | What it does |
 |---|---|---|
-| `admin` | `AdminTest2026Kbs` | Boss (full access) |
-| `supervisor` | *(contact admin)* | Software Supervisor |
-| `storekeeper` | *(contact admin)* | Store Keeper |
-| `qainspector` | *(contact admin)* | QA Inspector |
-| `dispatchop` | *(contact admin)* | Dispatch Operator |
-| `user` | *(contact admin)* | View-only |
+| FastAPI app | `backend_core/app/main.py` | App factory, router mounting, CORS, startup DB setup, frontend file serving. |
+| Domain models | `backend_core/app/models*.py` | v1, v2, v3, and accounting SQLAlchemy models. |
+| Business services | `backend_core/app/services/` | Inventory, workflow, drawing, dispatch, reports, scrap, accounting, printing. |
+| API routers | `backend_core/app/routers/` plus legacy modules | GRN, dispatch, drawings, inventory v2, reports, settings, print formats, and legacy routes. |
+| Frontend | `kumar_frontend/` | Static HTML/CSS/JS pages served by FastAPI. |
+| Migrations | `alembic/` | Alembic-managed production schema evolution. |
+| Tests | `tests/` | Unit, integration, workflow, document, inventory, and E2E-style checks. |
+| Deployment | `Dockerfile`, `deploy/`, `.github/workflows/` | Cloud Run build/deploy and container startup. |
 
----
+## Business Flow
 
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Backend | FastAPI 0.128.0, Python 3.12, Gunicorn + Uvicorn |
-| ORM | SQLAlchemy 2.0.46, Pydantic v2 |
-| Database | PostgreSQL (Cloud SQL) / SQLite (dev) |
-| Frontend | Vanilla JS, Bootstrap 5.3.2, no build step |
-| Auth | JWT (python-jose), bcrypt, 6 RBAC roles |
-| Excel | pandas 3.0.0 + openpyxl for import/export |
-| Deploy | Google Cloud Run, Artifact Registry, Cloud Build |
-| CI/CD | GitHub Actions (Workload Identity Federation) |
-
----
-
-## Core Business Flow
-
-```
-Raw Material Receipt (GRN) --> Weighbridge --> QA Inspection --> Stock Lot
-     |
-Customer Order --> Excel Upload (auto-link profiles to inventory)
-     |
-Fabrication --> Painting --> Dispatch --> Completed
-     |                              |
-Auto-deduct inventory          Dispatch note --> Weighbridge --> Ship
-     |
-Scrap/Waste --> Recovery or Write-off
+```text
+Customer and drawing setup
+  -> raw material receipt / GRN
+  -> lot-level inventory and stock valuation
+  -> drawing/component production stages
+  -> fabrication, painting, QA, dispatch
+  -> dispatch documents and reports
+  -> scrap, reusable stock, accounting records
 ```
 
-## Key Features
+## Core Features
 
-- **Drawing-based production tracking (v3)** — Kanban board with per-component stage tracking
-- **Dual inventory system** — v1 simple counts + v2 lot-level traceability with immutable audit trail
-- **GRN/Dispatch workflows** — Goods receipt and dispatch with weighbridge integration
-- **Auto material deduction** — Fabrication stage auto-deducts from inventory with double-deduction prevention
-- **Excel import** — 90+ column alias matching, auto-links profiles to raw materials
-- **6-role RBAC** — Boss, Supervisor, Store Keeper, QA Inspector, Dispatch Operator, User
-- **Scrap management** — Track waste, recover reusable stock, loss analytics
-- **Real-time dashboard** — Live counts, low stock alerts, auto-refresh
+- Static frontend served by the FastAPI backend; no frontend build step.
+- JWT authentication with role-based access.
+- Customer, query, instruction, tracking, dashboard, notification, and user modules.
+- v2 inventory operations for lot traceability, GRN, dispatch, and stock movement.
+- v3 drawing-based production tracking.
+- Auto material deduction through inventory/workflow services.
+- Scrap and reusable stock management.
+- Report and print-format generation using templates.
+- Alembic migrations for production schema changes.
+- Cloud Run deployment via GitHub Actions and Workload Identity Federation.
 
----
-
-## Quick Start (Local Development)
+## Local Development
 
 ```bash
-# Clone and setup
 git clone https://github.com/mangod12/industryERP.git
 cd industryERP
 
-# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+. .venv/Scripts/activate  # Windows PowerShell users can use .venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-dev.txt
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Start (SQLite dev DB created automatically)
 uvicorn backend_core.app.main:app --reload --port 8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000) — frontend is served by FastAPI.
+Open:
 
-Admin credentials are printed to console on first startup.
+- App: `http://localhost:8000`
+- API docs: `http://localhost:8000/docs`
+- Version: `http://localhost:8000/version`
 
----
+In development mode, startup uses `create_all()` and seeds the local database. In production mode, use Alembic migrations.
 
-## API Overview
+## Configuration
 
-**172 endpoints** across 3 API versions:
+Relevant environment variables include:
 
-| Version | Prefix | Endpoints | Purpose |
-|---|---|---|---|
-| v1 | `/auth`, `/customers`, `/tracking`, etc. | 77 | Legacy CRUD, stage tracking |
-| v2 | `/api/v2/*` | 27 | Lot-level inventory, GRN, dispatch |
-| v3 | `/api/v3/*` | + | Drawing-based production tracking |
+| Variable | Purpose |
+|---|---|
+| `ENVIRONMENT` | `development` enables local schema creation; `production` expects Alembic-managed schema. |
+| `DATABASE_URL` | Database URL. SQLite is used for local development when configured; PostgreSQL is used in production. |
+| `KUMAR_SECRET_KEY` | JWT signing secret. |
+| `CORS_ORIGINS` | Comma-separated allowed origins. |
 
-Full interactive docs at [`/docs`](https://kbsteel-backend-498310931350.asia-south1.run.app/docs).
+Do not publish production credentials in this README. Use the configured seed/admin path or deployment secrets for real environments.
 
----
+## API Organization
 
-## Project Structure
+`backend_core/app/main.py` mounts these major groups:
 
-```
-kbsteel-old/
-├── backend_core/app/          # FastAPI application
-│   ├── main.py                # App factory, router mounting
-│   ├── models.py              # v1 models (15 tables)
-│   ├── models_v2.py           # v2 models (12 tables)
-│   ├── models_v3.py           # v3 drawing models (10 tables)
-│   ├── security.py            # JWT, RBAC, rate limiting
-│   ├── version.py             # Version tracking
-│   ├── db.py                  # Engine, sessions, migrations
-│   ├── services/              # Business logic layer
-│   └── routers/               # v2/v3 API endpoints
-├── kumar_frontend/            # 24 HTML pages, vanilla JS
-│   ├── js/config.js           # Auth, API client, RBAC
-│   └── css/main.css           # Theming
-├── tests/                     # Test suite
-│   ├── test_v3_drawings.py    # Unit tests (TestClient)
-│   └── e2e_cloud_run.py       # 78 E2E tests against live deployment
-├── .github/workflows/         # CI/CD pipelines
-│   ├── ci.yml                 # Tests + Docker build verification
-│   └── deploy.yml             # Cloud Build + Cloud Run deploy
-├── Dockerfile                 # Production container
-└── deploy/                    # nginx.conf, start.sh
+- Legacy routes: `/auth`, `/users`, `/customers`, `/excel`, `/queries`, `/notifications`, `/instructions`, `/inventory`, `/dashboard`, `/scrap`, `/mappings`, `/tracking`.
+- Tracking API: `/api/tracking`.
+- v2/v3 routes: inventory v2, GRN, dispatch, drawings v3.
+- Documents and reports: print formats and reports.
+- Settings: company, naming series, notification, and system settings.
+
+## Tests And Quality
+
+CI runs:
+
+```bash
+ruff check backend_core/
+ruff format --check backend_core/
+python -m pytest tests/ -v --ignore=tests/test_every_page.py --ignore=tests/test_full_user_flows.py --cov=backend_core/app --cov-report=term-missing --cov-report=xml --cov-fail-under=60
+docker build -t kbsteel-backend:test .
 ```
 
----
+Local focused test run:
 
-## CI/CD Pipeline
-
+```bash
+python -m pytest tests/ -v
 ```
-git push main --> CI (tests + Docker build) --> Cloud Build --> Cloud Run (live)
-```
-
-- **CI:** Python 3.12 unit tests, Docker build verification on every push/PR
-- **CD:** Automatic deploy to Cloud Run on push to `main` via Workload Identity Federation
-
----
 
 ## Deployment
 
-### Google Cloud Run (Production)
+The Cloud Run workflow:
 
-The app auto-deploys to Cloud Run on push to `main`. Manual deploy:
+1. Authenticates to Google Cloud through Workload Identity Federation.
+2. Builds and pushes an image to Artifact Registry.
+3. Deploys service `kbsteel-backend` in `asia-south1`.
+4. Attaches Cloud SQL instance `kbsteel-pg`.
+5. Verifies the live `/version` endpoint.
 
-```bash
-gcloud run deploy kbsteel-backend \
-  --source . \
-  --region asia-south1 \
-  --project kbsteel-erp \
-  --allow-unauthenticated
-```
+## Current Limitations
 
-### Environment Variables
-
-| Variable | Required | Purpose |
-|---|---|---|
-| `KUMAR_SECRET_KEY` | prod | JWT signing key (min 32 chars) |
-| `ENVIRONMENT` | no | `production` or `development` |
-| `DATABASE_URL` | prod | PostgreSQL connection string |
-| `CORS_ORIGINS` | no | Comma-separated allowed origins |
-
----
+- The frontend is intentionally static HTML/JS; there is no frontend package manager or build pipeline.
+- Production schema changes should go through Alembic, not startup `create_all()`.
+- Some legacy v1 routes remain for compatibility while v2/v3 flows cover newer inventory and drawing workflows.
 
 ## License
 
-Private — Kumar Brothers Steel Industry.
+MIT. See [LICENSE](LICENSE).
