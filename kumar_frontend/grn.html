@@ -29,7 +29,7 @@
     </div>
     <div class="topbar-right">
       <div class="dropdown">
-        <button class="btn btn-link p-0 position-relative" type="button" data-bs-toggle="dropdown" style="color: oklch(98% 0.003 250);">
+        <button class="btn btn-link p-0 position-relative" type="button" data-bs-toggle="dropdown" aria-label="Notifications" title="Notifications" style="color: oklch(98% 0.003 250);">
           <i class="bi bi-bell" style="font-size: 1.1rem;"></i>
           <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.6rem;">0</span>
         </button>
@@ -179,6 +179,10 @@
           <div class="col-md-3">
             <input type="date" class="form-control" id="filterDateTo" placeholder="To Date">
           </div>
+          <div class="col-md-12 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-primary" id="btnApplyGRNFilters"><i class="bi bi-search"></i> Search</button>
+            <button type="button" class="btn btn-outline-secondary" id="btnClearGRNFilters">Clear</button>
+          </div>
         </div>
       </div>
     </div>
@@ -219,7 +223,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Create New GRN</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="newGRNForm">
@@ -271,7 +275,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">GRN Details - <span id="detailGRNNumber"></span></h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <!-- GRN Header Info -->
@@ -350,6 +354,12 @@
           </div>
         </div>
         <div class="modal-footer">
+          <div class="me-auto text-start" style="min-width: 260px;">
+            <label for="grnApprovalLocation" class="form-label small mb-1">Approved stock location</label>
+            <select class="form-select form-select-sm" id="grnApprovalLocation">
+              <option value="">Select yard / rack</option>
+            </select>
+          </div>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="button" class="btn btn-warning" id="btnSubmitGRN" data-permission="grn:create">Submit for QA</button>
           <button type="button" class="btn btn-success" id="btnApproveGRN" data-permission="grn:approve">Approve GRN</button>
@@ -364,7 +374,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Add Line Item</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="addLineItemForm">
@@ -402,6 +412,43 @@
     </div>
   </div>
 
+  <!-- Weighment Modal -->
+  <div class="modal fade" id="weighmentModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Record Weighbridge Weight</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="weighmentForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="grossWeightKg" class="form-label">Gross Weight (KG) *</label>
+                <input type="number" step="0.001" min="0" class="form-control" id="grossWeightKg" required>
+              </div>
+              <div class="col-md-6">
+                <label for="tareWeightKg" class="form-label">Tare Weight (KG) *</label>
+                <input type="number" step="0.001" min="0" class="form-control" id="tareWeightKg" required>
+              </div>
+              <div class="col-12">
+                <label for="weighmentSlipNo" class="form-label">Weighbridge Slip Number</label>
+                <input type="text" class="form-control" id="weighmentSlipNo" placeholder="Slip / ticket number">
+              </div>
+            </div>
+          </form>
+          <div class="alert alert-info small mt-3 mb-0">
+            Net weight is calculated as gross weight minus tare weight.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btnSaveWeighment">Save Weighment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/config.js?v=20260416"></script>
   <script src="js/main.js?v=20260416"></script>
@@ -409,13 +456,36 @@
     // GRN Page JavaScript
     const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
     let currentGRNId = null;
+    let currentGRN = null;
+    let storageLocations = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
       await loadVendors();
       await loadMaterials();
+      await loadStorageLocations();
       await loadGRNList();
       setupEventListeners();
     });
+
+    function operatorStatus(value) {
+      return window.KBFormat ? KBFormat.status(value) : (value || 'Pending');
+    }
+
+    function formatDate(value) {
+      return window.KBFormat ? KBFormat.date(value) : (value ? new Date(value).toLocaleDateString() : 'Not recorded');
+    }
+
+    function formatMTFromKg(value) {
+      return window.KBFormat ? KBFormat.mt(value) : `${((value || 0) / 1000).toFixed(3)} MT`;
+    }
+
+    async function readJson(res) {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.detail || data.message || `Request failed (${res.status})`);
+      }
+      return data;
+    }
 
     async function loadVendors() {
       try {
@@ -443,12 +513,38 @@
       } catch (e) { console.error('Failed to load materials:', e); }
     }
 
+    async function loadStorageLocations() {
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/locations`);
+        if (res.ok) {
+          storageLocations = await res.json();
+          const select = document.getElementById('grnApprovalLocation');
+          select.innerHTML = '<option value="">Select yard / rack</option>';
+          storageLocations.forEach(location => {
+            select.innerHTML += `<option value="${location.id}">${location.code} - ${location.name}</option>`;
+          });
+        }
+      } catch (e) { console.error('Failed to load storage locations:', e); }
+    }
+
     async function loadGRNList() {
       const tbody = document.getElementById('grnTableBody');
       try {
-        const res = await fetch(`${API_BASE}/api/v2/grn/`);
+        const params = new URLSearchParams();
+        const status = document.getElementById('filterStatus').value;
+        const dateFrom = document.getElementById('filterDateFrom').value;
+        const dateTo = document.getElementById('filterDateTo').value;
+        const numberSearch = document.getElementById('filterGRNNumber').value.trim().toLowerCase();
+        if (status) params.set('status', status);
+        if (dateFrom) params.set('date_from', `${dateFrom}T00:00:00`);
+        if (dateTo) params.set('date_to', `${dateTo}T23:59:59`);
+        const query = params.toString();
+        const res = await fetch(`${API_BASE}/api/v2/grn/${query ? `?${query}` : ''}`);
         if (!res.ok) throw new Error('Failed to load GRNs');
-        const grns = await res.json();
+        let grns = await res.json();
+        if (numberSearch) {
+          grns = grns.filter(grn => String(grn.grn_number || '').toLowerCase().includes(numberSearch));
+        }
         
         if (grns.length === 0) {
           tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">No GRNs found. Create your first GRN!</td></tr>';
@@ -458,13 +554,13 @@
         tbody.innerHTML = grns.map(grn => `
           <tr>
             <td><a href="#" class="grn-link" data-id="${grn.id}">${grn.grn_number}</a></td>
-            <td>${new Date(grn.grn_date).toLocaleDateString()}</td>
+            <td>${formatDate(grn.created_at)}</td>
             <td>${grn.vendor_name || '-'}</td>
             <td>${grn.vendor_invoice_number || '-'}</td>
             <td>${grn.vehicle_number || '-'}</td>
-            <td class="weight-display">${(grn.total_net_weight_kg / 1000).toFixed(3)}</td>
-            <td><span class="badge bg-${getStatusColor(grn.status)}">${grn.status}</span></td>
-            <td><span class="badge bg-${getQAStatusColor(grn.qa_status)}">${grn.qa_status || 'pending'}</span></td>
+            <td class="weight-display">${formatMTFromKg(grn.net_weight_kg)}</td>
+            <td><span class="badge bg-${getStatusColor(grn.status)}">${operatorStatus(grn.status)}</span></td>
+            <td><span class="badge bg-${getQAStatusColor(getOverallQAStatus(grn))}">${operatorStatus(getOverallQAStatus(grn))}</span></td>
             <td>
               <button type="button" class="btn btn-sm btn-outline-primary view-grn" data-id="${grn.id}">View</button>
             </td>
@@ -472,12 +568,12 @@
         `).join('');
 
         // Update stats
-        document.getElementById('statPendingQA').textContent = grns.filter(g => g.qa_status === 'pending').length;
+        document.getElementById('statPendingQA').textContent = grns.filter(g => getOverallQAStatus(g) === 'pending').length;
         document.getElementById('statTodayReceipts').textContent = grns.filter(g => 
-          new Date(g.grn_date).toDateString() === new Date().toDateString()
+          new Date(g.created_at).toDateString() === new Date().toDateString()
         ).length;
         document.getElementById('statTotalWeight').textContent = 
-          (grns.reduce((sum, g) => sum + (g.total_net_weight_kg || 0), 0) / 1000).toFixed(2);
+          (grns.reduce((sum, g) => sum + (g.net_weight_kg || 0), 0) / 1000).toFixed(2);
         document.getElementById('statMonthCount').textContent = grns.length;
 
       } catch (e) {
@@ -496,12 +592,36 @@
       return colors[status] || 'secondary';
     }
 
+    function getOverallQAStatus(grn) {
+      const items = grn.line_items || [];
+      if (!items.length) return 'pending';
+      if (items.some(item => item.qa_status === 'rejected')) return 'rejected';
+      if (items.some(item => item.qa_status === 'on_hold')) return 'on_hold';
+      if (items.some(item => item.qa_status === 'conditional')) return 'conditional';
+      if (items.every(item => item.qa_status === 'approved')) return 'approved';
+      return 'pending';
+    }
+
     function setupEventListeners() {
+      ['filterGRNNumber', 'filterStatus', 'filterDateFrom', 'filterDateTo'].forEach(id => {
+        document.getElementById(id).addEventListener('change', loadGRNList);
+      });
+      document.getElementById('filterGRNNumber').addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadGRNList();
+      });
+      document.getElementById('btnApplyGRNFilters').addEventListener('click', loadGRNList);
+      document.getElementById('btnClearGRNFilters').addEventListener('click', () => {
+        ['filterGRNNumber', 'filterStatus', 'filterDateFrom', 'filterDateTo'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        loadGRNList();
+      });
+
       // Create GRN
       document.getElementById('btnCreateGRN').addEventListener('click', async () => {
         const vendorId = document.getElementById('grnVendor').value;
         if (!vendorId) {
-          alert('Please select a vendor');
+          showToast('Select a vendor before creating a GRN.', 'warning');
           return;
         }
 
@@ -527,7 +647,7 @@
             bootstrap.Modal.getInstance(document.getElementById('newGRNModal')).hide();
             document.getElementById('newGRNForm').reset();
             await loadGRNList();
-            showGRNDetail(grn.id);
+            showGRNDetail(grn.grn_id || grn.id);
           }
         } catch (e) {
           console.error('Error creating GRN:', e);
@@ -552,7 +672,7 @@
         const weight = document.getElementById('lineItemWeight').value;
 
         if (!materialId || !qty || !weight) {
-          alert('Please fill required fields');
+          showToast('Material, received quantity, and weight are required.', 'warning');
           return;
         }
 
@@ -585,6 +705,135 @@
       document.getElementById('btnAddLineItem').addEventListener('click', () => {
         new bootstrap.Modal(document.getElementById('addLineItemModal')).show();
       });
+
+      document.getElementById('btnAddWeighment').addEventListener('click', () => {
+        if (!currentGRN || currentGRN.status !== 'draft') {
+          showToast('Weighment can only be recorded while the GRN is in Draft.', 'warning');
+          return;
+        }
+        document.getElementById('grossWeightKg').value = currentGRN.gross_weight_kg || '';
+        document.getElementById('tareWeightKg').value = currentGRN.tare_weight_kg || '';
+        document.getElementById('weighmentSlipNo').value = '';
+        new bootstrap.Modal(document.getElementById('weighmentModal')).show();
+      });
+
+      document.getElementById('btnSaveWeighment').addEventListener('click', saveWeighment);
+      document.getElementById('btnSubmitGRN').addEventListener('click', submitCurrentGRN);
+      document.getElementById('btnApproveGRN').addEventListener('click', approveCurrentGRN);
+      document.getElementById('lineItemsBody').addEventListener('click', async e => {
+        const approveBtn = e.target.closest('.qa-approve');
+        const rejectBtn = e.target.closest('.qa-reject');
+        if (!approveBtn && !rejectBtn) return;
+        const lineId = Number((approveBtn || rejectBtn).dataset.id);
+        const status = approveBtn ? 'approved' : 'rejected';
+        await recordLineQA(lineId, status);
+      });
+    }
+
+    async function saveWeighment() {
+      if (!currentGRNId) return;
+      const gross = Number(document.getElementById('grossWeightKg').value);
+      const tare = Number(document.getElementById('tareWeightKg').value);
+      if (!Number.isFinite(gross) || gross <= 0 || !Number.isFinite(tare) || tare < 0 || gross <= tare) {
+        showToast('Enter valid gross and tare weights. Gross must be greater than tare.', 'warning');
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/grn/${currentGRNId}/weighment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gross_weight_kg: gross,
+            tare_weight_kg: tare,
+            weighbridge_slip_number: document.getElementById('weighmentSlipNo').value || null
+          })
+        });
+        const result = await readJson(res);
+        bootstrap.Modal.getInstance(document.getElementById('weighmentModal')).hide();
+        showToast(`Weighment saved. Net: ${formatMTFromKg(result.net_weight_kg)}`, 'success');
+        await showGRNDetail(currentGRNId);
+        await loadGRNList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    async function submitCurrentGRN() {
+      if (!currentGRN) return;
+      const confirmed = await KBConfirm({
+        title: 'Submit GRN for QA?',
+        message: `${currentGRN.grn_number} will be locked for QA review. Line items and weighment must already be correct.`,
+        confirmText: 'Submit for QA',
+        variant: 'warning'
+      });
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/grn/${currentGRN.id}/submit`, { method: 'POST' });
+        const result = await readJson(res);
+        showToast(result.message || 'GRN submitted for QA.', 'success');
+        await showGRNDetail(currentGRN.id);
+        await loadGRNList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    async function recordLineQA(lineId, status) {
+      if (!currentGRN) return;
+      const line = (currentGRN.line_items || []).find(item => item.id === lineId);
+      const confirmed = await KBConfirm({
+        title: status === 'approved' ? 'Approve material line?' : 'Reject material line?',
+        message: `${line?.material_name || 'This line'} on ${currentGRN.grn_number} will be marked ${operatorStatus(status)}.`,
+        confirmText: status === 'approved' ? 'Approve Line' : 'Reject Line',
+        variant: status === 'approved' ? 'success' : 'danger'
+      });
+      if (!confirmed) return;
+      try {
+        const payload = [{
+          line_item_id: lineId,
+          status,
+          accepted_qty: status === 'approved' ? Number(line?.received_qty || 0) : 0,
+          rejected_qty: status === 'rejected' ? Number(line?.received_qty || 0) : 0,
+          remarks: status === 'approved' ? 'Approved from GRN screen' : 'Rejected from GRN screen'
+        }];
+        const res = await fetch(`${API_BASE}/api/v2/grn/${currentGRN.id}/qa-inspection`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        await readJson(res);
+        showToast(`${line?.material_name || 'Line'} marked ${operatorStatus(status)}.`, status === 'approved' ? 'success' : 'warning');
+        await showGRNDetail(currentGRN.id);
+        await loadGRNList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    async function approveCurrentGRN() {
+      if (!currentGRN) return;
+      const locationId = document.getElementById('grnApprovalLocation').value;
+      if (!locationId) {
+        showToast('Select the yard/rack where approved stock will be stored.', 'warning');
+        return;
+      }
+      const locationName = document.getElementById('grnApprovalLocation').selectedOptions[0]?.textContent || 'selected location';
+      const confirmed = await KBConfirm({
+        title: 'Approve GRN and create stock lots?',
+        message: `${currentGRN.grn_number} will create approved stock lots in ${locationName}. This changes inventory availability.`,
+        confirmText: 'Approve GRN',
+        variant: 'success'
+      });
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/grn/${currentGRN.id}/approve?location_id=${encodeURIComponent(locationId)}`, { method: 'POST' });
+        const result = await readJson(res);
+        showToast(result.message || 'GRN approved and stock lots created.', 'success');
+        await showGRNDetail(currentGRN.id);
+        await loadGRNList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
     }
 
     async function showGRNDetail(id) {
@@ -593,16 +842,17 @@
         const res = await fetch(`${API_BASE}/api/v2/grn/${id}`);
         if (!res.ok) throw new Error('Failed to load GRN');
         const grn = await res.json();
+        currentGRN = grn;
 
         document.getElementById('detailGRNNumber').textContent = grn.grn_number;
-        document.getElementById('detailVendor').textContent = grn.vendor_name || '-';
-        document.getElementById('detailInvoice').textContent = grn.vendor_invoice_number || '-';
-        document.getElementById('detailVehicle').textContent = grn.vehicle_number || '-';
-        document.getElementById('detailStatus').innerHTML = `<span class="badge bg-${getStatusColor(grn.status)}">${grn.status}</span>`;
+        document.getElementById('detailVendor').textContent = KBFormat.text(grn.vendor_name);
+        document.getElementById('detailInvoice').textContent = KBFormat.text(grn.vendor_invoice_number);
+        document.getElementById('detailVehicle').textContent = KBFormat.text(grn.vehicle_number);
+        document.getElementById('detailStatus').innerHTML = `<span class="badge bg-${getStatusColor(grn.status)}">${operatorStatus(grn.status)}</span>`;
         
-        document.getElementById('detailGrossWeight').textContent = `${((grn.gross_weight_kg || 0) / 1000).toFixed(3)} MT`;
-        document.getElementById('detailTareWeight').textContent = `${((grn.tare_weight_kg || 0) / 1000).toFixed(3)} MT`;
-        document.getElementById('detailNetWeight').textContent = `${((grn.total_net_weight_kg || 0) / 1000).toFixed(3)} MT`;
+        document.getElementById('detailGrossWeight').textContent = formatMTFromKg(grn.gross_weight_kg);
+        document.getElementById('detailTareWeight').textContent = formatMTFromKg(grn.tare_weight_kg);
+        document.getElementById('detailNetWeight').textContent = formatMTFromKg(grn.net_weight_kg);
 
         // Line items are already included in the GRN response
         const items = grn.line_items || [];
@@ -613,11 +863,11 @@
         } else {
           itemsBody.innerHTML = items.map(item => `
             <tr class="line-item-row">
-              <td>${item.material_name || item.material_code || '-'}</td>
-              <td>${item.heat_number || '-'}</td>
-              <td>${item.received_qty}</td>
-              <td class="weight-display">${item.weight_kg.toFixed(3)}</td>
-              <td><span class="badge bg-${getQAStatusColor(item.qa_status)}">${item.qa_status || 'pending'}</span></td>
+              <td>${KBFormat.text(item.material_name || item.material_code)}</td>
+              <td>${KBFormat.text(item.heat_number, 'No heat number')}</td>
+              <td>${KBFormat.text(item.received_qty)}</td>
+              <td class="weight-display">${KBFormat.kg(item.weight_kg)}</td>
+              <td><span class="badge bg-${getQAStatusColor(item.qa_status)}">${operatorStatus(item.qa_status || 'pending')}</span></td>
               <td>
                 <button type="button" class="btn btn-sm btn-outline-success qa-approve" data-id="${item.id}" data-permission="qa:approve">✓</button>
                 <button type="button" class="btn btn-sm btn-outline-danger qa-reject" data-id="${item.id}" data-permission="qa:reject">✗</button>
@@ -626,10 +876,51 @@
           `).join('');
         }
 
+        itemsBody.querySelectorAll('.qa-approve').forEach(btn => {
+          btn.textContent = 'Approve';
+          btn.disabled = grn.status !== 'submitted';
+          btn.title = grn.status === 'submitted' ? 'Approve this material line' : 'Submit the GRN before QA actions';
+        });
+        itemsBody.querySelectorAll('.qa-reject').forEach(btn => {
+          btn.textContent = 'Reject';
+          btn.disabled = grn.status !== 'submitted';
+          btn.title = grn.status === 'submitted' ? 'Reject this material line' : 'Submit the GRN before QA actions';
+        });
+
+        updateGRNActionState(grn);
         new bootstrap.Modal(document.getElementById('grnDetailModal')).show();
       } catch (e) {
         console.error('Error loading GRN detail:', e);
       }
+    }
+
+    function updateGRNActionState(grn) {
+      const isDraft = grn.status === 'draft';
+      const isSubmitted = grn.status === 'submitted';
+      const hasItems = (grn.line_items || []).length > 0;
+      const hasWeighment = Number(grn.net_weight_kg || 0) > 0;
+      const allQaDone = hasItems && (grn.line_items || []).every(item => ['approved', 'conditional', 'rejected'].includes(item.qa_status));
+
+      const btnAddWeighment = document.getElementById('btnAddWeighment');
+      const btnAddLineItem = document.getElementById('btnAddLineItem');
+      const btnSubmit = document.getElementById('btnSubmitGRN');
+      const btnApprove = document.getElementById('btnApproveGRN');
+      const locationSelect = document.getElementById('grnApprovalLocation');
+
+      btnAddWeighment.disabled = !isDraft;
+      btnAddLineItem.disabled = !isDraft;
+      btnSubmit.disabled = !(isDraft && hasItems && hasWeighment);
+      btnApprove.disabled = !(isSubmitted && allQaDone);
+      locationSelect.disabled = !isSubmitted;
+
+      btnAddWeighment.title = isDraft ? 'Record weighbridge gross and tare weights' : 'Weighment is locked after Draft';
+      btnAddLineItem.title = isDraft ? 'Add received material to this GRN' : 'Line items are locked after Draft';
+      btnSubmit.title = isDraft
+        ? (hasItems && hasWeighment ? 'Submit this GRN for QA inspection' : 'Add at least one line item and record weighment first')
+        : 'Only Draft GRNs can be submitted';
+      btnApprove.title = isSubmitted
+        ? (allQaDone ? 'Approve GRN and create stock lots' : 'Record QA result for every line before approval')
+        : 'Only Submitted GRNs can be approved';
     }
   </script>
 </body>

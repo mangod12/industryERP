@@ -267,9 +267,13 @@
         if (input.type === 'password') {
           input.type = 'text';
           icon.classList.replace('bi-eye', 'bi-eye-slash');
+          btn.setAttribute('aria-label', 'Hide password');
+          btn.setAttribute('title', 'Hide password');
         } else {
           input.type = 'password';
           icon.classList.replace('bi-eye-slash', 'bi-eye');
+          btn.setAttribute('aria-label', 'Show password');
+          btn.setAttribute('title', 'Show password');
         }
       });
     });

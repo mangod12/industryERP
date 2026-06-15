@@ -28,7 +28,7 @@
     </div>
     <div class="topbar-right">
       <div class="dropdown">
-        <button class="btn btn-link p-0 position-relative" type="button" data-bs-toggle="dropdown" style="color: oklch(98% 0.003 250);">
+        <button class="btn btn-link p-0 position-relative" type="button" data-bs-toggle="dropdown" aria-label="Notifications" title="Notifications" style="color: oklch(98% 0.003 250);">
           <i class="bi bi-bell" style="font-size: 1.1rem;"></i>
           <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" style="font-size: 0.6rem;">0</span>
         </button>
@@ -159,16 +159,19 @@
     <!-- Filters -->
     <div class="card mb-4">
       <div class="card-body">
-        <div class="row g-3">
+        <div class="row g-3 align-items-end">
           <div class="col-md-3">
+            <label for="filterDispatchNumber" class="form-label small text-muted">Dispatch No.</label>
             <input type="text" class="form-control" id="filterDispatchNumber" placeholder="Search Dispatch Number...">
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
+            <label for="filterCustomer" class="form-label small text-muted">Customer</label>
             <select class="form-select" id="filterCustomer">
               <option value="">All Customers</option>
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
+            <label for="filterStatus" class="form-label small text-muted">Status</label>
             <select class="form-select" id="filterStatus">
               <option value="">All Status</option>
               <option value="draft">Draft</option>
@@ -177,8 +180,13 @@
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col-md-2">
+            <label for="filterDate" class="form-label small text-muted">Requested Date</label>
             <input type="date" class="form-control" id="filterDate">
+          </div>
+          <div class="col-md-3 d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary flex-fill" id="btnApplyDispatchFilters">Search</button>
+            <button type="button" class="btn btn-outline-secondary flex-fill" id="btnClearDispatchFilters">Clear</button>
           </div>
         </div>
       </div>
@@ -219,7 +227,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Create New Dispatch</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="newDispatchForm">
@@ -271,7 +279,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Dispatch Details - <span id="detailDispatchNumber"></span></h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <!-- Dispatch Header Info -->
@@ -318,7 +326,7 @@
           <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Pick Stock (FIFO)</span>
-              <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#pickStockModal" data-permission="dispatch:create">
+              <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenPickStock" data-bs-toggle="modal" data-bs-target="#pickStockModal" data-permission="dispatch:create">
                 + Pick Material
               </button>
             </div>
@@ -360,7 +368,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Pick Stock</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <!-- Material Selection -->
@@ -469,12 +477,12 @@
         tbody.innerHTML = dispatches.map(d => `
           <tr>
             <td><a href="#" class="dispatch-link" data-id="${d.id}">${d.dispatch_number}</a></td>
-            <td>${new Date(d.dispatch_date).toLocaleDateString()}</td>
+            <td>${KBFormat.date(d.requested_at)}</td>
             <td>${d.customer_name || '-'}</td>
             <td>${d.sales_order_ref || '-'}</td>
             <td>${d.vehicle_number || '-'}</td>
-            <td class="weight-display">${((d.total_weight_kg || 0) / 1000).toFixed(3)}</td>
-            <td><span class="badge bg-${getStatusColor(d.status)}">${d.status}</span></td>
+            <td class="weight-display">${KBFormat.mt(dispatchWeight(d))}</td>
+            <td><span class="badge bg-${getStatusColor(d.status)}">${KBFormat.status(d.status)}</span></td>
             <td>
               <button type="button" class="btn btn-sm btn-outline-primary view-dispatch" data-id="${d.id}">View</button>
             </td>
@@ -483,8 +491,8 @@
 
         // Update stats
         document.getElementById('statPendingDispatch').textContent = dispatches.filter(d => d.status === 'draft' || d.status === 'submitted').length;
-        document.getElementById('statTodayDispatches').textContent = dispatches.filter(d => 
-          new Date(d.dispatch_date).toDateString() === new Date().toDateString()
+        document.getElementById('statTodayDispatches').textContent = dispatches.filter(d =>
+          d.requested_at && new Date(d.requested_at).toDateString() === new Date().toDateString()
         ).length;
         document.getElementById('statTotalDispatched').textContent = 
           (dispatches.filter(d => d.status === 'approved').reduce((sum, d) => sum + (d.total_weight_kg || 0), 0) / 1000).toFixed(2);
@@ -532,7 +540,7 @@
             bootstrap.Modal.getInstance(document.getElementById('newDispatchModal')).hide();
             document.getElementById('newDispatchForm').reset();
             await loadDispatchList();
-            showDispatchDetail(dispatch.id);
+            showDispatchDetail(dispatch.dispatch_id || dispatch.id);
           }
         } catch (e) {
           console.error('Error creating dispatch:', e);
@@ -698,6 +706,479 @@
       } catch (e) {
         console.error('Error loading dispatch detail:', e);
       }
+    }
+  </script>
+  <script>
+    let currentDispatch = null;
+
+    function dispatchStatus(status) {
+      const labels = {
+        draft: 'Draft - picking stock',
+        submitted: 'Ready for approval',
+        approved: 'Dispatched - stock deducted',
+        cancelled: 'Cancelled'
+      };
+      return labels[status] || KBFormat.status(status);
+    }
+
+    async function readDispatchJson(res) {
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.detail || data?.message || `Request failed (${res.status})`);
+      return data;
+    }
+
+    function dispatchWeight(dispatch) {
+      const lines = dispatch.line_items || [];
+      return lines.reduce((sum, item) => sum + Number(item.dispatched_weight_kg || 0), 0);
+    }
+
+    function dispatchAmount(dispatch) {
+      const lines = dispatch.line_items || [];
+      return lines.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    }
+
+    function dispatchDate(dispatch) {
+      return dispatch.dispatched_at || dispatch.requested_at;
+    }
+
+    async function loadDispatchList() {
+      const tbody = document.getElementById('dispatchTableBody');
+      try {
+        const params = new URLSearchParams({ limit: '200' });
+        const status = document.getElementById('filterStatus').value;
+        const customerId = document.getElementById('filterCustomer').value;
+        const requestedDate = document.getElementById('filterDate').value;
+        const numberFilter = document.getElementById('filterDispatchNumber').value.trim().toLowerCase();
+
+        if (status) params.set('status', status);
+        if (customerId) params.set('customer_id', customerId);
+        if (requestedDate) {
+          params.set('date_from', `${requestedDate}T00:00:00`);
+          params.set('date_to', `${requestedDate}T23:59:59`);
+        }
+
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/?${params.toString()}`);
+        if (!res.ok) throw new Error('Failed to load dispatches');
+        const allDispatches = await res.json();
+        const dispatches = numberFilter
+          ? allDispatches.filter(d => (d.dispatch_number || '').toLowerCase().includes(numberFilter))
+          : allDispatches;
+
+        document.getElementById('statPendingDispatch').textContent = dispatches.filter(d => ['draft', 'submitted'].includes(d.status)).length;
+        document.getElementById('statTodayDispatches').textContent = dispatches.filter(d => {
+          const value = dispatchDate(d);
+          return value && new Date(value).toDateString() === new Date().toDateString();
+        }).length;
+        document.getElementById('statTotalDispatched').textContent =
+          (dispatches.filter(d => d.status === 'approved').reduce((sum, d) => sum + dispatchWeight(d), 0) / 1000).toFixed(2);
+        document.getElementById('statMonthCount').textContent = dispatches.filter(d => {
+          const value = dispatchDate(d);
+          if (!value) return false;
+          const dt = new Date(value);
+          const now = new Date();
+          return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+        }).length;
+
+        if (dispatches.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No dispatches match the selected filters.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = dispatches.map(d => `
+          <tr>
+            <td><a href="#" class="dispatch-link" data-id="${d.id}">${KBFormat.text(d.dispatch_number)}</a></td>
+            <td>${KBFormat.date(dispatchDate(d))}</td>
+            <td>${KBFormat.text(d.customer_name)}</td>
+            <td>${KBFormat.text(d.sales_order_ref)}</td>
+            <td>${KBFormat.text(d.vehicle_number)}</td>
+            <td class="weight-display">${KBFormat.mt(dispatchWeight(d))}</td>
+            <td><span class="badge bg-${getStatusColor(d.status)}">${dispatchStatus(d.status)}</span></td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline-primary view-dispatch" data-id="${d.id}">View</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (e) {
+        console.error('Error loading dispatches:', e);
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Error loading dispatches</td></tr>';
+      }
+    }
+
+    function setupEventListeners() {
+      ['filterCustomer', 'filterStatus', 'filterDate'].forEach(id => {
+        document.getElementById(id).addEventListener('change', loadDispatchList);
+      });
+      document.getElementById('filterDispatchNumber').addEventListener('keydown', e => {
+        if (e.key === 'Enter') loadDispatchList();
+      });
+      document.getElementById('btnApplyDispatchFilters').addEventListener('click', loadDispatchList);
+      document.getElementById('btnClearDispatchFilters').addEventListener('click', () => {
+        ['filterDispatchNumber', 'filterCustomer', 'filterStatus', 'filterDate'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        loadDispatchList();
+      });
+
+      document.getElementById('btnCreateDispatch').addEventListener('click', async () => {
+        const customerId = document.getElementById('dispatchCustomer').value;
+        if (!customerId) {
+          showToast('Select a customer before creating a dispatch.', 'warning');
+          return;
+        }
+
+        const payload = {
+          customer_id: parseInt(customerId),
+          sales_order_ref: document.getElementById('dispatchSalesOrder').value || null,
+          vehicle_number: document.getElementById('dispatchVehicle').value || null,
+          transporter: document.getElementById('dispatchTransporter').value || null,
+          driver_name: document.getElementById('dispatchDriverName').value || null,
+          driver_contact: document.getElementById('dispatchDriverContact').value || null,
+          remarks: document.getElementById('dispatchRemarks').value || null
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/api/v2/dispatch/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const dispatch = await readDispatchJson(res);
+          bootstrap.Modal.getInstance(document.getElementById('newDispatchModal')).hide();
+          document.getElementById('newDispatchForm').reset();
+          await loadDispatchList();
+          await showDispatchDetail(dispatch.dispatch_id || dispatch.id);
+        } catch (e) {
+          showToast(e.message, 'danger');
+        }
+      });
+
+      document.getElementById('dispatchTableBody').addEventListener('click', e => {
+        const trigger = e.target.closest('.view-dispatch, .dispatch-link');
+        if (!trigger) return;
+        e.preventDefault();
+        showDispatchDetail(trigger.dataset.id);
+      });
+
+      document.getElementById('btnOpenPickStock').addEventListener('click', e => {
+        if (!currentDispatch || currentDispatch.status !== 'draft') {
+          e.preventDefault();
+          e.stopPropagation();
+          showToast('Stock can only be picked while dispatch is in Draft.', 'warning');
+        }
+      });
+
+      document.getElementById('pickMaterial').addEventListener('change', async e => {
+        const materialId = e.target.value;
+        if (!materialId) {
+          resetPickModal();
+          return;
+        }
+        await loadAvailableStock(materialId);
+      });
+      document.getElementById('availableStockLots').addEventListener('input', updateSelectedTotal);
+      document.getElementById('btnAutoPickFIFO').addEventListener('click', autoPickFIFO);
+      document.getElementById('btnConfirmPick').addEventListener('click', confirmSelectedLots);
+      document.getElementById('btnSubmitDispatch').addEventListener('click', submitCurrentDispatch);
+      document.getElementById('btnApproveDispatch').addEventListener('click', approveCurrentDispatch);
+      document.getElementById('dispatchItemsBody').addEventListener('click', async e => {
+        const removeBtn = e.target.closest('.remove-item');
+        if (!removeBtn) return;
+        await removeDispatchLine(Number(removeBtn.dataset.id), removeBtn.dataset.lot || 'selected lot');
+      });
+    }
+
+    async function autoPickFIFO() {
+      if (!currentDispatch || currentDispatch.status !== 'draft') {
+        showToast('Auto-pick is available only while dispatch is in Draft.', 'warning');
+        return;
+      }
+      const materialId = document.getElementById('pickMaterial').value;
+      const requiredWeight = Number(document.getElementById('pickRequiredWeight').value);
+      if (!materialId || !Number.isFinite(requiredWeight) || requiredWeight <= 0) {
+        showToast('Select material and enter required weight in KG.', 'warning');
+        return;
+      }
+
+      const confirmed = await KBConfirm({
+        title: 'Auto-pick FIFO stock?',
+        message: `The system will pick ${KBFormat.kg(requiredWeight)} from oldest approved lots for this dispatch.`,
+        confirmText: 'Auto-Pick',
+        variant: 'warning'
+      });
+      if (!confirmed) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/${currentDispatchId}/auto-pick`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ material_id: parseInt(materialId), required_weight_kg: requiredWeight })
+        });
+        const result = await readDispatchJson(res);
+        bootstrap.Modal.getInstance(document.getElementById('pickStockModal')).hide();
+        resetPickModal();
+        showToast(`${result.message || 'FIFO pick complete'}: ${KBFormat.kg(result.total_weight_kg)}`, 'success');
+        await showDispatchDetail(currentDispatchId);
+        await loadDispatchList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    async function loadAvailableStock(materialId) {
+      const container = document.getElementById('availableStockLots');
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/lots?material_id=${materialId}&qa_status=approved`);
+        if (!res.ok) throw new Error('Failed to load stock');
+        const lots = await res.json();
+        if (lots.length === 0) {
+          container.innerHTML = '<div class="col-12 text-center text-muted py-4">No approved stock available for this material.</div>';
+          updateSelectedTotal();
+          return;
+        }
+
+        container.innerHTML = lots.map(lot => `
+          <div class="col-md-6">
+            <div class="card stock-lot-card p-3" data-lot-id="${lot.id}" data-lot-number="${KBFormat.text(lot.lot_number)}" data-available="${lot.current_weight_kg}">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <div class="fw-bold">${KBFormat.text(lot.lot_number)}</div>
+                  <small class="text-muted">${KBFormat.text(lot.material_name)}</small>
+                </div>
+                <span class="badge heat-badge">${KBFormat.text(lot.heat_number, 'No Heat#')}</span>
+              </div>
+              <div class="mt-2">
+                <div class="d-flex justify-content-between">
+                  <span>Available:</span>
+                  <span class="weight-display">${KBFormat.kg(lot.current_weight_kg)}</span>
+                </div>
+                <div class="d-flex justify-content-between text-muted small">
+                  <span>Age:</span>
+                  <span>${KBFormat.text(lot.age_days, '0')} days</span>
+                </div>
+              </div>
+              <div class="mt-2">
+                <label class="form-label small text-muted mb-1">Dispatch Weight (KG)</label>
+                <input type="number" step="0.001" class="form-control form-control-sm pick-qty" placeholder="Qty to dispatch" max="${lot.current_weight_kg}">
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.stock-lot-card').forEach(card => {
+          card.addEventListener('click', e => {
+            if (e.target.classList.contains('pick-qty')) return;
+            card.classList.toggle('selected');
+            updateSelectedTotal();
+          });
+        });
+        updateSelectedTotal();
+      } catch (e) {
+        console.error('Error loading stock:', e);
+        container.innerHTML = '<div class="col-12 text-center text-danger py-4">Error loading approved stock.</div>';
+      }
+    }
+
+    function updateSelectedTotal() {
+      selectedLots = [];
+      document.querySelectorAll('.stock-lot-card.selected').forEach(card => {
+        const input = card.querySelector('.pick-qty');
+        const available = Number(card.dataset.available);
+        const requested = Number(input.value || available);
+        if (Number.isFinite(requested) && requested > 0) {
+          selectedLots.push({
+            stockLotId: Number(card.dataset.lotId),
+            lotNumber: card.dataset.lotNumber,
+            available,
+            requested
+          });
+        }
+      });
+
+      const total = selectedLots.reduce((sum, lot) => sum + lot.requested, 0);
+      document.getElementById('totalSelectedWeight').textContent = total.toFixed(3);
+      document.getElementById('selectedLots').innerHTML = selectedLots.length
+        ? selectedLots.map(lot => `<div class="d-flex justify-content-between small"><span>${lot.lotNumber}</span><span>${KBFormat.kg(lot.requested)}</span></div>`).join('')
+        : '<div class="text-muted text-center">No lots selected</div>';
+    }
+
+    async function confirmSelectedLots() {
+      if (!currentDispatch || currentDispatch.status !== 'draft') {
+        showToast('Stock can only be added to Draft dispatches.', 'warning');
+        return;
+      }
+      updateSelectedTotal();
+      if (!selectedLots.length) {
+        showToast('Select at least one approved stock lot.', 'warning');
+        return;
+      }
+      const invalid = selectedLots.find(lot => lot.requested <= 0 || lot.requested > lot.available);
+      if (invalid) {
+        showToast(`${invalid.lotNumber} has an invalid dispatch weight.`, 'warning');
+        return;
+      }
+
+      const confirmed = await KBConfirm({
+        title: 'Add selected stock to dispatch?',
+        message: `${selectedLots.length} lot(s), total ${KBFormat.kg(selectedLots.reduce((sum, lot) => sum + lot.requested, 0))}, will be reserved for this dispatch.`,
+        confirmText: 'Add to Dispatch',
+        variant: 'success'
+      });
+      if (!confirmed) return;
+
+      try {
+        for (const lot of selectedLots) {
+          const res = await fetch(`${API_BASE}/api/v2/dispatch/${currentDispatchId}/line-items`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock_lot_id: lot.stockLotId, weight_kg: lot.requested })
+          });
+          await readDispatchJson(res);
+        }
+        bootstrap.Modal.getInstance(document.getElementById('pickStockModal')).hide();
+        resetPickModal();
+        showToast('Selected stock added to dispatch.', 'success');
+        await showDispatchDetail(currentDispatchId);
+        await loadDispatchList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    function resetPickModal() {
+      selectedLots = [];
+      document.getElementById('availableStockLots').innerHTML = '<div class="col-12 text-center text-muted py-4">Select a material to view available stock</div>';
+      document.getElementById('selectedLots').innerHTML = '<div class="text-muted text-center">No lots selected</div>';
+      document.getElementById('totalSelectedWeight').textContent = '0.000';
+    }
+
+    async function removeDispatchLine(lineId, lotNumber) {
+      if (!currentDispatch || currentDispatch.status !== 'draft') {
+        showToast('Picked stock can only be removed while dispatch is in Draft.', 'warning');
+        return;
+      }
+      const confirmed = await KBConfirm({
+        title: 'Remove picked stock?',
+        message: `${lotNumber} will be removed from this draft dispatch.`,
+        confirmText: 'Remove',
+        variant: 'danger'
+      });
+      if (!confirmed) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/${currentDispatchId}/line-items/${lineId}`, { method: 'DELETE' });
+        const result = await readDispatchJson(res);
+        showToast(result.message || 'Line item removed.', 'success');
+        await showDispatchDetail(currentDispatchId);
+        await loadDispatchList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    async function submitCurrentDispatch() {
+      if (!currentDispatch) return;
+      const confirmed = await KBConfirm({
+        title: 'Submit dispatch for approval?',
+        message: `${currentDispatch.dispatch_number} will be locked for approval. Picked stock should match the loading plan.`,
+        confirmText: 'Submit for Approval',
+        variant: 'warning'
+      });
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/${currentDispatch.id}/submit`, { method: 'POST' });
+        const result = await readDispatchJson(res);
+        showToast(result.message || 'Dispatch submitted for approval.', 'success');
+        await showDispatchDetail(currentDispatch.id);
+        await loadDispatchList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    async function approveCurrentDispatch() {
+      if (!currentDispatch) return;
+      const confirmed = await KBConfirm({
+        title: 'Confirm dispatch and deduct stock?',
+        message: `${currentDispatch.dispatch_number} will permanently deduct ${KBFormat.kg(dispatchWeight(currentDispatch))} from stock lots.`,
+        confirmText: 'Confirm Dispatch',
+        variant: 'success'
+      });
+      if (!confirmed) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/${currentDispatch.id}/approve`, { method: 'POST' });
+        const result = await readDispatchJson(res);
+        showToast(result.message || 'Dispatch confirmed and stock deducted.', 'success');
+        await showDispatchDetail(currentDispatch.id);
+        await loadDispatchList();
+      } catch (e) {
+        showToast(e.message, 'danger');
+      }
+    }
+
+    async function showDispatchDetail(id) {
+      currentDispatchId = id;
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/dispatch/${id}`);
+        if (!res.ok) throw new Error('Failed to load dispatch');
+        const dispatch = await res.json();
+        currentDispatch = dispatch;
+        const items = dispatch.line_items || [];
+
+        document.getElementById('detailDispatchNumber').textContent = dispatch.dispatch_number;
+        document.getElementById('detailCustomer').textContent = KBFormat.text(dispatch.customer_name);
+        document.getElementById('detailSalesOrder').textContent = KBFormat.text(dispatch.sales_order_ref);
+        document.getElementById('detailVehicle').textContent = KBFormat.text(dispatch.vehicle_number);
+        document.getElementById('detailStatus').innerHTML = `<span class="badge bg-${getStatusColor(dispatch.status)}">${dispatchStatus(dispatch.status)}</span>`;
+        document.getElementById('detailItemCount').textContent = items.length;
+        document.getElementById('detailTotalWeight').textContent = KBFormat.mt(dispatchWeight(dispatch));
+        document.getElementById('detailTotalAmount').textContent = KBFormat.money(dispatchAmount(dispatch));
+
+        const itemsBody = document.getElementById('dispatchItemsBody');
+        if (items.length === 0) {
+          itemsBody.innerHTML = '<tr><td colspan="8" class="text-center py-3 text-muted">No stock picked yet.</td></tr>';
+        } else {
+          itemsBody.innerHTML = items.map(item => `
+            <tr>
+              <td><span class="badge bg-secondary">${KBFormat.text(item.lot_number)}</span></td>
+              <td>${KBFormat.text(item.material_name)}</td>
+              <td><span class="badge heat-badge">${KBFormat.text(item.heat_number)}</span></td>
+              <td class="weight-display">Locked</td>
+              <td class="weight-display">${KBFormat.kg(item.dispatched_weight_kg)}</td>
+              <td>${item.rate == null ? 'Not priced' : KBFormat.money(item.rate)}</td>
+              <td>${item.amount == null ? 'Not priced' : KBFormat.money(item.amount)}</td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-item" data-id="${item.id}" data-lot="${KBFormat.text(item.lot_number)}" ${dispatch.status === 'draft' ? '' : 'disabled'} title="${dispatch.status === 'draft' ? 'Remove this lot from draft dispatch' : 'Picked lots are locked after Draft'}">Remove</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        updateDispatchActionState(dispatch);
+        new bootstrap.Modal(document.getElementById('dispatchDetailModal')).show();
+      } catch (e) {
+        console.error('Error loading dispatch detail:', e);
+        showToast(e.message, 'danger');
+      }
+    }
+
+    function updateDispatchActionState(dispatch) {
+      const isDraft = dispatch.status === 'draft';
+      const isSubmitted = dispatch.status === 'submitted';
+      const hasItems = (dispatch.line_items || []).length > 0;
+      const btnOpenPick = document.getElementById('btnOpenPickStock');
+      const btnSubmit = document.getElementById('btnSubmitDispatch');
+      const btnApprove = document.getElementById('btnApproveDispatch');
+
+      btnOpenPick.disabled = !isDraft;
+      btnSubmit.disabled = !(isDraft && hasItems);
+      btnApprove.disabled = !isSubmitted;
+      btnSubmit.textContent = 'Submit for Approval';
+      btnApprove.textContent = 'Confirm Dispatch';
+      btnOpenPick.title = isDraft ? 'Pick approved stock lots for this dispatch' : 'Stock picking is locked after Draft';
+      btnSubmit.title = isDraft
+        ? (hasItems ? 'Submit dispatch for approval' : 'Pick at least one stock lot before submitting')
+        : 'Only Draft dispatches can be submitted';
+      btnApprove.title = isSubmitted ? 'Confirm dispatch and deduct stock' : 'Only submitted dispatches can be confirmed';
     }
   </script>
 </body>

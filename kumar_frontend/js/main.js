@@ -30,6 +30,29 @@
     tc.id = 'toastContainer';
     tc.className = 'toast-container position-fixed bottom-0 end-0 p-3';
     document.body.appendChild(tc);
+
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'modal fade';
+    confirmModal.id = 'kbConfirmModal';
+    confirmModal.tabIndex = -1;
+    confirmModal.innerHTML = `
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="kbConfirmTitle">Confirm action</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p id="kbConfirmMessage" class="mb-0"></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="kbConfirmAction">Confirm</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(confirmModal);
   }
 
   function showLoader() {
@@ -52,7 +75,7 @@
     toastEl.innerHTML = `
       <div class="d-flex">
         <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
       </div>
     `;
     container.appendChild(toastEl);
@@ -70,15 +93,109 @@
   window.showLoader = showLoader;
   window.hideLoader = hideLoader;
   window.showToast = showToast;
+  window.KBFormat = {
+    text(value, fallback = 'Not recorded') {
+      const text = value === null || value === undefined ? '' : String(value).trim();
+      return text || fallback;
+    },
+    date(value, fallback = 'Not recorded') {
+      if (!value) return fallback;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString();
+    },
+    kg(value, fallback = '0.000 KG') {
+      const num = Number(value);
+      return Number.isFinite(num) ? `${num.toFixed(3)} KG` : fallback;
+    },
+    mt(value, fallback = '0.000 MT') {
+      const num = Number(value);
+      return Number.isFinite(num) ? `${(num / 1000).toFixed(3)} MT` : fallback;
+    },
+    money(value, fallback = '₹ 0.00') {
+      const num = Number(value);
+      return Number.isFinite(num) ? `₹ ${num.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : fallback;
+    },
+    status(value) {
+      const labels = {
+        draft: 'Draft',
+        submitted: 'Submitted',
+        approved: 'Approved',
+        cancelled: 'Cancelled',
+        pending: 'Pending',
+        rejected: 'Rejected',
+        conditional: 'Conditional',
+        on_hold: 'On Hold',
+        cutting_waste: 'Cutting Waste',
+        reusable: 'Reusable',
+        disposed: 'Disposed',
+        sold: 'Sold'
+      };
+      return labels[String(value || '').toLowerCase()] || this.text(value, 'Pending');
+    }
+  };
+  window.KBConfirm = function ({
+    title = 'Confirm action',
+    message = 'This action will update factory records.',
+    confirmText = 'Confirm',
+    variant = 'primary'
+  } = {}) {
+    createGlobals();
+    return new Promise(resolve => {
+      const modalEl = document.getElementById('kbConfirmModal');
+      const titleEl = document.getElementById('kbConfirmTitle');
+      const messageEl = document.getElementById('kbConfirmMessage');
+      const actionBtn = document.getElementById('kbConfirmAction');
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      actionBtn.textContent = confirmText;
+      actionBtn.className = `btn btn-${variant}`;
+      const modal = new bootstrap.Modal(modalEl);
+      const cleanup = result => {
+        actionBtn.onclick = null;
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        resolve(result);
+      };
+      const onHidden = () => cleanup(false);
+      actionBtn.onclick = () => {
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        modal.hide();
+        cleanup(true);
+      };
+      modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+      modal.show();
+    });
+  };
+
+  function normalizeControls() {
+    document.querySelectorAll('.btn-close:not([aria-label])').forEach(btn => {
+      btn.setAttribute('aria-label', 'Close');
+      btn.setAttribute('title', 'Close');
+    });
+    document.querySelectorAll('button').forEach(btn => {
+      const hasName = (btn.textContent || '').trim() || btn.getAttribute('aria-label') || btn.getAttribute('title');
+      if (hasName) return;
+      if (btn.querySelector('.bi-bell')) {
+        btn.setAttribute('aria-label', 'Notifications');
+        btn.setAttribute('title', 'Notifications');
+      } else if (btn.classList.contains('pw-toggle')) {
+        btn.setAttribute('aria-label', 'Show password');
+        btn.setAttribute('title', 'Show password');
+      }
+    });
+  }
+
+  window.KBNormalizeControls = normalizeControls;
 
   // Ensure elements exist when DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       createGlobals();
+      normalizeControls();
       if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
     });
   } else {
     createGlobals();
+    normalizeControls();
     if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
   }
 
@@ -1127,19 +1244,26 @@ document.addEventListener('DOMContentLoaded', () => {
  * Soft delete a customer (archival). Refreshes customers and dashboard.
  */
 async function softDeleteCustomer(id, name) {
-  if (!confirm(`Delete customer '${name}'? This is a soft-delete and can be restored by admin.`)) return;
+  const confirmed = await KBConfirm({
+    title: 'Archive customer?',
+    message: `${name} will be soft-deleted and hidden from active factory work. Admin can restore it later.`,
+    confirmText: 'Archive Customer',
+    variant: 'warning'
+  });
+  if (!confirmed) return;
   try {
-    const res = await fetch(`${API_BASE}/customers/${id}`, { method: 'DELETE' });
+    const apiBase = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : (window.API_BASE || 'http://127.0.0.1:8000');
+    const res = await fetch(`${apiBase}/customers/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
-      alert(err && err.detail ? err.detail : `Failed to delete customer (${res.status})`);
+      showToast(err && err.detail ? err.detail : `Failed to archive customer (${res.status})`, 'danger');
       return;
     }
-    showToast(`Customer '${name}' deleted`, 'success');
+    showToast(`Customer '${name}' archived`, 'success');
     if (typeof applyCustomerFilters === 'function') applyCustomerFilters();
     if (typeof refreshDashboard === 'function') refreshDashboard();
     if (typeof loadTrackingData === 'function') loadTrackingData();
-  } catch (e) { console.error(e); alert('Failed to delete customer'); }
+  } catch (e) { console.error(e); showToast('Failed to archive customer', 'danger'); }
 }
 
 /**
@@ -1167,3 +1291,33 @@ async function hardDeleteCustomer(id, name) {
     if (typeof loadTrackingData === 'function') loadTrackingData();
   } catch (err) { console.error(err); alert('Hard delete failed'); }
 }
+
+window.confirmHardDelete = async function (id, name) {
+  const confirmed = await KBConfirm({
+    title: 'Permanently delete customer?',
+    message: `${name} and all linked production data will be permanently deleted. This cannot be undone.`,
+    confirmText: 'Delete Permanently',
+    variant: 'danger'
+  });
+  if (!confirmed) return;
+  await window.hardDeleteCustomer(id, name);
+};
+
+window.hardDeleteCustomer = async function (id, name) {
+  try {
+    const apiBase = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : (window.API_BASE || 'http://127.0.0.1:8000');
+    const res = await fetch(`${apiBase}/customers/${id}?hard=true`, { method: 'DELETE' });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      showToast((data && (data.detail || data.message)) || `Delete failed (${res.status})`, 'danger');
+      return;
+    }
+    showToast((data && (data.message || 'Customer permanently deleted')) || 'Customer permanently deleted', 'success');
+    if (typeof applyCustomerFilters === 'function') applyCustomerFilters();
+    if (typeof refreshDashboard === 'function') refreshDashboard();
+    if (typeof loadTrackingData === 'function') loadTrackingData();
+  } catch (err) {
+    console.error(err);
+    showToast('Hard delete failed', 'danger');
+  }
+};

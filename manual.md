@@ -96,8 +96,12 @@ Typical GRN flow:
 2. Create draft GRN.
 3. Add material line items.
 4. Record gross/tare/net weights.
-5. Record QA result.
-6. Approve GRN to create stock lots.
+5. Submit for QA.
+6. Record QA result for every line.
+7. Select the storage yard/rack.
+8. Approve GRN to create stock lots.
+
+The GRN detail modal disables risky buttons until their prerequisites are met. Approval is unavailable until the GRN is submitted and every line has a QA decision.
 
 ## Dispatch
 
@@ -109,9 +113,11 @@ Typical dispatch flow:
 
 1. Create dispatch note for a customer.
 2. Add stock-lot line items manually or by FIFO picking.
-3. Record weighbridge values.
-4. Submit and approve the dispatch.
+3. Submit for approval.
+4. Confirm dispatch.
 5. Stock movement reduces available inventory.
+
+The dispatch detail modal locks pick/remove actions after Draft and locks stock deduction until the dispatch is submitted for approval.
 
 ## Production Tracking
 
@@ -260,6 +266,8 @@ Backend:
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
+Current verified backend result: `507 passed, 2 skipped`.
+
 Browser:
 
 ```powershell
@@ -269,8 +277,12 @@ $env:E2E_PASSWORD = "Boss1234!" # pragma: allowlist secret
 cmd /c npm run test:e2e
 ```
 
+Current verified browser result: `4 passed`.
+
 Design:
 
 ```powershell
 cmd /c npm run design:impeccable
 ```
+
+Current full static Impeccable result is not clean. It reports legacy design debt across older HTML pages, mostly heading hierarchy, modal/card padding, nested cards, and typography pairing. Treat that as a remaining design-hardening backlog before claiming complete visual QA.

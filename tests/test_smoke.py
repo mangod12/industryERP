@@ -8,6 +8,7 @@ These tests exercise:
 """
 
 from backend_core.app.models import User
+from backend_core.app.models_v2 import StorageLocation, Vendor
 from tests.conftest import (
     create_test_customer,
     create_test_inventory,
@@ -109,6 +110,59 @@ class TestClientSetup:
         create_test_customer(db, name="Auth Test Customer")
         resp = boss_client.get("/customers/")
         assert resp.status_code == 200
+
+    def test_storage_locations_endpoint_lists_active_locations(self, db, boss_client):
+        """GRN approval needs a selectable active yard/rack list."""
+        db.add_all(
+            [
+                StorageLocation(code="A-YARD", name="A Yard", location_type="yard", is_active=True),
+                StorageLocation(code="B-RACK", name="B Rack", location_type="rack", is_active=True),
+                StorageLocation(code="Z-OLD", name="Old Yard", location_type="yard", is_active=False),
+            ]
+        )
+        db.commit()
+
+        resp = boss_client.get("/api/v2/inventory/locations")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert [item["code"] for item in body] == ["A-YARD", "B-RACK"]
+        assert body[0]["name"] == "A Yard"
+
+    def test_grn_detail_endpoint_reads_created_grn(self, db, boss_client):
+        """The GRN page detail modal requires a read-by-id endpoint."""
+        vendor = Vendor(code="V-GRN-READ", name="GRN Read Vendor")
+        db.add(vendor)
+        db.commit()
+        db.refresh(vendor)
+
+        create_resp = boss_client.post("/api/v2/grn/", json={"vendor_id": vendor.id, "vehicle_number": "MH12AB1234"})
+        assert create_resp.status_code == 201
+        grn_id = create_resp.json()["grn_id"]
+
+        detail_resp = boss_client.get(f"/api/v2/grn/{grn_id}")
+
+        assert detail_resp.status_code == 200
+        body = detail_resp.json()
+        assert body["id"] == grn_id
+        assert body["vendor_name"] == "GRN Read Vendor"
+        assert body["line_items"] == []
+
+    def test_dispatch_detail_endpoint_reads_created_dispatch(self, db, boss_client):
+        """The dispatch page detail modal requires a read-by-id endpoint."""
+        customer = create_test_customer(db, name="Dispatch Read Customer")
+
+        create_resp = boss_client.post("/api/v2/dispatch/", json={"customer_id": customer.id, "vehicle_number": "MH12AB5678"})
+        assert create_resp.status_code == 201
+        dispatch_id = create_resp.json()["dispatch_id"]
+
+        detail_resp = boss_client.get(f"/api/v2/dispatch/{dispatch_id}")
+
+        assert detail_resp.status_code == 200
+        body = detail_resp.json()
+        assert body["id"] == dispatch_id
+        assert body["customer_name"] == "Dispatch Read Customer"
+        assert body["line_items"] == []
 
     def test_role_notification_settings_require_auth(self, client):
         """Role notification preferences are not public metadata."""

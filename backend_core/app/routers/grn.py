@@ -271,6 +271,64 @@ async def list_grns(
     return output
 
 
+@router.get("/{grn_id}", response_model=GRNOut)
+async def get_grn(
+    grn_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_permission(Permission.GRN_VIEW)),
+):
+    """Read one GRN with its line items for the detail workflow."""
+    result = (
+        db.query(GoodsReceiptNote, Vendor.name.label("vendor_name"))
+        .join(Vendor, GoodsReceiptNote.vendor_id == Vendor.id)
+        .filter(GoodsReceiptNote.id == grn_id)
+        .first()
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="GRN not found")
+
+    grn, vendor_name = result
+    line_items = []
+    for line in grn.line_items:
+        material = db.query(MaterialMaster).filter(MaterialMaster.id == line.material_id).first()
+        line_items.append(
+            GRNLineItemOut(
+                id=line.id,
+                material_code=material.code if material else None,
+                material_name=material.name if material else None,
+                heat_number=line.heat_number,
+                batch_number=line.batch_number,
+                ordered_qty=float(line.ordered_qty) if line.ordered_qty else None,
+                received_qty=float(line.received_qty),
+                accepted_qty=float(line.accepted_qty) if line.accepted_qty else None,
+                rejected_qty=float(line.rejected_qty) if line.rejected_qty else 0,
+                weight_kg=float(line.weight_kg),
+                unit=line.unit.value if line.unit else "kg",
+                rate=float(line.rate) if line.rate else None,
+                amount=float(line.amount) if line.amount else None,
+                qa_status=line.qa_status.value if line.qa_status else "pending",
+            )
+        )
+
+    return GRNOut(
+        id=grn.id,
+        grn_number=grn.grn_number,
+        vendor_name=vendor_name,
+        vendor_invoice_number=grn.vendor_invoice_number,
+        vehicle_number=grn.vehicle_number,
+        driver_name=grn.driver_name,
+        gross_weight_kg=float(grn.gross_weight_kg) if grn.gross_weight_kg else None,
+        tare_weight_kg=float(grn.tare_weight_kg) if grn.tare_weight_kg else None,
+        net_weight_kg=float(grn.net_weight_kg) if grn.net_weight_kg else None,
+        status=grn.status.value if grn.status else "draft",
+        gate_entry_time=grn.gate_entry_time,
+        weighment_time=grn.weighment_time,
+        received_time=grn.received_time,
+        created_at=grn.created_at,
+        line_items=line_items,
+    )
+
+
 @router.post("", status_code=201)
 @router.post("/", status_code=201)
 async def create_grn(

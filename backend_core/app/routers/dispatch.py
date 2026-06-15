@@ -193,6 +193,58 @@ async def list_dispatches(
     return output
 
 
+@router.get("/{dispatch_id}", response_model=DispatchOut)
+async def get_dispatch(
+    dispatch_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_permission(Permission.DISPATCH_VIEW)),
+):
+    """Read one dispatch note with picked lots for the detail workflow."""
+    result = (
+        db.query(DispatchNote, Customer.name.label("customer_name"))
+        .join(Customer, DispatchNote.customer_id == Customer.id)
+        .filter(DispatchNote.id == dispatch_id)
+        .first()
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Dispatch not found")
+
+    dispatch, customer_name = result
+    line_items = []
+    for line in dispatch.line_items:
+        lot = db.query(StockLot).filter(StockLot.id == line.stock_lot_id).first()
+        material = db.query(MaterialMaster).filter(MaterialMaster.id == lot.material_id).first() if lot else None
+        line_items.append(
+            DispatchLineItemOut(
+                id=line.id,
+                lot_number=lot.lot_number if lot else "N/A",
+                material_code=material.code if material else None,
+                material_name=material.name if material else None,
+                heat_number=lot.heat_number if lot else None,
+                dispatched_weight_kg=float(line.dispatched_weight_kg),
+                rate=float(line.rate) if line.rate else None,
+                amount=float(line.amount) if line.amount else None,
+            )
+        )
+
+    return DispatchOut(
+        id=dispatch.id,
+        dispatch_number=dispatch.dispatch_number,
+        customer_name=customer_name,
+        sales_order_ref=dispatch.sales_order_ref,
+        vehicle_number=dispatch.vehicle_number,
+        transporter=dispatch.transporter,
+        driver_name=dispatch.driver_name,
+        gross_weight_kg=float(dispatch.gross_weight_kg) if dispatch.gross_weight_kg else None,
+        tare_weight_kg=float(dispatch.tare_weight_kg) if dispatch.tare_weight_kg else None,
+        net_weight_kg=float(dispatch.net_weight_kg) if dispatch.net_weight_kg else None,
+        status=dispatch.status.value if dispatch.status else "draft",
+        requested_at=dispatch.requested_at,
+        dispatched_at=dispatch.dispatched_at,
+        line_items=line_items,
+    )
+
+
 @router.post("", status_code=201)
 @router.post("/", status_code=201)
 async def create_dispatch(

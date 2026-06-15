@@ -96,4 +96,67 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
 
     expect(consoleErrors).toEqual([]);
   });
+
+  test('factory pages expose named controls without invalid display values', async ({ page }) => {
+    await login(page);
+
+    const pages = [
+      'raw_material.html',
+      'materials.html',
+      'stock.html',
+      'grn.html',
+      'dispatch.html',
+      'tracking_v2.html',
+      'drawings.html',
+      'customers.html',
+      'scrap.html',
+      'reusable.html',
+      'queries.html',
+      'instructions.html',
+      'settings.html'
+    ];
+
+    for (const url of pages) {
+      await page.goto(`/${url}`);
+      await waitForApp(page);
+
+      const unnamedButtons = await page.locator('button:visible').evaluateAll(buttons =>
+        buttons
+          .filter(button => !button.innerText.trim() && !button.getAttribute('aria-label') && !button.getAttribute('title'))
+          .map(button => button.outerHTML.slice(0, 160))
+      );
+      expect(unnamedButtons, `${url} has unnamed visible controls`).toEqual([]);
+      await expect(page.locator('body'), `${url} should not show Invalid Date`).not.toContainText('Invalid Date');
+      await expect(page.locator('body'), `${url} should not show NaN`).not.toContainText('NaN');
+    }
+  });
+
+  test('GRN and dispatch lifecycle controls are wired and state-gated', async ({ page }) => {
+    await login(page);
+
+    await page.goto('/grn.html');
+    await waitForApp(page);
+    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Clear' }).click();
+    await page.locator('.view-grn').first().click();
+    await expect(page.locator('#grnDetailModal.show')).toBeVisible();
+    await expect(page.locator('#btnSubmitGRN')).toHaveAttribute('title', /Draft|line item|Submit/i);
+    await expect(page.locator('#btnApproveGRN')).toHaveAttribute('title', /Submitted|QA|Approve/i);
+    const qaApprove = page.locator('.qa-approve').first();
+    if (await qaApprove.count()) {
+      await expect(qaApprove).toContainText('Approve');
+    }
+    await page.locator('#grnDetailModal .btn-close').click();
+    await expect(page.locator('#grnDetailModal')).not.toHaveClass(/show/);
+
+    await page.goto('/dispatch.html');
+    await waitForApp(page);
+    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Clear' }).click();
+    await page.locator('.view-dispatch').first().click();
+    await expect(page.locator('#dispatchDetailModal.show')).toBeVisible();
+    await expect(page.locator('#btnSubmitDispatch')).toHaveText('Submit for Approval');
+    await expect(page.locator('#btnApproveDispatch')).toHaveText('Confirm Dispatch');
+    await expect(page.locator('#btnOpenPickStock')).toHaveAttribute('title', /Pick|locked/i);
+  });
 });

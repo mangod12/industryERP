@@ -104,6 +104,19 @@ class StockLotOut(BaseModel):
         from_attributes = True
 
 
+class StorageLocationOut(BaseModel):
+    """Output schema for a storage location."""
+
+    id: int
+    code: str
+    name: str
+    location_type: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
 class StockSummaryOut(BaseModel):
     """Aggregated stock summary by material"""
 
@@ -277,6 +290,19 @@ async def create_material(
 # =============================================================================
 # STOCK LOT ENDPOINTS
 # =============================================================================
+
+
+@router.get("/locations", response_model=List[StorageLocationOut])
+async def list_storage_locations(
+    active_only: bool = True,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_permission(Permission.INVENTORY_VIEW)),
+):
+    """List storage locations for GRN approval and stock movement screens."""
+    query = db.query(StorageLocation)
+    if active_only:
+        query = query.filter(StorageLocation.is_active == True)
+    return query.order_by(StorageLocation.code.asc()).all()
 
 
 @router.get("/lots", response_model=List[StockLotOut])
