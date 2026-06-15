@@ -10,23 +10,42 @@ from ..models import Customer, ExcelUpload, Inventory, MaterialUsage, Notificati
 
 
 class ProductionService:
+    SUPPORTED_EXCEL_EXTENSIONS = (".xlsx", ".xlsm", ".xltx", ".xltm")
+    SUPPORTED_CSV_EXTENSIONS = (".csv",)
+    SUPPORTED_UPLOAD_EXTENSIONS = SUPPORTED_EXCEL_EXTENSIONS + SUPPORTED_CSV_EXTENSIONS
+    SUPPORTED_FILE_MESSAGE = "Supported files: .xlsx, .xlsm, .xltx, .xltm, .csv"
+
     # Public constant for column mappings
     DEFAULT_MAPPINGS = {
         "item_code": [
             "item_code",
             "item code",
-            "code",
-            "sr no",
-            "sr.no",
-            "s.no",
-            "sno",
-            "id",
             "part no",
             "part_no",
             "drawing no",
+            "drawing no.",
             "drawing_no",
+            "unique load",
+            "unique id",
+            "detail drg no",
+            "detail drg no.",
+            "detail drg. no",
+            "detail drg. no.",
+            "lot no",
+            "lot no.",
+            "drgno",
+            "drgno.",
             "dwg no",
             "dwg",
+            "code",
+            "id",
+            "sr no",
+            "sr. no",
+            "sr. no.",
+            "sr.no",
+            "sr.no.",
+            "s.no",
+            "sno",
         ],
         "item_name": [
             "item_name",
@@ -38,24 +57,104 @@ class ProductionService:
             "part name",
             "part_name",
             "product",
+            "assembly",
+            "mark number",
+            "part mark",
+            "itemno",
+            "itemno.",
         ],
-        "section": ["section", "size", "profile", "type", "category", "grade"],
+        "section": ["section", "size", "profile", "type", "category", "grade", "isa"],
         "length_mm": ["length_mm", "length mm", "length", "length (mm)", "len", "size_mm"],
-        "quantity": ["quantity", "qty", "qty.", "count", "nos", "no", "pcs", "pieces"],
+        "quantity": ["quantity", "qty", "qty.", "count", "nos", "no", "no.", "pcs", "pieces"],
         "unit": ["unit", "uom", "units"],
         "weight_per_unit": [
             "weight_per_unit",
-            "weight",
-            "wt",
-            "wt.",
+            "unit weight",
+            "unit weight (mt)",
+            "unit weight mt",
+            "unit wt",
+            "unit wt.",
+            "p.c weight",
+            "pc weight",
+            "act unit wt",
+            "dwg unit wt",
             "wt-(kg)",
             "wt (kg)",
             "weight (kg)",
             "weight/unit",
-            "unit weight",
+            "weight",
+            "wt",
+            "wt.",
+            "item net weight",
+            "net weight",
+            "total weight",
+            "total wt",
         ],
         "notes": ["notes", "remarks", "comment", "comments"],
     }
+
+    @staticmethod
+    def _normalize_column_name(value: Any) -> str:
+        text = "" if value is None else str(value)
+        text = text.replace("\ufeff", "").replace("\xa0", " ")
+        return " ".join(text.strip().split())
+
+    @classmethod
+    def _make_unique_columns(cls, columns: List[Any]) -> List[str]:
+        seen: Dict[str, int] = {}
+        normalized_columns = []
+        for index, column in enumerate(columns):
+            base = cls._normalize_column_name(column) or f"Column {index + 1}"
+            count = seen.get(base, 0) + 1
+            seen[base] = count
+            normalized_columns.append(base if count == 1 else f"{base} ({count})")
+        return normalized_columns
+
+    @classmethod
+    def _normalize_dataframe_columns(cls, df: pd.DataFrame) -> pd.DataFrame:
+        df = df.copy()
+        df.columns = cls._make_unique_columns(df.columns.tolist())
+        return df
+
+    @classmethod
+    def _mapping_aliases(cls) -> set[str]:
+        return {
+            cls._normalize_column_name(alias).lower() for aliases in cls.DEFAULT_MAPPINGS.values() for alias in aliases
+        }
+
+    @classmethod
+    def _detect_header_row(cls, df: pd.DataFrame) -> int:
+        if df.empty:
+            return 0
+
+        aliases = cls._mapping_aliases()
+        best_index = 0
+        best_score = (-1, -1)
+        max_scan_rows = min(20, len(df))
+
+        for index in range(max_scan_rows):
+            values = [cls._normalize_column_name(value) for value in df.iloc[index].tolist()]
+            non_empty_values = [value for value in values if value and value.lower() != "nan"]
+            alias_hits = sum(1 for value in non_empty_values if value.lower() in aliases)
+            score = (alias_hits, len(non_empty_values))
+            if score > best_score:
+                best_score = score
+                best_index = index
+
+        return best_index
+
+    @classmethod
+    def _excel_sheet_to_dataframe(cls, raw_df: pd.DataFrame) -> pd.DataFrame:
+        raw_df = raw_df.dropna(axis=0, how="all").dropna(axis=1, how="all")
+        if raw_df.empty:
+            return pd.DataFrame()
+
+        header_index = cls._detect_header_row(raw_df)
+        columns = cls._make_unique_columns(raw_df.iloc[header_index].tolist())
+        df = raw_df.iloc[header_index + 1 :].copy()
+        df.columns = columns
+        df = df.dropna(axis=0, how="all")
+        return df.reset_index(drop=True)
 
     @staticmethod
     def to_native(value: Any):
@@ -71,38 +170,58 @@ class ProductionService:
                 return value
         return value
 
+    @classmethod
+    def _weight_multiplier_to_kg(cls, column_name: Optional[str]) -> float:
+        normalized = cls._normalize_column_name(column_name).lower() if column_name else ""
+        unit_tokens = normalized.replace("(", " ").replace(")", " ").replace("-", " ").split()
+        if any(token in {"mt", "mton", "metricton", "metrictons"} for token in unit_tokens):
+            return 1000.0
+        return 1.0
+
     @staticmethod
     def read_file_to_dataframe(content: bytes, filename: str) -> Dict[str, pd.DataFrame]:
         filename_lower = filename.lower()
-        if filename_lower.endswith(".xlsx"):
-            return pd.read_excel(BytesIO(content), sheet_name=None, engine="openpyxl")
-        elif filename_lower.endswith(".csv"):
+        if filename_lower.endswith(ProductionService.SUPPORTED_EXCEL_EXTENSIONS):
+            try:
+                raw_sheets = pd.read_excel(BytesIO(content), sheet_name=None, header=None, engine="openpyxl")
+                return {
+                    str(sheet_name): ProductionService._excel_sheet_to_dataframe(df)
+                    for sheet_name, df in raw_sheets.items()
+                }
+            except Exception as e:
+                raise ValueError(f"Failed to read Excel file: {str(e)}")
+        elif filename_lower.endswith(ProductionService.SUPPORTED_CSV_EXTENSIONS):
             try:
                 # Try common encodings
                 for enc in ["utf-8", "cp1252", "latin-1", "iso-8859-1"]:
                     try:
                         # rewind buffer for each attempt
                         content_io = BytesIO(content)
-                        return {"Sheet1": pd.read_csv(content_io, encoding=enc)}
+                        df = pd.read_csv(content_io, encoding=enc)
+                        return {"Sheet1": ProductionService._normalize_dataframe_columns(df)}
                     except UnicodeDecodeError:
                         continue
                 # Fallback
-                return {"Sheet1": pd.read_csv(BytesIO(content), encoding="utf-8", errors="ignore")}
+                df = pd.read_csv(BytesIO(content), encoding="utf-8", errors="ignore")
+                return {"Sheet1": ProductionService._normalize_dataframe_columns(df)}
             except Exception as e:
                 raise ValueError(f"Failed to read CSV: {str(e)}")
         raise ValueError("Unsupported file format")
 
     @classmethod
     def get_column_mapping(cls, columns: List[str]) -> Dict[str, str]:
-        mapping = {}
-        for col in columns:
-            col_lower = col.lower().strip()
+        candidates: Dict[str, tuple[int, int, str]] = {}
+        for column_index, col in enumerate(columns):
+            col_lower = cls._normalize_column_name(col).lower()
             for db_field, file_fields in cls.DEFAULT_MAPPINGS.items():
                 if col_lower in file_fields:
-                    if db_field not in mapping.values():
-                        mapping[col] = db_field
+                    alias_rank = file_fields.index(col_lower)
+                    current = candidates.get(db_field)
+                    candidate = (alias_rank, column_index, col)
+                    if current is None or candidate[:2] < current[:2]:
+                        candidates[db_field] = candidate
                     break
-        return mapping
+        return {candidate[2]: db_field for db_field, candidate in candidates.items()}
 
     @classmethod
     def _aggregate_dataframe(cls, df: pd.DataFrame, mapping: Dict[str, str]) -> pd.DataFrame:
@@ -220,7 +339,8 @@ class ProductionService:
         dfs = cls.read_file_to_dataframe(file_content, filename)
         df_raw = list(dfs.values())[0]  # Use first sheet
 
-        cols = [str(c).strip() for c in df_raw.columns]
+        df_raw = cls._normalize_dataframe_columns(df_raw)
+        cols = df_raw.columns.tolist()
         mapping = cls.get_column_mapping(cols)
 
         # Aggregate Duplicates Logic
@@ -243,13 +363,16 @@ class ProductionService:
             # Logic check
             section = cls.to_native(row.get(field_to_col.get("section")))
             code_val = cls.to_native(row.get(field_to_col.get("item_code")))
-            weight = cls.to_native(row.get(field_to_col.get("weight_per_unit")))
+            weight_col = field_to_col.get("weight_per_unit")
+            weight = cls.to_native(row.get(weight_col))
             qty = cls.to_native(row.get(field_to_col.get("quantity"), 1))
 
             try:
                 weight_val = float(weight) if weight is not None else 0.0
             except (ValueError, TypeError):
                 weight_val = 0.0
+
+            weight_val *= cls._weight_multiplier_to_kg(weight_col)
 
             try:
                 qty_val = float(qty) if qty is not None else 1.0
@@ -324,7 +447,7 @@ class ProductionService:
         df_raw = list(dfs.values())[0]
 
         # Normalize columns: lower and strip
-        df_raw.columns = [str(c).strip().lower() for c in df_raw.columns]
+        df_raw.columns = [cls._normalize_column_name(c).lower() for c in df_raw.columns]
         mapping = cls.get_column_mapping(df_raw.columns.tolist())
 
         # field_to_col maps DB field to normalized column name
@@ -373,7 +496,8 @@ class ProductionService:
                 length = cls.to_native(row.get(field_to_col.get("length_mm")))
                 qty_val = cls.to_native(row.get(field_to_col.get("quantity"), 1))
                 unit = cls.to_native(row.get(field_to_col.get("unit")))
-                weight = cls.to_native(row.get(field_to_col.get("weight_per_unit")))
+                weight_col = field_to_col.get("weight_per_unit")
+                weight = cls.to_native(row.get(weight_col))
                 notes = cls.to_native(row.get(field_to_col.get("notes")))
 
                 try:
@@ -390,6 +514,7 @@ class ProductionService:
                     weight = float(weight) if weight else 0.0
                 except (ValueError, TypeError):
                     weight = 0.0
+                weight *= cls._weight_multiplier_to_kg(weight_col)
 
                 # Calculate total weight for this item (for grand total)
                 item_weight = weight * qty

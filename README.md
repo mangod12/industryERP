@@ -114,6 +114,7 @@ Each customer can have multiple tracking Excel files uploaded.
 
 #### Supported File Formats:
 - ✅ Excel (.xlsx)
+- ✅ Macro/template Excel (.xlsm, .xltx, .xltm)
 - ✅ CSV (.csv)
 
 #### Supported Column Names (Flexible):

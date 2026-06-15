@@ -3,6 +3,9 @@ Unit tests for ProductionService — column mapping, fuzzy matching,
 file reading, and preview imports.
 """
 
+from io import BytesIO
+
+import pandas as pd
 import pytest
 
 from backend_core.app.models import MaterialMapping
@@ -10,6 +13,14 @@ from backend_core.app.services.production_service import ProductionService
 from tests.conftest import (
     create_test_inventory,
 )
+
+
+def _excel_bytes(df: pd.DataFrame, *, header: bool = True, sheet_name: str = "Sheet1") -> bytes:
+    stream = BytesIO()
+    with pd.ExcelWriter(stream, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, header=header, sheet_name=sheet_name)
+    return stream.getvalue()
+
 
 # ===========================================================================
 # TestColumnMapping
@@ -76,6 +87,29 @@ class TestColumnMapping:
             mapping = ProductionService.get_column_mapping([alias])
             assert mapping.get(alias) == "notes", f"'{alias}' should map to notes"
 
+    def test_real_world_aliases_from_uploaded_workbooks(self):
+        columns = ["Detail Drg. No.", "Mark Number", "Qty.", "Unit Weight (MT)"]
+        mapping = ProductionService.get_column_mapping(columns)
+
+        assert mapping["Detail Drg. No."] == "item_code"
+        assert mapping["Mark Number"] == "item_name"
+        assert mapping["Qty."] == "quantity"
+        assert mapping["Unit Weight (MT)"] == "weight_per_unit"
+        assert ProductionService.get_column_mapping(["   ASSEMBLY     "])["   ASSEMBLY     "] == "item_name"
+
+    def test_prefers_real_identifier_alias_over_serial_number(self):
+        mapping = ProductionService.get_column_mapping(["SR. NO.", "unique load", "Detail Drg. No."])
+
+        assert "SR. NO." not in mapping
+        assert mapping["unique load"] == "item_code"
+
+    def test_prefers_specific_weight_alias_over_generic_wt(self):
+        mapping = ProductionService.get_column_mapping(["WT", "P.C WEIGHT", "unit wt"])
+
+        assert mapping["unit wt"] == "weight_per_unit"
+        assert "WT" not in mapping
+        assert "P.C WEIGHT" not in mapping
+
 
 # ===========================================================================
 # TestFileReading
@@ -113,6 +147,45 @@ class TestFileReading:
         with pytest.raises(Exception):
             # Invalid xlsx content should raise, but the point is it tries openpyxl
             ProductionService.read_file_to_dataframe(b"not-a-real-xlsx", "test.xlsx")
+
+    def test_xltm_file_detected_and_header_row_promoted(self):
+        workbook = pd.DataFrame(
+            [
+                ["SR. NO.", "Building Name", "Detail Drg. No.", "Mark Number", "Qty.", "Unit Weight (MT)"],
+                [1, "B1", "DRG-100", "HR-001", 2, 0.10122],
+            ]
+        )
+        result = ProductionService.read_file_to_dataframe(
+            _excel_bytes(workbook, header=False),
+            "tracking sheet handrail.xltm",
+        )
+
+        df = result["Sheet1"]
+        assert list(df.columns) == [
+            "SR. NO.",
+            "Building Name",
+            "Detail Drg. No.",
+            "Mark Number",
+            "Qty.",
+            "Unit Weight (MT)",
+        ]
+        assert len(df) == 1
+        assert df.iloc[0]["Detail Drg. No."] == "DRG-100"
+
+    def test_later_excel_header_row_is_detected(self):
+        workbook = pd.DataFrame(
+            [
+                ["", "", "", "", ""],
+                ["READY", "lot No.", "DRGNO.", "ITEMNO.", "QUANTITY"],
+                ["Y", "LOT-2", "D-200", "ITEM-9", 4],
+            ]
+        )
+        result = ProductionService.read_file_to_dataframe(_excel_bytes(workbook, header=False), "bom.xltm")
+
+        df = result["Sheet1"]
+        assert list(df.columns) == ["READY", "lot No.", "DRGNO.", "ITEMNO.", "QUANTITY"]
+        assert len(df) == 1
+        assert df.iloc[0]["DRGNO."] == "D-200"
 
 
 # ===========================================================================
@@ -240,6 +313,45 @@ class TestPreviewImport:
 
         # 2*50 + 3*100 = 400
         assert result["material_matching"]["grand_total_weight_kg"] == 400.0
+
+    def test_preview_converts_metric_ton_weight_columns_to_kg(self, db):
+        csv_content = b"Item Code,Item Name,Quantity,Unit Weight (MT)\nA001,Beam,2,0.5"
+
+        result = ProductionService.preview_production_excel(db, csv_content, "test.csv")
+
+        assert result["material_matching"]["grand_total_weight_kg"] == 1000.0
+
+    def test_preview_handles_padded_excel_headers(self, db):
+        content = _excel_bytes(
+            pd.DataFrame(
+                [
+                    {
+                        "Drawing no": "P-001",
+                        "   ASSEMBLY     ": "ASM-001",
+                        "  NAME              ": "HANDRAIL",
+                        "   PROFILE           ": "UB203X133X25",
+                        "  QTY.         ": 2,
+                        "  WT-(kg)       ": 199.139,
+                    }
+                ]
+            ),
+            sheet_name="07_TATA_Tracking_Report",
+        )
+
+        result = ProductionService.preview_production_excel(db, content, "7. TRACKING REPORT TCIL.xlsx")
+
+        assert result["columns"] == [
+            "Drawing no",
+            "ASSEMBLY",
+            "NAME",
+            "PROFILE",
+            "QTY.",
+            "WT-(kg)",
+        ]
+        assert result["total_rows"] == 1
+        assert len(result["preview_rows"]) == 1
+        assert result["preview_rows"][0]["Drawing no"] == "P-001"
+        assert result["material_matching"]["grand_total_weight_kg"] == pytest.approx(398.278)
 
 
 # ===========================================================================

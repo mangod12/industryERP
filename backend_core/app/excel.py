@@ -219,7 +219,8 @@ async def upload_stage_excel(
     The file should contain item identifiers (Drawing no, item_code, Assembly, or item_name) to match existing items.
     Additional columns can include stage-specific data like completion status, notes, etc.
 
-    Supports columns like: Drawing no, ASSEMBLY, NAME, PROFILE, QTY., WT-(kg), AR(m²), PRIORITY, PAINT, DATE, LOT
+    Supports .xlsx, .xlsm, .xltx, .xltm, and .csv files with columns like:
+    Drawing no, ASSEMBLY, NAME, PROFILE, QTY., WT-(kg), AR(m²), PRIORITY, PAINT, DATE, LOT
     """
     from datetime import datetime
 
@@ -229,8 +230,8 @@ async def upload_stage_excel(
         raise HTTPException(status_code=400, detail=f"Invalid stage. Must be one of: {valid_stages}")
 
     filename = (file.filename or "").lower()
-    if not (filename.endswith(".xlsx") or filename.endswith(".csv")):
-        raise HTTPException(status_code=400, detail="Only .xlsx and .csv files are supported")
+    if not filename.endswith(ProductionService.SUPPORTED_UPLOAD_EXTENSIONS):
+        raise HTTPException(status_code=400, detail=ProductionService.SUPPORTED_FILE_MESSAGE)
 
     content = await file.read()
     if not content:
@@ -247,7 +248,6 @@ async def upload_stage_excel(
 
     # Extended column mappings for stage data
     stage_column_mappings = {
-        **ProductionService.DEFAULT_MAPPINGS,
         # Status variations
         "status": "status",
         "stage_status": "status",
@@ -268,9 +268,9 @@ async def upload_stage_excel(
     }
 
     # Find column mapping
-    mapping = {}
+    mapping = ProductionService.get_column_mapping(cols)
     for col in cols:
-        col_lower = col.lower().strip()
+        col_lower = ProductionService._normalize_column_name(col).lower()
         if col_lower in stage_column_mappings:
             db_field = stage_column_mappings[col_lower]
             if db_field not in mapping.values():
@@ -395,7 +395,7 @@ async def preview_stage_excel(
     Preview Excel/CSV file for stage upload without actually importing.
     Shows matched items and detected columns.
 
-    Supports both .xlsx and .csv files.
+    Supports .xlsx, .xlsm, .xltx, .xltm, and .csv files.
     """
     stage = stage.lower()
     valid_stages = ["fabrication", "painting", "dispatch"]
@@ -403,8 +403,8 @@ async def preview_stage_excel(
         raise HTTPException(status_code=400, detail=f"Invalid stage. Must be one of: {valid_stages}")
 
     filename = (file.filename or "").lower()
-    if not (filename.endswith(".xlsx") or filename.endswith(".csv")):
-        raise HTTPException(status_code=400, detail="Only .xlsx and .csv files are supported")
+    if not filename.endswith(ProductionService.SUPPORTED_UPLOAD_EXTENSIONS):
+        raise HTTPException(status_code=400, detail=ProductionService.SUPPORTED_FILE_MESSAGE)
 
     content = await file.read()
     if not content:

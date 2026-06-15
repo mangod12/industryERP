@@ -242,7 +242,8 @@
           </div>
           <div class="mb-3">
             <label for="trackingExcelFile" class="form-label fw-bold">Select Excel/CSV File</label>
-            <input type="file" class="form-control" id="trackingExcelFile" accept=".xlsx,.csv">
+            <input type="file" class="form-control" id="trackingExcelFile" accept=".xlsx,.xlsm,.xltx,.xltm,.csv">
+            <small class="text-muted">Supports .xlsx, .xlsm, .xltx, .xltm, and .csv files</small>
           </div>
 
           <!-- Inventory Selection for Deduction -->
@@ -571,7 +572,7 @@
         const inventoryId = document.getElementById('deductFromInventory').value;
 
         if (!fileInput.files || !fileInput.files[0]) {
-          alert('Please select an Excel file');
+          alert('Please select an Excel/CSV file');
           return;
         }
 

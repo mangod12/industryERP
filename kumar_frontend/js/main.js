@@ -465,13 +465,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (previewEl) previewEl.innerHTML = '';
 
       if (!fileInput || !fileInput.files || !fileInput.files.length) {
-        if (statusEl) statusEl.innerText = 'Please select an .xlsx file';
+        if (statusEl) statusEl.innerText = 'Please select an Excel/CSV file';
         return;
       }
 
       const file = fileInput.files[0];
-      if (!file.name.toLowerCase().endsWith('.xlsx')) {
-        if (statusEl) statusEl.innerText = 'Only .xlsx files are supported';
+      const supportedUploadExtensions = ['.xlsx', '.xlsm', '.xltx', '.xltm', '.csv'];
+      if (!supportedUploadExtensions.some((extension) => file.name.toLowerCase().endsWith(extension))) {
+        if (statusEl) statusEl.innerText = 'Supported files: .xlsx, .xlsm, .xltx, .xltm, .csv';
         return;
       }
 
