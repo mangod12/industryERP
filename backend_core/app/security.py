@@ -344,6 +344,23 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
         Permission.PRODUCTION_VIEW,
         Permission.REPORT_VIEW,
     },
+    "Fabricator": {
+        Permission.PRODUCTION_VIEW,
+        Permission.PRODUCTION_UPDATE,
+        Permission.PRODUCTION_CONSUME,
+        Permission.REPORT_VIEW,
+    },
+    "Painter": {
+        Permission.PRODUCTION_VIEW,
+        Permission.PRODUCTION_UPDATE,
+        Permission.REPORT_VIEW,
+    },
+    # Legacy label kept for existing installations that already have Dispatch users.
+    "Dispatch": {
+        Permission.DISPATCH_VIEW,
+        Permission.PRODUCTION_VIEW,
+        Permission.REPORT_VIEW,
+    },
     "User": {
         Permission.INVENTORY_VIEW,
         Permission.GRN_VIEW,

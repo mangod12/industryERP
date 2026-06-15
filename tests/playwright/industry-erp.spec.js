@@ -165,6 +165,12 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
 
   test('login page is consistent before authentication', async ({ page }) => {
     await page.goto('/login.html');
+    await page.evaluate(() => {
+      localStorage.removeItem('kb_token');
+      localStorage.removeItem('kb_role');
+      localStorage.removeItem('kb_user');
+    });
+    await page.reload();
     await waitForApp(page);
     await expect(page.locator('body')).toContainText('KumarBrothers Steel');
     await expect(page.getByRole('button', { name: /^login$/i })).toBeVisible();
@@ -206,5 +212,182 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
     await expect(page.locator('#btnSubmitDispatch')).toHaveText('Submit for Approval');
     await expect(page.locator('#btnApproveDispatch')).toHaveText('Confirm Dispatch');
     await expect(page.locator('#btnOpenPickStock')).toHaveAttribute('title', /Pick|locked/i);
+  });
+
+  test('fabrication completion opens material deduction confirmation before stage advance', async ({ page, request, baseURL }) => {
+    let stageAdvanceRequests = 0;
+    let tempCustomerId = null;
+    const runId = Date.now();
+
+    const loginRes = await request.post(`${baseURL}/auth/login`, {
+      data: { username: USERNAME, password: PASSWORD }
+    });
+    expect(loginRes.ok()).toBeTruthy();
+    const { access_token } = await loginRes.json();
+    const headers = { Authorization: `Bearer ${access_token}` };
+
+    await page.route('**/api/tracking/*', async route => {
+      const request = route.request();
+      if (request.method() === 'PUT') {
+        const body = request.postData() || '';
+        if (body.includes('"stage"')) {
+          stageAdvanceRequests += 1;
+        }
+      }
+      await route.continue();
+    });
+
+    try {
+      const customerRes = await request.post(`${baseURL}/customers`, {
+        headers,
+        data: { name: `PW Fabrication ${runId}`, project_details: 'Playwright modal gate' }
+      });
+      expect(customerRes.ok()).toBeTruthy();
+      tempCustomerId = (await customerRes.json()).id;
+
+      const itemCode = `PW-FAB-${runId}`;
+      const itemRes = await request.post(`${baseURL}/customers/${tempCustomerId}/items`, {
+        headers,
+        data: {
+          item_code: itemCode,
+          item_name: 'Modal Gate Test Beam',
+          section: 'ISMB 200',
+          length_mm: 1200,
+          quantity: 1,
+          unit: 'pcs',
+          weight_per_unit: 12.5,
+          material_requirements: JSON.stringify([{ inventory_name: 'ISMB 200 Beam', profile: 'ISMB 200', qty: 12.5 }]),
+          checklist: '[]'
+        }
+      });
+      expect(itemRes.ok()).toBeTruthy();
+
+      await login(page);
+      await page.goto('/tracking_v2.html');
+      await waitForApp(page);
+      await page.locator('#searchInput').fill(itemCode);
+      await page.getByRole('button', { name: 'Search' }).click();
+      await waitForApp(page);
+
+      const fabricationButton = page.locator('button.complete-btn.fabrication:not([disabled])').first();
+      await expect(fabricationButton).toBeVisible();
+      await fabricationButton.click();
+      await expect(page.locator('#deductionModal.show')).toBeVisible();
+      await expect(page.locator('#deductionPreview')).toContainText('ISMB 200');
+      expect(stageAdvanceRequests).toBe(0);
+      await page.locator('#deductionModal .btn-close').click();
+    } finally {
+      if (tempCustomerId) {
+        await request.delete(`${baseURL}/customers/${tempCustomerId}?hard=true`, { headers });
+      }
+    }
+  });
+
+  test('raw material resets require typed confirmation and do not use native dialogs', async ({ page }) => {
+    page.on('dialog', dialog => {
+      throw new Error(`Unexpected native dialog: ${dialog.message()}`);
+    });
+
+    await login(page);
+    await page.goto('/raw_material.html');
+    await waitForApp(page);
+
+    await page.getByRole('button', { name: 'Reset Total Stock' }).click();
+    await expect(page.locator('#kbConfirmModal.show')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Reset Total Stock' }).last()).toBeDisabled();
+    await page.locator('#kbConfirmTypedInput').fill('RESET');
+    await expect(page.getByRole('button', { name: 'Reset Total Stock' }).last()).toBeDisabled();
+    await page.locator('#kbConfirmTypedInput').fill('RESET STOCK');
+    await expect(page.getByRole('button', { name: 'Reset Total Stock' }).last()).toBeEnabled();
+    await page.locator('#kbConfirmModal .btn-close').click();
+  });
+
+  test('customer actions are permission-filtered and safe for apostrophes', async ({ page }) => {
+    await login(page);
+    await page.goto('/customers.html');
+    await waitForApp(page);
+
+    await page.evaluate(() => {
+      localStorage.setItem('kb_role', 'User');
+      renderCustomers([
+        {
+          id: 98765,
+          name: "O'Brien Steel",
+          project_details: "Handrail trial",
+          total_items: 1,
+          current_stage: 'fabrication'
+        }
+      ]);
+    });
+
+    await expect(page.getByText("O'Brien Steel")).toBeVisible();
+    await expect(page.getByText('Soft Delete')).not.toBeVisible();
+    await expect(page.getByText('Hard Delete')).not.toBeVisible();
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await expect(page.locator('#uploadExcelModal.show')).toBeVisible();
+  });
+
+  test('stock lot controls are explicit and CSV export is wired', async ({ page }) => {
+    await login(page);
+    await page.goto('/stock.html');
+    await waitForApp(page);
+
+    const viewButton = page.locator('.view-lot').first();
+    test.skip(await viewButton.count() === 0, 'No stock lots in seeded data');
+    await viewButton.click();
+    await expect(page.locator('#stockDetailModal.show')).toBeVisible();
+    await expect(page.locator('#btnHoldStock')).toBeDisabled();
+    await expect(page.locator('#btnHoldStock')).toHaveAttribute('title', /GRN QA inspection/i);
+    await expect(page.locator('#movementHistory')).not.toContainText('Movement history unavailable');
+    await page.locator('#stockDetailModal .btn-close').click();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export CSV' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^stock-lots-\d{4}-\d{2}-\d{2}\.csv$/);
+  });
+
+  test('role creation options and password toggles are operator-safe', async ({ page }) => {
+    await login(page);
+    await page.goto('/register.html');
+    await waitForApp(page);
+
+    const roleOptions = await page.locator('#roleSelect option').evaluateAll(options =>
+      options.map(option => option.value).filter(Boolean)
+    );
+    expect(roleOptions).toEqual([
+      'Boss',
+      'Software Supervisor',
+      'Store Keeper',
+      'QA Inspector',
+      'Dispatch Operator',
+      'Fabricator',
+      'Painter',
+      'User'
+    ]);
+
+    await page.evaluate(() => {
+      localStorage.removeItem('kb_token');
+      localStorage.removeItem('kb_role');
+      localStorage.removeItem('kb_user');
+    });
+    await page.goto('/login.html');
+    const toggle = page.getByRole('button', { name: /show password/i });
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: /hide password/i })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('tablet viewport keeps operator pages reachable without page-level overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await login(page);
+
+    for (const url of ['raw_material.html', 'tracking_v2.html', 'stock.html', 'customers.html']) {
+      await page.goto(`/${url}`);
+      await waitForApp(page);
+      await expect(page.locator('h1').first()).toBeVisible();
+      const hasPageOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+      expect(hasPageOverflow, `${url} should not create tablet page-level horizontal overflow`).toBeFalsy();
+    }
   });
 });

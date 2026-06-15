@@ -26,8 +26,21 @@ const KBConfig = {
     STORE_KEEPER: 'Store Keeper',
     QA_INSPECTOR: 'QA Inspector',
     DISPATCH_OPERATOR: 'Dispatch Operator',
+    FABRICATOR: 'Fabricator',
+    PAINTER: 'Painter',
     USER: 'User'
   }),
+
+  ROLE_OPTIONS: Object.freeze([
+    { value: 'Boss', label: 'Boss', description: 'Full control over users, inventory, approvals, and settings.' },
+    { value: 'Software Supervisor', label: 'Software Supervisor', description: 'Operates the ERP and supports factory supervisors.' },
+    { value: 'Store Keeper', label: 'Store Keeper', description: 'Receives materials, manages inventory, and consumes stock.' },
+    { value: 'QA Inspector', label: 'QA Inspector', description: 'Checks GRN quality and holds or approves material.' },
+    { value: 'Dispatch Operator', label: 'Dispatch Operator', description: 'Creates dispatch notes and prepares outbound material.' },
+    { value: 'Fabricator', label: 'Fabricator', description: 'Updates fabrication-stage production work.' },
+    { value: 'Painter', label: 'Painter', description: 'Updates painting-stage production work.' },
+    { value: 'User', label: 'User', description: 'Read-only access for day-to-day visibility.' }
+  ]),
 
   // Role permissions mapping (mirrors backend)
   PERMISSIONS: {
@@ -67,10 +80,10 @@ const KBConfig = {
       'production:view', 'report:view'
     ],
     'Fabricator': [
-      'production:view', 'report:view'
+      'production:view', 'production:update', 'production:consume', 'report:view'
     ],
     'Painter': [
-      'production:view', 'report:view'
+      'production:view', 'production:update', 'report:view'
     ],
     'Dispatch': [
       'production:view', 'report:view', 'dispatch:view'

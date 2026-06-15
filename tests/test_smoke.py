@@ -7,8 +7,10 @@ These tests exercise:
 3. Basic endpoint reachability
 """
 
+from decimal import Decimal
+
 from backend_core.app.models import User
-from backend_core.app.models_v2 import StorageLocation, Vendor
+from backend_core.app.models_v2 import MovementType, StockMovement, StorageLocation, Vendor
 from tests.conftest import (
     create_test_customer,
     create_test_inventory,
@@ -128,6 +130,30 @@ class TestClientSetup:
         body = resp.json()
         assert [item["code"] for item in body] == ["A-YARD", "B-RACK"]
         assert body[0]["name"] == "A Yard"
+
+    def test_stock_lot_movements_endpoint_uses_existing_user_display_field(self, db, boss_client):
+        """Movement history must use a real user display field."""
+        user = db.query(User).filter(User.username == "boss_test").one()
+        lot = create_test_stock_lot(db)
+        movement = StockMovement(
+            movement_number="MOV-SMOKE-001",
+            stock_lot_id=lot.id,
+            movement_type=MovementType.ADJUSTMENT_PLUS,
+            weight_change_kg=Decimal("5.000"),
+            weight_before_kg=Decimal("100.000"),
+            weight_after_kg=Decimal("105.000"),
+            reason="Smoke test adjustment",
+            created_by=user.id,
+        )
+        db.add(movement)
+        db.commit()
+
+        resp = boss_client.get(f"/api/v2/inventory/movements/{lot.id}")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body[0]["movement_number"] == "MOV-SMOKE-001"
+        assert body[0]["created_by_name"] == "boss_test"
 
     def test_grn_detail_endpoint_reads_created_grn(self, db, boss_client):
         """The GRN page detail modal requires a read-by-id endpoint."""

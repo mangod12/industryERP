@@ -403,22 +403,34 @@ def on_grn_approve(db: Session, context: dict) -> None:
     """
     from datetime import datetime
 
-    from ..models_v2 import GoodsReceiptNote, QAStatus
+    from ..models_v2 import DocumentStatus, GoodsReceiptNote, QAStatus, StockLot
     from .inventory_service import InvalidOperationError, StockLotService
 
     grn_id = context["grn_id"]
     user_id = context["user_id"]
     location_id = context["location_id"]
 
-    grn = db.query(GoodsReceiptNote).filter(GoodsReceiptNote.id == grn_id).with_for_update().first()
+    grn = db.query(GoodsReceiptNote).filter(GoodsReceiptNote.id == grn_id).populate_existing().with_for_update().first()
 
     if not grn:
         raise WorkflowError(f"GRN {grn_id} not found")
+
+    if grn.status == DocumentStatus.APPROVED:
+        context["grn"] = grn
+        context["created_lots"] = []
+        return
+
+    if grn.status != DocumentStatus.SUBMITTED:
+        raise WorkflowError(f"GRN {grn_id} is {grn.status.value}; only submitted GRNs can be approved")
 
     # Validate all line items have QA decision
     pending_qa = [li for li in grn.line_items if li.qa_status == QAStatus.PENDING]
     if pending_qa:
         raise InvalidOperationError(f"{len(pending_qa)} line items pending QA inspection")
+
+    existing_lots = db.query(StockLot).filter(StockLot.grn_id == grn_id).all()
+    if existing_lots:
+        raise WorkflowError(f"GRN {grn_id} already has stock lots; refusing duplicate approval")
 
     created_lots = []
     for line in grn.line_items:
@@ -460,15 +472,35 @@ def on_dispatch_approve(db: Session, context: dict) -> None:
     """
     from datetime import datetime
 
-    from ..models_v2 import DispatchNote
+    from ..models_v2 import DispatchNote, DocumentStatus, StockMovement
     from .inventory_service import StockLotService
 
     dispatch_id = context["dispatch_id"]
     user_id = context["user_id"]
-    dispatch = db.query(DispatchNote).filter(DispatchNote.id == dispatch_id).with_for_update().first()
+    dispatch = (
+        db.query(DispatchNote).filter(DispatchNote.id == dispatch_id).populate_existing().with_for_update().first()
+    )
 
     if not dispatch:
         raise WorkflowError(f"Dispatch note {dispatch_id} not found")
+
+    if dispatch.status == DocumentStatus.APPROVED:
+        context["dispatch"] = dispatch
+        context["movements"] = []
+        return
+
+    if dispatch.status != DocumentStatus.SUBMITTED:
+        raise WorkflowError(
+            f"Dispatch note {dispatch_id} is {dispatch.status.value}; only submitted dispatch notes can be approved"
+        )
+
+    existing_movements = (
+        db.query(StockMovement)
+        .filter(StockMovement.reference_type == "dispatch", StockMovement.reference_id == dispatch_id)
+        .all()
+    )
+    if existing_movements:
+        raise WorkflowError(f"Dispatch note {dispatch_id} already has stock movements; refusing duplicate approval")
 
     movements = []
     for line in dispatch.line_items:
@@ -559,6 +591,7 @@ def transition_document(
     from ..models_v2 import DispatchNote, DocumentStatus, GoodsReceiptNote
 
     register_document_hooks()
+    db.flush()
 
     # Select the right workflow based on document type
     if isinstance(document, GoodsReceiptNote):

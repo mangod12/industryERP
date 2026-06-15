@@ -357,7 +357,7 @@
               <label for="oldPw" class="form-label small fw-bold">Current Password</label>
               <div class="input-group">
                 <input type="password" id="oldPw" class="form-control" placeholder="••••••••" required>
-                <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1" aria-label="Show current password" title="Show current password">
+                <button class="btn btn-outline-secondary pw-toggle" type="button" aria-label="Show current password" aria-pressed="false" title="Show current password">
                   <i class="bi bi-eye"></i>
                 </button>
               </div>
@@ -367,7 +367,7 @@
               <div class="input-group">
                 <input type="password" id="newPw" class="form-control" placeholder="New secure password" required
                   minlength="8">
-                <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1" aria-label="Show new password" title="Show new password">
+                <button class="btn btn-outline-secondary pw-toggle" type="button" aria-label="Show new password" aria-pressed="false" title="Show new password">
                   <i class="bi bi-eye"></i>
                 </button>
               </div>
@@ -377,7 +377,7 @@
               <div class="input-group">
                 <input type="password" id="confirmPw" class="form-control" placeholder="Repeat password" required
                   minlength="8">
-                <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1" aria-label="Show confirmation password" title="Show confirmation password">
+                <button class="btn btn-outline-secondary pw-toggle" type="button" aria-label="Show confirmation password" aria-pressed="false" title="Show confirmation password">
                   <i class="bi bi-eye"></i>
                 </button>
               </div>
@@ -508,12 +508,17 @@
       }
     });
 
-    document.getElementById('manualLogout').addEventListener('click', () => {
-      if (confirm('Are you sure you want to sign out?')) {
-        localStorage.removeItem('kb_token');
-        localStorage.removeItem('kb_role');
-        window.location.href = 'login.html';
-      }
+    document.getElementById('manualLogout').addEventListener('click', async () => {
+      const confirmed = await KBConfirm({
+        title: 'Sign out?',
+        message: 'This will end the current ERP session on this device.',
+        confirmText: 'Sign Out',
+        variant: 'warning'
+      });
+      if (!confirmed) return;
+      localStorage.removeItem('kb_token');
+      localStorage.removeItem('kb_role');
+      window.location.href = 'login.html';
     });
 
     // Init
@@ -526,11 +531,13 @@
           input.type = 'text';
           icon.classList.replace('bi-eye', 'bi-eye-slash');
           btn.setAttribute('aria-label', 'Hide password');
+          btn.setAttribute('aria-pressed', 'true');
           btn.setAttribute('title', 'Hide password');
         } else {
           input.type = 'password';
           icon.classList.replace('bi-eye-slash', 'bi-eye');
           btn.setAttribute('aria-label', 'Show password');
+          btn.setAttribute('aria-pressed', 'false');
           btn.setAttribute('title', 'Show password');
         }
       });

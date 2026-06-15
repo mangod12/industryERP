@@ -335,6 +335,8 @@
 
         items.forEach(c => {
           const row = document.createElement('tr');
+          row.dataset.customerId = String(c.id);
+          row.dataset.customerName = c.name || '';
           const totalItems = (c.items && c.items.length) ? c.items.length : (c.total_items || 0);
           const curStage = c.current_stage || 'Pending';
           const statusBadge = (curStage === 'Completed')
@@ -349,12 +351,12 @@
               <td>
                 <div class="table-actions">
                 <a class="btn btn-sm btn-primary" href="customer_details.html?id=${c.id}"><i class="bi bi-eye"></i> View</a>
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openUploadModal(${c.id}, '${escapeHtml(c.name)}')"><i class="bi bi-upload"></i> Upload</button>
+                <button type="button" class="btn btn-sm btn-outline-primary upload-customer-btn"><i class="bi bi-upload"></i> Upload</button>
                 <div class="dropdown d-inline-block">
                   <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">More</button>
                   <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" data-permission="customers:delete" onclick="softDeleteCustomer(${c.id}, '${escapeHtml(c.name)}'); return false;">Soft Delete</a></li>
-                    <li><a class="dropdown-item text-danger" href="#" data-permission="customers:hard_delete" onclick="confirmHardDelete(${c.id}, '${escapeHtml(c.name)}'); return false;">Hard Delete</a></li>
+                    <li><a class="dropdown-item soft-delete-customer-btn" href="#" data-permission="customers:delete">Soft Delete</a></li>
+                    <li><a class="dropdown-item text-danger hard-delete-customer-btn" href="#" data-permission="customers:hard_delete">Hard Delete</a></li>
                   </ul>
                 </div>
                 </div>
@@ -362,11 +364,32 @@
             `;
           tbody.appendChild(row);
         });
+        if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
       }
-      // Apply role/permission visibility to newly added elements
-      if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
+      window.renderCustomers = renderCustomers;
 
-      function escapeHtml(s) { return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+      tbody.addEventListener('click', event => {
+        const row = event.target.closest('tr[data-customer-id]');
+        if (!row) return;
+        const customerId = Number(row.dataset.customerId);
+        const customerName = row.dataset.customerName || 'Customer';
+
+        if (event.target.closest('.upload-customer-btn')) {
+          openUploadModal(customerId, customerName);
+          return;
+        }
+        if (event.target.closest('.soft-delete-customer-btn')) {
+          event.preventDefault();
+          softDeleteCustomer(customerId, customerName);
+          return;
+        }
+        if (event.target.closest('.hard-delete-customer-btn')) {
+          event.preventDefault();
+          confirmHardDelete(customerId, customerName);
+        }
+      });
+
+      function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
       // Add Customer
       document.getElementById('saveCustomerBtn').addEventListener('click', async function () {
@@ -374,7 +397,7 @@
         const details = document.getElementById('newProjectDetails').value.trim();
 
         if (!name) {
-          alert('Please enter customer name');
+          showToast('Please enter customer name', 'warning');
           return;
         }
 
@@ -397,20 +420,7 @@
 
       // Delete customer handler
       window.deleteCustomer = async function (customerId, customerName) {
-        if (!confirm(`Delete customer '${customerName}'? This is a soft-delete and can be restored by admin.`)) return;
-        try {
-          const res = await fetch(`${API_BASE}/customers/${customerId}`, { method: 'DELETE' });
-          if (!res.ok) {
-            const err = await res.json().catch(() => null);
-            alert(err && err.detail ? err.detail : `Failed to delete customer (${res.status})`);
-            return;
-          }
-          showToast(`Customer '${customerName}' deleted`, 'success');
-          applyCustomerFilters();
-        } catch (err) {
-          console.error(err);
-          alert('Failed to delete customer');
-        }
+        return softDeleteCustomer(customerId, customerName);
       };
 
       // Excel Upload Functions
@@ -432,7 +442,7 @@
         const customerId = document.getElementById('uploadCustomerId').value;
         const fileInput = document.getElementById('trackingExcelFile');
         if (!fileInput.files || !fileInput.files[0]) {
-          alert('Please select an Excel/CSV file');
+          showToast('Please select an Excel/CSV file', 'warning');
           return;
         }
 
@@ -572,7 +582,7 @@
         const inventoryId = document.getElementById('deductFromInventory').value;
 
         if (!fileInput.files || !fileInput.files[0]) {
-          alert('Please select an Excel/CSV file');
+          showToast('Please select an Excel/CSV file', 'warning');
           return;
         }
 
@@ -664,7 +674,7 @@
         const materialId = selector.value;
 
         if (!materialId) {
-          alert('Select a material first');
+          showToast('Select a material first', 'warning');
           return;
         }
 
@@ -680,7 +690,7 @@
           btn.innerHTML = '✅ Linked';
           selector.disabled = true;
         } catch (err) {
-          alert(err.message);
+          showToast(err.message, 'danger');
           btn.disabled = false;
         }
       };

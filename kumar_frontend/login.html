@@ -169,7 +169,7 @@
           <label for="password" class="form-label">Password</label>
           <div class="input-group">
             <input id="password" type="password" class="form-control" placeholder="Enter password" required>
-            <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1" aria-label="Show password" title="Show password">
+            <button class="btn btn-outline-secondary pw-toggle" type="button" aria-label="Show password" aria-pressed="false" title="Show password">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -268,11 +268,13 @@
           input.type = 'text';
           icon.classList.replace('bi-eye', 'bi-eye-slash');
           btn.setAttribute('aria-label', 'Hide password');
+          btn.setAttribute('aria-pressed', 'true');
           btn.setAttribute('title', 'Hide password');
         } else {
           input.type = 'password';
           icon.classList.replace('bi-eye-slash', 'bi-eye');
           btn.setAttribute('aria-label', 'Show password');
+          btn.setAttribute('aria-pressed', 'false');
           btn.setAttribute('title', 'Show password');
         }
       });

@@ -67,8 +67,9 @@ Run Python QA:
 .\.venv\Scripts\python.exe -m ruff check backend_core tests scripts
 .\.venv\Scripts\python.exe -m ruff format --check backend_core tests scripts
 .\.venv\Scripts\pip-audit.exe -r requirements.txt -r requirements-dev.txt
-.\.venv\Scripts\detect-secrets.exe scan --all-files --exclude-files "\.git|\.venv|\.mypy_cache|\.pytest_cache|\.ruff_cache|dashboard\.png|Raw_materials\.png|customers_page\.png|production_tracking\.png|docs\\screenshots"
+.\.venv\Scripts\detect-secrets.exe scan --all-files --exclude-files "\.git|\.venv|node_modules|\.mypy_cache|\.pytest_cache|\.ruff_cache|dashboard\.png|Raw_materials\.png|customers_page\.png|production_tracking\.png|docs\\screenshots"
 .\.venv\Scripts\python.exe -m pytest tests -q
+cmd /c npm run test:syntax
 ```
 
 Run browser QA:
@@ -96,9 +97,10 @@ Verified on 2026-06-15:
 - `pip-audit -r requirements.txt -r requirements-dev.txt`: no known vulnerabilities found.
 - `ruff check backend_core tests scripts`: passed.
 - `ruff format --check backend_core tests scripts`: passed after formatting touched files.
-- `pytest tests -q`: 507 passed, 2 skipped.
+- `pytest tests -q`: 511 passed, 2 skipped.
+- `npm run test:syntax`: passed for the Playwright spec and shared frontend JavaScript.
 - `detect-secrets scan ...`: no findings after explicit false-positive allowlists.
-- Playwright: 5 passed, major pages rendered, screenshots captured under `docs/screenshots/`, every authenticated HTML page plus login checked for shared shell visibility, page headings, accessible visible controls, invalid display values, page-level overflow, and GRN/dispatch lifecycle state gates.
+- Playwright: 11 passed, major pages rendered, screenshots captured under `docs/screenshots/`, every authenticated HTML page plus login checked for shared shell visibility, page headings, accessible visible controls, invalid display values, page-level overflow, GRN/dispatch lifecycle state gates, typed raw-material reset confirmation, stock CSV export, customer permission filtering, password-toggle keyboard state, tablet viewport overflow, and the fabrication material-deduction modal gate.
 - `npm run design:impeccable`: passed with zero reported anti-patterns after the factory UI hardening pass.
 - `bandit -r backend_core/app -x tests`: 19 Low findings only. Most are broad `try/except/pass` and one false positive for token type `"bearer"`.
 Known residuals:
@@ -133,6 +135,14 @@ Known residuals:
 - Added Playwright coverage for visible button labels, Invalid Date/NaN leaks, and GRN/dispatch lifecycle controls.
 - Cleared the full Impeccable static design audit by tightening the shared design system, replacing purple dispatch accents, improving contrast, flattening nested modal panels, fixing heading hierarchy, and increasing operator-friendly spacing.
 - Expanded Playwright production smoke so it walks all authenticated HTML pages, discovers a seeded customer for edit/detail routes, verifies login before authentication, and fails on visible unnamed controls, `Invalid Date`, `NaN`, `undefined`, `null`, or page-level horizontal overflow.
+- Fabrication completion now routes through the material-deduction preview modal before any stage-advance request is sent.
+- Raw-material reset buttons now use typed `KBConfirm` confirmation, clearer labels, and toast-based failures instead of native dialogs.
+- Stock overview now exports visible lots to CSV, loads movement history in the lot detail modal, and disables unsupported Hold/Release controls with a tooltip instead of presenting dead actions.
+- User registration now uses the shared role catalog and backend permissions include Fabricator/Painter/legacy Dispatch roles for production operations.
+- Fixed `/api/v2/inventory/movements/{lot_id}` to use `User.username` rather than a non-existent user display column.
+- Number sequence generation now uses an atomic PostgreSQL `INSERT .. ON CONFLICT DO UPDATE RETURNING` path, with SQLite retaining the local-test path.
+- GRN and dispatch approval hooks now refresh locked rows, reject inconsistent duplicate side effects, and behave idempotently after a document is already approved.
+- CI now blocks on backend lint/format across `backend_core`, `tests`, and `scripts`; full pytest; pip-audit; JS syntax; Impeccable; and live Playwright browser QA before Docker build.
 
 ## Module Map
 

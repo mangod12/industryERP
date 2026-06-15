@@ -4,6 +4,7 @@
   "private": true,
   "description": "Local QA harness for KumarBrothers Steel ERP",
   "scripts": {
+    "test:syntax": "node --check tests/playwright/industry-erp.spec.js && node --check kumar_frontend/js/main.js && node --check kumar_frontend/js/config.js",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "design:impeccable": "impeccable detect kumar_frontend"

@@ -665,7 +665,7 @@ async def get_lot_movements(
     from .. import models  # For User join
 
     movements = (
-        db.query(StockMovement, StockLot.lot_number, models.User.full_name.label("created_by_name"))
+        db.query(StockMovement, StockLot.lot_number, models.User.username.label("created_by_name"))
         .join(StockLot, StockMovement.stock_lot_id == StockLot.id)
         .outerjoin(models.User, StockMovement.created_by == models.User.id)
         .filter(StockMovement.stock_lot_id == lot_id)

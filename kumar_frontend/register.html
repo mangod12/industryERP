@@ -185,13 +185,8 @@
           <label for="roleSelect" class="form-label">Role</label>
           <select class="form-select" id="roleSelect" required>
             <option value="">Select Role</option>
-            <option value="Boss">Boss</option>
-            <option value="Software Supervisor">Software Supervisor</option>
-            <option value="User">User</option>
-            <option value="Fabricator">Fabricator</option>
-            <option value="Painter">Painter</option>
-            <option value="Dispatch">Dispatch</option>
           </select>
+          <div id="roleDescription" class="form-text"></div>
         </div>
       </div>
 
@@ -200,7 +195,7 @@
           <label for="password" class="form-label">Password</label>
           <div class="input-group">
             <input type="password" name="password" id="password" class="form-control" required minlength="8">
-            <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1" aria-label="Show password" title="Show password">
+            <button class="btn btn-outline-secondary pw-toggle" type="button" aria-label="Show password" aria-pressed="false" title="Show password">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -211,7 +206,7 @@
           <div class="input-group">
             <input type="password" name="confirm_password" id="confirm_password" class="form-control" required
               minlength="8">
-            <button class="btn btn-outline-secondary pw-toggle" type="button" tabindex="-1" aria-label="Show confirmation password" title="Show confirmation password">
+            <button class="btn btn-outline-secondary pw-toggle" type="button" aria-label="Show confirmation password" aria-pressed="false" title="Show confirmation password">
               <i class="bi bi-eye"></i>
             </button>
           </div>
@@ -246,8 +241,8 @@
       // Allow Boss OR Software Supervisor
       // Normalize check (backend roles are Title Case)
       if (role !== 'Boss' && role !== 'Software Supervisor') {
-        alert('Access Denied: Only Boss or Software Supervisor can create users.');
-        return window.location.href = 'index.html';
+        showToast('Access denied: only Boss or Software Supervisor can create users.', 'danger');
+        return setTimeout(() => { window.location.href = 'index.html'; }, 800);
       }
     })();
 
@@ -306,6 +301,31 @@
         statusEl.innerHTML = `<div class='text-danger'>Error: ${err.message}</div>`;
       }
     });
+
+    (function populateRoles() {
+      const roleSelect = document.getElementById('roleSelect');
+      const description = document.getElementById('roleDescription');
+      const roles = (typeof KBConfig !== 'undefined' && Array.isArray(KBConfig.ROLE_OPTIONS))
+        ? KBConfig.ROLE_OPTIONS
+        : [
+            { value: 'Boss', label: 'Boss', description: 'Full access' },
+            { value: 'Software Supervisor', label: 'Software Supervisor', description: 'ERP operations' },
+            { value: 'User', label: 'User', description: 'Read-only visibility' }
+          ];
+
+      roles.forEach(role => {
+        const option = document.createElement('option');
+        option.value = role.value;
+        option.textContent = role.label;
+        option.dataset.description = role.description || '';
+        roleSelect.appendChild(option);
+      });
+
+      roleSelect.addEventListener('change', () => {
+        const selected = roleSelect.selectedOptions[0];
+        description.textContent = selected ? (selected.dataset.description || '') : '';
+      });
+    })();
   </script>
 
   <script>
@@ -318,11 +338,13 @@
           input.type = 'text';
           icon.classList.replace('bi-eye', 'bi-eye-slash');
           btn.setAttribute('aria-label', 'Hide password');
+          btn.setAttribute('aria-pressed', 'true');
           btn.setAttribute('title', 'Hide password');
         } else {
           input.type = 'password';
           icon.classList.replace('bi-eye-slash', 'bi-eye');
           btn.setAttribute('aria-label', 'Show password');
+          btn.setAttribute('aria-pressed', 'false');
           btn.setAttribute('title', 'Show password');
         }
       });

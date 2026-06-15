@@ -45,6 +45,7 @@ One primary color carries identity. Steel-blue as the anchor, warm neutrals for 
 - **Data tables:** Alternating row backgrounds, sticky headers, right-align numbers
 - **Number displays:** Mono font, larger size, right-aligned in tables
 - **Action buttons:** Primary (filled), Secondary (outlined), Danger (red filled)
+- **High-stakes actions:** Use `KBConfirm`; destructive/bulk factory actions require a clear summary and typed confirmation.
 - **Navigation:** Fixed top bar with logo plus shared left sidebar for authenticated pages
 - **Forms:** Labels above inputs, generous touch targets, clear required indicators
 - **Empty states:** Helpful message + action button, not just blank space

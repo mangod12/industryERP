@@ -24,6 +24,8 @@ from backend_core.app.models_v2 import (
     MaterialMaster,
     MaterialType,
     QAStatus,
+    StockLot,
+    StockMovement,
     StorageLocation,
     Vendor,
     WeightUnit,
@@ -34,6 +36,8 @@ from backend_core.app.services.workflow_engine import (
     WorkflowError,
     get_dispatch_workflow,
     get_grn_workflow,
+    on_dispatch_approve,
+    on_grn_approve,
     register_document_hooks,
     transition_document,
 )
@@ -278,6 +282,38 @@ class TestGRNTransitions:
         assert len(lots) == 1
         assert lots[0].current_weight_kg == Decimal("750.000")
 
+    def test_grn_approve_hook_is_idempotent_after_approval(self, db):
+        """A repeated approval hook must not create duplicate stock lots."""
+        user = create_test_user(db, role="Boss")
+        vendor = _create_vendor(db, code="V-IDEM-01")
+        mat = _create_material(db, code="MAT-IDEM-01")
+        loc = _create_location(db, code="WH-IDEM-01")
+
+        grn, _ = _create_grn_with_line(
+            db,
+            vendor.id,
+            mat.id,
+            user.id,
+            weight_kg=Decimal("650.000"),
+            qa_status=QAStatus.APPROVED,
+            status=DocumentStatus.SUBMITTED,
+        )
+
+        context = {"grn_id": grn.id, "user_id": user.id, "location_id": loc.id}
+        result = transition_document(db, grn, "approved", "Boss", context)
+        db.commit()
+
+        assert result.success
+        first_lot_count = db.query(StockLot).filter(StockLot.grn_id == grn.id).count()
+        assert first_lot_count == 1
+
+        retry_context = {"grn_id": grn.id, "user_id": user.id, "location_id": loc.id}
+        on_grn_approve(db, retry_context)
+        db.commit()
+
+        assert retry_context["created_lots"] == []
+        assert db.query(StockLot).filter(StockLot.grn_id == grn.id).count() == first_lot_count
+
     def test_grn_draft_to_cancelled(self, db):
         user = create_test_user(db, role="Boss")
         vendor = _create_vendor(db, code="V-TR-04")
@@ -441,6 +477,54 @@ class TestDispatchTransitions:
         # Verify lot weight reduced
         db.refresh(lot)
         assert lot.current_weight_kg == Decimal("300.000")
+
+    def test_dispatch_approve_hook_is_idempotent_after_approval(self, db):
+        """A repeated approval hook must not deduct stock twice."""
+        from tests.conftest import create_test_customer
+
+        user = create_test_user(db, role="Boss")
+        customer = create_test_customer(db)
+        lot = create_test_stock_lot(
+            db,
+            net_weight_kg=Decimal("500.000"),
+            current_weight_kg=Decimal("500.000"),
+        )
+        dispatch, _ = _create_dispatch_with_line(
+            db,
+            customer.id,
+            lot.id,
+            user.id,
+            weight_kg=Decimal("125.000"),
+        )
+
+        assert transition_document(db, dispatch, "submitted", "Boss").success
+        context = {"dispatch_id": dispatch.id, "user_id": user.id}
+        assert transition_document(db, dispatch, "approved", "Boss", context).success
+        db.commit()
+
+        db.refresh(lot)
+        first_weight = lot.current_weight_kg
+        first_movement_count = (
+            db.query(StockMovement)
+            .filter(StockMovement.reference_type == "dispatch", StockMovement.reference_id == dispatch.id)
+            .count()
+        )
+        assert first_weight == Decimal("375.000")
+        assert first_movement_count == 1
+
+        retry_context = {"dispatch_id": dispatch.id, "user_id": user.id}
+        on_dispatch_approve(db, retry_context)
+        db.commit()
+
+        db.refresh(lot)
+        assert retry_context["movements"] == []
+        assert lot.current_weight_kg == first_weight
+        assert (
+            db.query(StockMovement)
+            .filter(StockMovement.reference_type == "dispatch", StockMovement.reference_id == dispatch.id)
+            .count()
+            == first_movement_count
+        )
 
     def test_dispatch_draft_to_cancelled(self, db):
         from tests.conftest import create_test_customer

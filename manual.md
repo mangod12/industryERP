@@ -69,6 +69,7 @@ Primary actions:
 - Add Material: create a simple inventory row.
 - Edit/Delete: maintain legacy material records.
 - Material Mappings: map Excel/tracking material names to inventory records for auto-deduction.
+- Reset Total Stock and Reset Used Qty: Boss/Supervisor-only actions with typed confirmation before any reset request is sent.
 
 ## Materials Master
 
@@ -85,6 +86,7 @@ Stock Overview shows V2 stock lots. A stock lot represents a physical batch with
 ![Stock Overview](docs/screenshots/04-stock-overview.png)
 
 This is the source of truth for audited steel inventory. Stock should move through stock movements, not direct edits.
+CSV export downloads the visible stock-lot rows. The lot detail modal loads movement history from the audit endpoint. Hold/Release controls are disabled with a tooltip until dedicated lot-status endpoints exist; use GRN QA inspection for current QA status changes.
 
 ## Goods Receipt
 
@@ -103,7 +105,7 @@ Typical GRN flow:
 7. Select the storage yard/rack.
 8. Approve GRN to create stock lots.
 
-The GRN detail modal disables risky buttons until their prerequisites are met. Approval is unavailable until the GRN is submitted and every line has a QA decision.
+The GRN detail modal disables risky buttons until their prerequisites are met. Approval is unavailable until the GRN is submitted and every line has a QA decision. Approval processing locks and refreshes the GRN row, so retries after approval do not create duplicate stock lots.
 
 ## Dispatch
 
@@ -119,7 +121,7 @@ Typical dispatch flow:
 4. Confirm dispatch.
 5. Stock movement reduces available inventory.
 
-The dispatch detail modal locks pick/remove actions after Draft and locks stock deduction until the dispatch is submitted for approval.
+The dispatch detail modal locks pick/remove actions after Draft and locks stock deduction until the dispatch is submitted for approval. Approval processing locks and refreshes the dispatch row, so retries after approval do not deduct stock twice.
 
 ## Production Tracking
 
@@ -135,6 +137,7 @@ Use this page to move production items through:
 - Completed
 
 The system also shows drawing-based work in the same operations area.
+Fabrication completion opens a material-deduction preview first. The stage-advance request is not sent until the operator confirms that modal.
 
 ## Drawings And Production
 
@@ -212,6 +215,7 @@ System settings also exist under `/api/v2/settings/*` for company profile, namin
 ## User Admin And Profile
 
 Boss and Software Supervisor roles can create users from the shared authenticated shell. The register page uses the same navigation, role badge, spacing, and control language as the production pages.
+The role dropdown is driven by the shared role catalog so Store Keeper, QA Inspector, Dispatch Operator, Fabricator, Painter, Boss, Supervisor, and User stay aligned with backend permissions.
 
 ![Register User](docs/screenshots/15-register-user.png)
 
@@ -280,9 +284,10 @@ Backend:
 .\.venv\Scripts\python.exe -m ruff format --check backend_core tests scripts
 .\.venv\Scripts\pip-audit.exe -r requirements.txt -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pytest tests -q
+cmd /c npm run test:syntax
 ```
 
-Current verified backend result: `507 passed, 2 skipped`.
+Current verified backend result: `511 passed, 2 skipped`.
 
 Browser:
 
@@ -293,7 +298,7 @@ $env:E2E_PASSWORD = "Boss1234!" # pragma: allowlist secret
 cmd /c npm run test:e2e
 ```
 
-Current verified browser result: `5 passed`. Playwright now checks every authenticated HTML page plus login for shared shell visibility, page headings, named visible controls, invalid display values, and page-level overflow.
+Current verified browser result: `11 passed`. Playwright now checks every authenticated HTML page plus login for shared shell visibility, page headings, named visible controls, invalid display values, page-level overflow, GRN/dispatch lifecycle state gates, typed raw-material reset confirmation, stock CSV export, customer action permission filtering, password-toggle keyboard state, tablet viewport overflow, and the fabrication material-deduction modal gate.
 
 Design:
 
@@ -303,4 +308,4 @@ cmd /c npm run design:impeccable
 
 Current full static Impeccable result: passed with zero reported anti-patterns.
 
-Also verified: inline JavaScript syntax for every HTML page and `kumar_frontend/js/main.js` parsed successfully after the UI hardening pass.
+Also verified: JavaScript syntax gate (`npm run test:syntax`) passes for the Playwright spec plus shared frontend JavaScript. CI now runs backend lint/format, full pytest, pip-audit, JS syntax, Impeccable, and live Playwright before Docker build.

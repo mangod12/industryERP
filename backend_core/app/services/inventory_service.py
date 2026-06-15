@@ -16,7 +16,8 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import List, Optional, Tuple
 
 from fastapi import HTTPException
-from sqlalchemy import func
+from sqlalchemy import case, func
+from sqlalchemy.dialects.postgresql import insert as postgres_insert
 from sqlalchemy.orm import Session
 
 from ..models_v2 import (
@@ -153,6 +154,93 @@ def _apply_format(format_str: str, prefix: str, padding: int, number: int, ref_d
     return result
 
 
+def _get_sequence_dialect_name(db: Session) -> str:
+    bind = db.get_bind()
+    return bind.dialect.name if bind is not None else ""
+
+
+def _build_postgres_sequence_upsert(
+    sequence_name: str,
+    prefix: str,
+    current_year: int | None,
+    year_wise: bool,
+    format_str: str | None,
+):
+    sequence_table = NumberSequence.__table__
+    now = datetime.utcnow()
+    insert_stmt = postgres_insert(sequence_table).values(
+        sequence_name=sequence_name,
+        prefix=prefix,
+        current_number=1,
+        year=current_year,
+        padding=6,
+        format_str=format_str,
+        updated_at=now,
+    )
+
+    if year_wise:
+        next_number = case(
+            (sequence_table.c.year.is_distinct_from(current_year), 1),
+            else_=sequence_table.c.current_number + 1,
+        )
+        update_values = {
+            "current_number": next_number,
+            "year": current_year,
+            "updated_at": now,
+        }
+    else:
+        update_values = {
+            "current_number": sequence_table.c.current_number + 1,
+            "updated_at": now,
+        }
+
+    return insert_stmt.on_conflict_do_update(
+        index_elements=[sequence_table.c.sequence_name],
+        set_=update_values,
+    ).returning(
+        sequence_table.c.current_number,
+        sequence_table.c.prefix,
+        sequence_table.c.padding,
+        sequence_table.c.format_str,
+    )
+
+
+def _get_next_sequence_postgres(
+    db: Session,
+    sequence_name: str,
+    prefix: str,
+    current_year: int | None,
+    year_wise: bool,
+    format_str: str | None,
+) -> str:
+    row = (
+        db.execute(
+            _build_postgres_sequence_upsert(
+                sequence_name=sequence_name,
+                prefix=prefix,
+                current_year=current_year,
+                year_wise=year_wise,
+                format_str=format_str,
+            )
+        )
+        .mappings()
+        .one()
+    )
+
+    effective_format = format_str or row["format_str"]
+    effective_prefix = row["prefix"] or prefix
+    current_number = row["current_number"]
+    padding = row["padding"]
+
+    if effective_format:
+        return _apply_format(effective_format, effective_prefix, padding, current_number)
+
+    number_str = str(current_number).zfill(padding)
+    if year_wise:
+        return f"{effective_prefix}/{current_year}/{number_str}"
+    return f"{effective_prefix}/{number_str}"
+
+
 def get_next_sequence(
     db: Session, sequence_name: str, prefix: str = "", year_wise: bool = True, format_str: str = None
 ) -> str:
@@ -171,12 +259,21 @@ def get_next_sequence(
       "{prefix}-{year}-{####}" -> "LOT-2026-0042"
       "{prefix}/{####}" -> "DN/0001" (default if no format_str)
 
-    SQLite compatible - uses simple query instead of SELECT FOR UPDATE.
+    PostgreSQL uses an atomic INSERT .. ON CONFLICT .. DO UPDATE so two
+    workers cannot emit the same document number. SQLite keeps the simple
+    path for local tests and single-process development.
     """
     current_year = datetime.utcnow().year if year_wise else None
+    dialect_name = _get_sequence_dialect_name(db)
 
-    # SQLite-safe: no with_for_update(), SQLite serializes writes anyway
-    seq = db.query(NumberSequence).filter(NumberSequence.sequence_name == sequence_name).first()
+    if dialect_name == "postgresql":
+        return _get_next_sequence_postgres(db, sequence_name, prefix, current_year, year_wise, format_str)
+
+    query = db.query(NumberSequence).filter(NumberSequence.sequence_name == sequence_name)
+    if dialect_name != "sqlite":
+        query = query.with_for_update()
+
+    seq = query.first()
 
     if not seq:
         # Create new sequence

@@ -315,8 +315,10 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-warning" id="btnHoldStock" data-permission="qa:hold">Hold Stock</button>
-          <button type="button" class="btn btn-success" id="btnReleaseStock" data-permission="qa:approve">Release</button>
+          <button type="button" class="btn btn-warning" id="btnHoldStock" data-permission="qa:hold" disabled
+            title="Use GRN QA inspection for hold/release until lot status endpoints are available.">Hold Stock</button>
+          <button type="button" class="btn btn-success" id="btnReleaseStock" data-permission="qa:approve" disabled
+            title="Use GRN QA inspection for hold/release until lot status endpoints are available.">Release</button>
         </div>
       </div>
     </div>
@@ -435,6 +437,15 @@
 
       // Export CSV
       document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+      document.getElementById('btnPrintReport').addEventListener('click', () => window.print());
+
+      const holdBtn = document.getElementById('btnHoldStock');
+      const releaseBtn = document.getElementById('btnReleaseStock');
+      [holdBtn, releaseBtn].forEach(btn => {
+        if (!btn) return;
+        btn.disabled = true;
+        btn.title = 'Use GRN QA inspection for hold/release until lot status endpoints are available.';
+      });
     }
 
     async function showLotDetail(id) {
@@ -456,16 +467,76 @@
         document.getElementById('detailTareWeight').textContent = `${(lot.tare_weight_kg / 1000).toFixed(3)} MT`;
         document.getElementById('detailNetWeight').textContent = `${(lot.net_weight_kg / 1000).toFixed(3)} MT`;
         document.getElementById('detailCurrentWeight').textContent = `${(lot.current_weight_kg / 1000).toFixed(3)} MT`;
+        await loadLotMovements(id);
 
         new bootstrap.Modal(document.getElementById('stockDetailModal')).show();
       } catch (e) {
         console.error('Error loading lot detail:', e);
+        if (typeof showToast === 'function') showToast('Failed to load lot detail', 'danger');
       }
     }
 
+    async function loadLotMovements(id) {
+      const tbody = document.getElementById('movementHistory');
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Loading movements...</td></tr>';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v2/inventory/movements/${id}`);
+        if (!res.ok) throw new Error('Failed to load movement history');
+        const movements = await res.json();
+        if (!movements.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No movements recorded</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = movements.map(movement => `
+          <tr>
+            <td>${new Date(movement.movement_date).toLocaleString()}</td>
+            <td>${escapeHtml(movement.movement_type)}</td>
+            <td class="weight-display">${Number(movement.weight_change_kg || 0).toFixed(3)}</td>
+            <td>${escapeHtml(movement.movement_number)}</td>
+            <td>${escapeHtml(movement.created_by_name || 'System')}</td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Movement history error:', error);
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Movement history unavailable</td></tr>';
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[c]));
+    }
+
     function exportCSV() {
-      // TODO: Implement CSV export
-      alert('CSV export coming soon');
+      const rows = Array.from(document.querySelectorAll('#stockTableBody tr'))
+        .filter(row => !row.querySelector('[colspan]'))
+        .map(row => Array.from(row.cells).slice(0, 9).map(cell => cell.innerText.trim()));
+
+      if (!rows.length) {
+        if (typeof showToast === 'function') showToast('No stock rows to export', 'warning');
+        return;
+      }
+
+      const header = ['Lot Number', 'Material', 'Heat Number', 'Received Date', 'Net Weight', 'Current Weight', 'QA Status', 'Location', 'Age'];
+      const csv = [header, ...rows]
+        .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `stock-lots-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      link.remove();
+      if (typeof showToast === 'function') showToast('Stock CSV exported', 'success');
     }
 
     function debounce(fn, delay) {

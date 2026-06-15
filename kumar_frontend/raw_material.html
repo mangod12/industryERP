@@ -146,7 +146,7 @@
             </div>
             <button type="button" class="btn btn-sm btn-outline-secondary reset-btn d-none" onclick="resetStock()"
               title="Reset Total Stock (Clear Everything)">
-              Reset
+              Reset Total Stock
             </button>
           </div>
         </div>
@@ -160,7 +160,7 @@
             </div>
             <button type="button" class="btn btn-sm btn-outline-secondary reset-btn d-none" onclick="resetConsumed()"
               title="Reset Consumed Only">
-              Reset
+              Reset Used Qty
             </button>
           </div>
         </div>
@@ -367,7 +367,7 @@
     const inventoryApiBase = `${API_BASE}/inventory`;
 
     function escapeHtml(s) {
-      return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
     async function refreshInventory() {
@@ -501,34 +501,67 @@
     }
 
     async function resetConsumed() {
-      if (!confirm('⚠ WARNING: This will reset the "Used" quantity to 0 for ALL items.\n\nThe "Total Consumed" metric will become 0.\nAre you sure you want to proceed?')) return;
+      const confirmed = await KBConfirm({
+        title: 'Reset used quantity?',
+        message: 'This will set the Used quantity to 0 for every raw material item.',
+        confirmText: 'Reset Used Qty',
+        variant: 'warning',
+        confirmationText: 'RESET USED',
+        confirmationLabel: 'Type RESET USED to continue',
+        details: [
+          { label: 'Total consumed', value: document.getElementById('statTotalConsumed').textContent || '0' },
+          { label: 'Scope', value: 'All raw material rows' }
+        ],
+        dangerNote: 'Use this only after a verified correction or controlled data reset.'
+      });
+      if (!confirmed) return;
 
       try {
         const res = await fetch(`${inventoryApiBase}/reset-consumed`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders() }
         });
-        if (!res.ok) throw new Error('Reset failed');
-        alert('✅ Total Consumed reset successfully!');
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error((data && data.detail) || 'Reset failed');
+        }
+        showToast('Used quantity reset successfully', 'success');
         refreshInventory();
       } catch (err) {
-        alert('Failed to reset consumed quantity: ' + err.message);
+        showToast('Failed to reset used quantity: ' + err.message, 'danger');
       }
     }
 
     async function resetStock() {
-      if (!confirm('🔴 CRITICAL WARNING: This will reset ALL stock quantities (Total and Used) to 0.\n\nYour inventory counts will be wiped out.\nItems will remain, but quantities will be 0.\n\nAre you ABSOLUTELY sure?')) return;
+      const confirmed = await KBConfirm({
+        title: 'Reset all stock quantities?',
+        message: 'This will set Total Stock and Used quantity to 0 for every raw material item.',
+        confirmText: 'Reset Total Stock',
+        variant: 'danger',
+        confirmationText: 'RESET STOCK',
+        confirmationLabel: 'Type RESET STOCK to continue',
+        details: [
+          { label: 'Total stock', value: document.getElementById('statTotalPurchased').textContent || '0' },
+          { label: 'Current available', value: document.getElementById('statCurrentStock').textContent || '0' },
+          { label: 'Scope', value: 'All raw material rows' }
+        ],
+        dangerNote: 'This wipes inventory counts. Export or verify a backup before using this in production.'
+      });
+      if (!confirmed) return;
 
       try {
         const res = await fetch(`${inventoryApiBase}/reset-stock`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders() }
         });
-        if (!res.ok) throw new Error('Reset failed');
-        alert('✅ Total Stock reset successfully!');
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error((data && data.detail) || 'Reset failed');
+        }
+        showToast('Total stock reset successfully', 'success');
         refreshInventory();
       } catch (err) {
-        alert('Failed to reset stock: ' + err.message);
+        showToast('Failed to reset stock: ' + err.message, 'danger');
       }
     }
 
@@ -575,13 +608,19 @@
         if (!res.ok) throw new Error('Failed to save');
         refreshInventory();
       } catch (err) {
-        alert('Failed to save changes');
+        showToast('Failed to save changes', 'danger');
         console.error(err);
       }
     }
 
     async function deleteItem(id) {
-      if (!confirm('Delete this material?')) return;
+      const confirmed = await KBConfirm({
+        title: 'Delete material?',
+        message: 'This removes the material from the raw material list.',
+        confirmText: 'Delete Material',
+        variant: 'danger'
+      });
+      if (!confirmed) return;
 
       try {
         const res = await fetch(`${inventoryApiBase}/${id}`, {
@@ -591,7 +630,7 @@
         if (!res.ok) throw new Error('Failed to delete');
         refreshInventory();
       } catch (err) {
-        alert('Failed to delete material');
+        showToast('Failed to delete material', 'danger');
         console.error(err);
       }
     }
@@ -605,7 +644,7 @@
       const used = parseFloat(document.getElementById('newUsed').value) || 0;
 
       if (!name) {
-        alert('Please enter material name');
+        showToast('Please enter material name', 'warning');
         return;
       }
 
@@ -629,7 +668,7 @@
         document.getElementById('newUsed').value = '0';
         refreshInventory();
       } catch (err) {
-        alert(err.message);
+        showToast(err.message, 'danger');
         console.error(err);
       } finally {
         btn.disabled = false;
@@ -677,7 +716,7 @@
       const materialId = parseInt(document.getElementById('mapMaterialId').value);
 
       if (!excelName || !materialId) {
-        alert('Please fill both fields');
+        showToast('Please fill both fields', 'warning');
         return;
       }
 
@@ -690,16 +729,22 @@
         if (!res.ok) throw new Error('Failed to save mapping');
         document.getElementById('mapExcelName').value = '';
         loadMappings();
-      } catch (err) { alert(err.message); }
+      } catch (err) { showToast(err.message, 'danger'); }
     }
 
     async function deleteMapping(id) {
-      if (!confirm('Delete this mapping?')) return;
+      const confirmed = await KBConfirm({
+        title: 'Delete material mapping?',
+        message: 'Future imports using this Excel material name will no longer auto-map to inventory.',
+        confirmText: 'Delete Mapping',
+        variant: 'danger'
+      });
+      if (!confirmed) return;
       try {
         const res = await fetch(`${API_BASE}/mappings/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Failed to delete mapping');
         loadMappings();
-      } catch (err) { alert(err.message); }
+      } catch (err) { showToast(err.message, 'danger'); }
     }
 
     // Load mappings when modal is shown

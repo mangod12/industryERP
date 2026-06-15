@@ -1023,7 +1023,7 @@
       } else if (userRole === "Painter" && stage !== "painting") {
         isVisibleAction = false;
         actionTooltip = " title='Painter can only update painting stage' ";
-      } else if (userRole === "Dispatch" && stage !== "dispatch") {
+      } else if ((userRole === "Dispatch" || userRole === "Dispatch Operator") && stage !== "dispatch") {
         isVisibleAction = false;
         actionTooltip = " title='Dispatch can only update dispatch stage' ";
       }
@@ -1074,7 +1074,7 @@
           ? '<div class="text-center mt-2 text-success small">✅ Fully Completed</div>'
           : (showCompleteBtn
             ? `
-                  <button type="button" class="complete-btn ${stage}" ${!canComplete ? 'disabled' : ''} onclick="advanceStage(${item.id}, '${stage}')">
+                  <button type="button" class="complete-btn ${stage}" ${!canComplete ? 'disabled' : ''} onclick="completeStage(${item.id}, '${stage}')">
                     ✓ Complete ${stage.charAt(0).toUpperCase() + stage.slice(1)}
                   </button>
                 `
@@ -1124,7 +1124,7 @@
           <td>${checklistDone}/${checklist.length}</td>
           <td>
             ${stage !== 'completed' ? `
-              <button type="button" class="btn btn-sm btn-outline-success" onclick="advanceStage(${item.id}, '${stage}')">
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="completeStage(${item.id}, '${stage}')">
                 Complete
               </button>
             ` : '✅'}
@@ -1228,6 +1228,19 @@
     async function completeStage(itemId, currentStage) {
       const item = allItems.find(it => it.id === itemId);
       if (!item) return;
+
+      const checklist = item.checklist || [];
+      const total = checklist.length || 0;
+      const done = checklist.filter(c => c.done).length;
+
+      if (total > 0 && done !== total) {
+        showToast('Checklist must be completed before advancing stage', 'warning');
+        return;
+      }
+
+      if (total > 0) {
+        await syncChecklistToBackend(itemId, true);
+      }
 
       // If completing fabrication, show deduction preview first
       if (currentStage === 'fabrication' && !item.fabrication_deducted) {
@@ -1358,24 +1371,9 @@
     // 1) sync checklist completion to backend
     // 2) advance stage via authoritative PUT
     async function advanceStage(itemId, currentStage) {
-      const item = allItems.find(it => it.id === itemId);
-      if (!item) return;
-
-      const checklist = item.checklist || [];
-      const total = checklist.length || 0;
-      const done = checklist.filter(c => c.done).length;
-
       try {
-        if (total > 0 && done === total) {
-          await syncChecklistToBackend(itemId, true);
-          showToast('Checklist completed', 'success');
-        } else if (total > 0 && done !== total) {
-          showToast('Checklist must be completed before advancing stage', 'warning');
-          return;
-        }
-
-        // proceed to advance
-        await performStageCompletion(itemId, currentStage);
+        // Route fabrication through the material deduction preview before advancing.
+        await completeStage(itemId, currentStage);
       } catch (e) {
         console.error('advanceStage failed', e);
         showToast(e.message || 'Stage advance failed', 'danger');
@@ -1397,7 +1395,7 @@
         const res = await apiFetch('/api/tracking/export/dispatch');
 
         if (!res.ok) {
-          alert('You are not authorized or report not available');
+          showToast('You are not authorized or the report is not available', 'danger');
           return;
         }
 
@@ -1413,7 +1411,7 @@
 
         window.URL.revokeObjectURL(url);
       } catch (err) {
-        alert('Download failed: ' + err.message);
+        showToast('Download failed: ' + err.message, 'danger');
       }
     }
 
@@ -1462,7 +1460,7 @@
       try {
         const res = await apiFetch('/api/tracking/completed');
         if (!res.ok) {
-          alert("Failed to load completed items");
+          showToast('Failed to load completed items', 'danger');
           return;
         }
 
@@ -1484,7 +1482,7 @@
           tbody.appendChild(tr);
         });
       } catch (err) {
-        alert("Error loading completed items: " + err.message);
+        showToast('Error loading completed items: ' + err.message, 'danger');
       }
     }
 

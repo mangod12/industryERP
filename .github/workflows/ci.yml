@@ -17,9 +17,9 @@ jobs:
       - name: Install ruff
         run: pip install ruff
       - name: Lint
-        run: ruff check backend_core/
+        run: ruff check backend_core tests scripts
       - name: Format check
-        run: ruff format --check backend_core/
+        run: ruff format --check backend_core tests scripts
 
   test:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Run all tests with coverage
-        run: python -m pytest tests/ -v --ignore=tests/test_every_page.py --ignore=tests/test_full_user_flows.py --cov=backend_core/app --cov-report=term-missing --cov-report=xml --cov-fail-under=60
+        run: python -m pytest tests/ -q --cov=backend_core/app --cov-report=term-missing --cov-report=xml --cov-fail-under=60
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
@@ -43,6 +43,71 @@ jobs:
       - name: Verify app starts
         run: |
           ENVIRONMENT=development python -c "from backend_core.app.main import app; print('App loaded OK')"
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install audit tool
+        run: pip install pip-audit
+      - name: Audit pinned Python dependencies
+        run: pip-audit -r requirements.txt -r requirements-dev.txt
+
+  browser-qa:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install system deps for pycairo
+        run: sudo apt-get update && sudo apt-get install -y libcairo2-dev pkg-config
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Install browser dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: JavaScript syntax check
+        run: npm run test:syntax
+      - name: Run live browser QA and design audit
+        env:
+          ENVIRONMENT: development
+          KUMAR_SECRET_KEY: ci-test-key-minimum-32-characters-long
+          DATABASE_URL: sqlite:///./ci_erp.db
+          E2E_BASE_URL: http://127.0.0.1:8000
+        run: |
+          python -m uvicorn backend_core.app.main:app --host 127.0.0.1 --port 8000 &
+          SERVER_PID=$!
+          trap "kill $SERVER_PID" EXIT
+          for i in {1..30}; do
+            if curl -sf http://127.0.0.1:8000/healthz; then
+              break
+            fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8000/healthz
+          npm run design:impeccable
+          npm run test:e2e
+      - name: Upload browser QA artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-qa-artifacts
+          path: |
+            playwright-report/
+            test-results/
+            docs/screenshots/
 
   type-check:
     runs-on: ubuntu-latest
@@ -61,7 +126,7 @@ jobs:
 
   docker-build:
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, security, browser-qa]
     steps:
       - uses: actions/checkout@v4
 

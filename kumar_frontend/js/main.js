@@ -43,7 +43,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <p id="kbConfirmMessage" class="mb-0"></p>
+            <div id="kbConfirmMessage"></div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -137,7 +137,11 @@
     title = 'Confirm action',
     message = 'This action will update factory records.',
     confirmText = 'Confirm',
-    variant = 'primary'
+    variant = 'primary',
+    details = [],
+    confirmationText = '',
+    confirmationLabel = 'Type the confirmation text to continue',
+    dangerNote = ''
   } = {}) {
     createGlobals();
     return new Promise(resolve => {
@@ -146,12 +150,69 @@
       const messageEl = document.getElementById('kbConfirmMessage');
       const actionBtn = document.getElementById('kbConfirmAction');
       titleEl.textContent = title;
-      messageEl.textContent = message;
+      messageEl.innerHTML = '';
+
+      const messageP = document.createElement('p');
+      messageP.className = details.length || confirmationText || dangerNote ? 'mb-3' : 'mb-0';
+      messageP.textContent = message;
+      messageEl.appendChild(messageP);
+
+      if (Array.isArray(details) && details.length) {
+        const list = document.createElement('dl');
+        list.className = 'row small mb-3';
+        details.forEach(detail => {
+          const label = document.createElement('dt');
+          label.className = 'col-5 text-muted';
+          label.textContent = detail.label || '';
+          const value = document.createElement('dd');
+          value.className = 'col-7 fw-semibold';
+          value.textContent = detail.value || '';
+          list.append(label, value);
+        });
+        messageEl.appendChild(list);
+      }
+
+      if (dangerNote) {
+        const note = document.createElement('div');
+        note.className = 'alert alert-warning small mb-3';
+        note.textContent = dangerNote;
+        messageEl.appendChild(note);
+      }
+
+      let confirmationInput = null;
+      if (confirmationText) {
+        const group = document.createElement('div');
+        group.className = 'mb-0';
+        const label = document.createElement('label');
+        label.className = 'form-label small fw-semibold';
+        label.setAttribute('for', 'kbConfirmTypedInput');
+        label.textContent = confirmationLabel;
+        confirmationInput = document.createElement('input');
+        confirmationInput.id = 'kbConfirmTypedInput';
+        confirmationInput.className = 'form-control';
+        confirmationInput.autocomplete = 'off';
+        confirmationInput.placeholder = confirmationText;
+        group.append(label, confirmationInput);
+        messageEl.appendChild(group);
+      }
+
       actionBtn.textContent = confirmText;
       actionBtn.className = `btn btn-${variant}`;
+      actionBtn.disabled = !!confirmationText;
       const modal = new bootstrap.Modal(modalEl);
+      const updateActionState = () => {
+        if (!confirmationInput) return;
+        actionBtn.disabled = confirmationInput.value.trim() !== confirmationText;
+      };
+      if (confirmationInput) {
+        confirmationInput.addEventListener('input', updateActionState);
+      }
       const cleanup = result => {
         actionBtn.onclick = null;
+        actionBtn.disabled = false;
+        if (confirmationInput) {
+          confirmationInput.removeEventListener('input', updateActionState);
+        }
         modalEl.removeEventListener('hidden.bs.modal', onHidden);
         resolve(result);
       };
@@ -163,6 +224,9 @@
       };
       modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
       modal.show();
+      if (confirmationInput) {
+        modalEl.addEventListener('shown.bs.modal', () => confirmationInput.focus(), { once: true });
+      }
     });
   };
 
@@ -172,6 +236,12 @@
       btn.setAttribute('title', 'Close');
     });
     document.querySelectorAll('button').forEach(btn => {
+      if (btn.classList.contains('pw-toggle')) {
+        btn.removeAttribute('tabindex');
+        if (!btn.hasAttribute('aria-pressed')) {
+          btn.setAttribute('aria-pressed', 'false');
+        }
+      }
       const hasName = (btn.textContent || '').trim() || btn.getAttribute('aria-label') || btn.getAttribute('title');
       if (hasName) return;
       if (btn.querySelector('.bi-bell')) {

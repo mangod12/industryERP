@@ -13,9 +13,12 @@ Covers:
 
 from datetime import date, datetime
 
+from sqlalchemy.dialects import postgresql
+
 from backend_core.app.models_v2 import NumberSequence
 from backend_core.app.services.inventory_service import (
     _apply_format,
+    _build_postgres_sequence_upsert,
     get_indian_fiscal_year,
     get_next_sequence,
 )
@@ -281,3 +284,27 @@ class TestSQLiteCompatibility:
         assert a1.endswith("/000001")
         assert b1.endswith("/000001")
         assert a2.endswith("/000002")
+
+
+# ===========================================================================
+# TestPostgreSQLConcurrencyPath
+# ===========================================================================
+
+
+class TestPostgreSQLConcurrencyPath:
+    """Verify the production DB path uses one atomic upsert statement."""
+
+    def test_postgres_sequence_statement_uses_conflict_update(self):
+        stmt = _build_postgres_sequence_upsert(
+            sequence_name="pg_atomic",
+            prefix="PG",
+            current_year=2026,
+            year_wise=True,
+            format_str="{prefix}/{####}",
+        )
+        compiled = str(stmt.compile(dialect=postgresql.dialect()))
+
+        assert "ON CONFLICT" in compiled
+        assert "DO UPDATE" in compiled
+        assert "RETURNING" in compiled
+        assert "IS DISTINCT FROM" in compiled
