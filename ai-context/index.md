@@ -98,7 +98,7 @@ Verified on 2026-06-15:
 - `ruff format --check backend_core tests scripts`: passed after formatting touched files.
 - `pytest tests -q`: 507 passed, 2 skipped.
 - `detect-secrets scan ...`: no findings after explicit false-positive allowlists.
-- Playwright: 4 passed, major pages rendered, screenshots captured under `docs/screenshots/`, visible controls checked for accessible names, and GRN/dispatch lifecycle controls checked for state gates.
+- Playwright: 5 passed, major pages rendered, screenshots captured under `docs/screenshots/`, every authenticated HTML page plus login checked for shared shell visibility, page headings, accessible visible controls, invalid display values, page-level overflow, and GRN/dispatch lifecycle state gates.
 - `npm run design:impeccable`: passed with zero reported anti-patterns after the factory UI hardening pass.
 - `bandit -r backend_core/app -x tests`: 19 Low findings only. Most are broad `try/except/pass` and one false positive for token type `"bearer"`.
 Known residuals:
@@ -123,6 +123,8 @@ Known residuals:
 - Added `package.json`, `playwright.config.js`, and `tests/playwright/industry-erp.spec.js`.
 - Added screenshot artifacts under `docs/screenshots/` for the manual.
 - Global frontend polish: changed body font stack to Aptos/Segoe UI, added dropdown item padding, improved header action wrapping, improved tracking kanban desktop fit.
+- All-page frontend polish: account settings and user registration now load the shared authenticated shell scripts, password visibility buttons have stable accessible names, and register/profile styling follows the shared steel-blue design tokens.
+- Customer detail rendering no longer gets overwritten by the legacy shared customer-details handler, preventing visible `undefined` stage-history values.
 - Added GRN and dispatch read-by-id endpoints used by the detail modals.
 - Added `/api/v2/inventory/locations` so GRN approval can select an active yard/rack.
 - Wired GRN filters, weighment recording, submit-for-QA, line QA approve/reject labels, approval location selection, and state-gated action buttons.
@@ -130,6 +132,7 @@ Known residuals:
 - Added shared frontend `KBFormat` and `KBConfirm` helpers for operator-safe display values and high-stakes confirmations.
 - Added Playwright coverage for visible button labels, Invalid Date/NaN leaks, and GRN/dispatch lifecycle controls.
 - Cleared the full Impeccable static design audit by tightening the shared design system, replacing purple dispatch accents, improving contrast, flattening nested modal panels, fixing heading hierarchy, and increasing operator-friendly spacing.
+- Expanded Playwright production smoke so it walks all authenticated HTML pages, discovers a seeded customer for edit/detail routes, verifies login before authentication, and fails on visible unnamed controls, `Invalid Date`, `NaN`, `undefined`, `null`, or page-level horizontal overflow.
 
 ## Module Map
 

@@ -6,6 +6,29 @@ const USERNAME = process.env.E2E_USERNAME || 'admin';
 const PASSWORD = process.env.E2E_PASSWORD || 'Boss1234!'; // pragma: allowlist secret
 const screenshotDir = path.resolve(__dirname, '../../docs/screenshots');
 
+const AUTHENTICATED_PAGES = [
+  ['index.html', 'Dashboard'],
+  ['raw_material.html', 'Raw Materials Inventory'],
+  ['materials.html', 'Materials Master'],
+  ['stock.html', 'Stock Overview'],
+  ['grn.html', 'Goods Receipt Notes'],
+  ['dispatch.html', 'Dispatch Notes'],
+  ['tracking_v2.html', 'Production Tracking'],
+  ['drawings.html', 'Drawings'],
+  ['customers.html', 'Customers'],
+  ['customer_add.html', 'Add Customer'],
+  ['scrap.html', 'Scrap Inventory'],
+  ['reusable.html', 'Reusable Stock'],
+  ['queries.html', 'Queries'],
+  ['instructions.html', 'Instructions'],
+  ['instructions_edit.html', 'Edit Instructions'],
+  ['settings.html', 'Settings'],
+  ['account-settings.html', 'My Profile'],
+  ['notification-settings.html', 'Notification Settings'],
+  ['system-settings.html', 'System Settings'],
+  ['register.html', 'Create New User']
+];
+
 async function login(page) {
   await page.goto('/login.html');
   await page.locator('#email-username').fill(USERNAME);
@@ -100,25 +123,30 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
   test('factory pages expose named controls without invalid display values', async ({ page }) => {
     await login(page);
 
+    const firstCustomerId = await page.evaluate(async () => {
+      const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
+      const res = await fetch(`${base}/customers`);
+      if (!res.ok) return null;
+      const customers = await res.json();
+      return customers[0] && customers[0].id;
+    });
+    expect(firstCustomerId, 'seeded customer is required for edit/detail page coverage').toBeTruthy();
+
     const pages = [
-      'raw_material.html',
-      'materials.html',
-      'stock.html',
-      'grn.html',
-      'dispatch.html',
-      'tracking_v2.html',
-      'drawings.html',
-      'customers.html',
-      'scrap.html',
-      'reusable.html',
-      'queries.html',
-      'instructions.html',
-      'settings.html'
+      ...AUTHENTICATED_PAGES,
+      [`customer_edit.html?id=${firstCustomerId}`, 'Edit Customer'],
+      [`customer_details.html?id=${firstCustomerId}`, null]
     ];
 
-    for (const url of pages) {
+    for (const [url, expected] of pages) {
       await page.goto(`/${url}`);
       await waitForApp(page);
+      if (expected) {
+        await expect(page.locator('body'), `${url} should render ${expected}`).toContainText(expected);
+      }
+      await expect(page.locator('h1').first(), `${url} should expose a page heading`).toBeVisible();
+      await expect(page.locator('.kb-topbar'), `${url} should keep the shared top bar`).toBeVisible();
+      await expect(page.locator('.kb-sidebar'), `${url} should keep the shared sidebar`).toBeVisible();
 
       const unnamedButtons = await page.locator('button:visible').evaluateAll(buttons =>
         buttons
@@ -128,7 +156,27 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
       expect(unnamedButtons, `${url} has unnamed visible controls`).toEqual([]);
       await expect(page.locator('body'), `${url} should not show Invalid Date`).not.toContainText('Invalid Date');
       await expect(page.locator('body'), `${url} should not show NaN`).not.toContainText('NaN');
+      await expect(page.locator('body'), `${url} should not show undefined`).not.toContainText(/\bundefined\b/i);
+      await expect(page.locator('body'), `${url} should not show null`).not.toContainText(/\bnull\b/i);
+      const hasPageOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+      expect(hasPageOverflow, `${url} should not create page-level horizontal overflow`).toBeFalsy();
     }
+  });
+
+  test('login page is consistent before authentication', async ({ page }) => {
+    await page.goto('/login.html');
+    await waitForApp(page);
+    await expect(page.locator('body')).toContainText('KumarBrothers Steel');
+    await expect(page.getByRole('button', { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /show password/i })).toBeVisible();
+    const unnamedButtons = await page.locator('button:visible').evaluateAll(buttons =>
+      buttons
+        .filter(button => !button.innerText.trim() && !button.getAttribute('aria-label') && !button.getAttribute('title'))
+        .map(button => button.outerHTML.slice(0, 160))
+    );
+    expect(unnamedButtons, 'login.html has unnamed visible controls').toEqual([]);
+    await expect(page.locator('body')).not.toContainText('Invalid Date');
+    await expect(page.locator('body')).not.toContainText('NaN');
   });
 
   test('GRN and dispatch lifecycle controls are wired and state-gated', async ({ page }) => {

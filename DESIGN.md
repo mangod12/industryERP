@@ -45,11 +45,16 @@ One primary color carries identity. Steel-blue as the anchor, warm neutrals for 
 - **Data tables:** Alternating row backgrounds, sticky headers, right-align numbers
 - **Number displays:** Mono font, larger size, right-aligned in tables
 - **Action buttons:** Primary (filled), Secondary (outlined), Danger (red filled)
-- **Navigation:** Top navbar with logo, collapsible sidebar not needed (pages are separate HTML files)
+- **Navigation:** Fixed top bar with logo plus shared left sidebar for authenticated pages
 - **Forms:** Labels above inputs, generous touch targets, clear required indicators
 - **Empty states:** Helpful message + action button, not just blank space
 
 ## Layout
 - Max content width: 1400px for dashboard, full-width for tables
-- Sidebar: none (separate pages model)
+- Sidebar: 240px authenticated left navigation, collapses behind hamburger on tablet/mobile
 - Responsive: tables scroll horizontally on mobile, cards stack vertically
+
+## Authenticated Shell
+- Every authenticated page uses the shared top bar, sidebar, role badge, notification button, and logout behavior.
+- Utility pages such as profile, notification settings, system settings, and user registration follow the same steel-blue tokens, card radius, spacing rhythm, and named controls as production workflow pages.
+- Page-level horizontal overflow, visible `undefined`/`null`/`NaN`, and unnamed visible buttons are Playwright failures.

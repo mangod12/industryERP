@@ -1056,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('customerStatusTable')) {
     updateDashboardTracking();
   }
-  if (document.getElementById('custName')) {
+  if (document.getElementById('custName') && currentPage !== 'customer_details.html') {
     loadCustomerDetails();
   }
 

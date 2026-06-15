@@ -152,7 +152,9 @@ class TestClientSetup:
         """The dispatch page detail modal requires a read-by-id endpoint."""
         customer = create_test_customer(db, name="Dispatch Read Customer")
 
-        create_resp = boss_client.post("/api/v2/dispatch/", json={"customer_id": customer.id, "vehicle_number": "MH12AB5678"})
+        create_resp = boss_client.post(
+            "/api/v2/dispatch/", json={"customer_id": customer.id, "vehicle_number": "MH12AB5678"}
+        )
         assert create_resp.status_code == 201
         dispatch_id = create_resp.json()["dispatch_id"]
 

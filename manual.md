@@ -38,6 +38,8 @@ $env:ENVIRONMENT = "development"
 
 4. Open `http://127.0.0.1:8000/login.html`.
 
+![Login](docs/screenshots/00-login.png)
+
 Demo credentials:
 
 - Username: `admin`
@@ -207,6 +209,20 @@ Settings groups account/security, notification preferences, and system settings.
 
 System settings also exist under `/api/v2/settings/*` for company profile, naming series, workflow config, and generic key-value configuration.
 
+## User Admin And Profile
+
+Boss and Software Supervisor roles can create users from the shared authenticated shell. The register page uses the same navigation, role badge, spacing, and control language as the production pages.
+
+![Register User](docs/screenshots/15-register-user.png)
+
+The profile page shows account details and password controls. Password visibility buttons are explicitly named for keyboard and assistive-technology users.
+
+![Account Profile](docs/screenshots/16-account-profile.png)
+
+Customer detail pages are covered by the all-page browser QA with real seeded customer IDs, so edit/detail routes are tested the same way an operator reaches them from the customer list.
+
+![Customer Detail](docs/screenshots/17-customer-detail.png)
+
 ## Roles
 
 The seeded demo creates these local users with the same password, `Boss1234!`: <!-- pragma: allowlist secret -->
@@ -277,7 +293,7 @@ $env:E2E_PASSWORD = "Boss1234!" # pragma: allowlist secret
 cmd /c npm run test:e2e
 ```
 
-Current verified browser result: `4 passed`.
+Current verified browser result: `5 passed`. Playwright now checks every authenticated HTML page plus login for shared shell visibility, page headings, named visible controls, invalid display values, and page-level overflow.
 
 Design:
 
