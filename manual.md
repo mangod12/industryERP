@@ -285,4 +285,6 @@ Design:
 cmd /c npm run design:impeccable
 ```
 
-Current full static Impeccable result is not clean. It reports legacy design debt across older HTML pages, mostly heading hierarchy, modal/card padding, nested cards, and typography pairing. Treat that as a remaining design-hardening backlog before claiming complete visual QA.
+Current full static Impeccable result: passed with zero reported anti-patterns.
+
+Also verified: inline JavaScript syntax for every HTML page and `kumar_frontend/js/main.js` parsed successfully after the UI hardening pass.

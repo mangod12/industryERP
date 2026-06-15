@@ -11,7 +11,7 @@
     .dispatch-card { border-top: 3px solid var(--primary); }
     .pending-card { border-top: 3px solid var(--warning-amber); }
     .weight-display { font-family: monospace; font-size: 1.1rem; }
-    .stock-lot-card { cursor: pointer; transition: all 0.2s; }
+    .stock-lot-card { cursor: pointer; transition: background-color 0.2s, box-shadow 0.2s; background: #f8fbfe; }
     .stock-lot-card:hover { border-color: #0d6efd; background-color: #f8f9fa; }
     .stock-lot-card.selected { border-color: #0d6efd; border-width: 2px; background-color: #e7f1ff; }
     .heat-badge { font-family: monospace; background-color: #6c757d; }
@@ -133,25 +133,25 @@
       <div class="col-md-3">
         <div class="card p-3 pending-card">
           <small class="text-muted">Pending Dispatch</small>
-          <h4 id="statPendingDispatch">0</h4>
+          <div id="statPendingDispatch" class="h4">0</div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card p-3 dispatch-card">
           <small class="text-muted">Today's Dispatches</small>
-          <h4 id="statTodayDispatches">0</h4>
+          <div id="statTodayDispatches" class="h4">0</div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card p-3">
           <small class="text-muted">Total Dispatched (MT)</small>
-          <h4 id="statTotalDispatched">0.00</h4>
+          <div id="statTotalDispatched" class="h4">0.00</div>
         </div>
       </div>
       <div class="col-md-3">
         <div class="card p-3">
           <small class="text-muted">This Month</small>
-          <h4 id="statMonthCount">0</h4>
+          <div id="statMonthCount" class="h4">0</div>
         </div>
       </div>
     </div>
@@ -226,7 +226,7 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Create New Dispatch</h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Create New Dispatch</div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -278,7 +278,7 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Dispatch Details - <span id="detailDispatchNumber"></span></h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Dispatch Details - <span id="detailDispatchNumber"></span></div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -303,8 +303,8 @@
           </div>
 
           <!-- Weight Summary -->
-          <div class="card mb-4 dispatch-card">
-            <div class="card-body">
+          <div class="dispatch-summary-panel mb-4 p-3">
+            <div>
               <div class="row text-center">
                 <div class="col-md-4">
                   <small class="text-muted">Total Items</small>
@@ -323,14 +323,14 @@
           </div>
 
           <!-- Stock Picking Section -->
-          <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="dispatch-lines-panel mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom px-3 py-2">
               <span>Pick Stock (FIFO)</span>
               <button type="button" class="btn btn-sm btn-outline-primary" id="btnOpenPickStock" data-bs-toggle="modal" data-bs-target="#pickStockModal" data-permission="dispatch:create">
                 + Pick Material
               </button>
             </div>
-            <div class="card-body p-0">
+            <div class="p-0">
               <table class="table table-sm mb-0">
                 <thead class="table-light">
                   <tr>
@@ -367,7 +367,7 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Pick Stock</h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Pick Stock</div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -386,7 +386,7 @@
           </div>
 
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="mb-0">Available Stock Lots (FIFO Order)</h6>
+            <div class="mb-0 h6" role="heading" aria-level="6">Available Stock Lots (FIFO Order)</div>
             <button type="button" class="btn btn-sm btn-outline-primary" id="btnAutoPickFIFO">Auto-Pick FIFO</button>
           </div>
 
@@ -399,8 +399,8 @@
 
           <!-- Selected for picking -->
           <div class="mt-4">
-            <h6>Selected for Dispatch</h6>
-            <div id="selectedLots" class="border rounded p-3 bg-light">
+            <div class="h6" role="heading" aria-level="6">Selected for Dispatch</div>
+            <div id="selectedLots" class="selected-lots-panel p-3 bg-light">
               <div class="text-muted text-center">No lots selected</div>
             </div>
           </div>
@@ -611,7 +611,7 @@
 
         container.innerHTML = lots.map(lot => `
           <div class="col-md-6">
-            <div class="card stock-lot-card p-3" data-lot-id="${lot.id}" data-available="${lot.current_weight_kg}">
+            <div class="stock-lot-card p-3" data-lot-id="${lot.id}" data-available="${lot.current_weight_kg}">
               <div class="d-flex justify-content-between align-items-start">
                 <div>
                   <div class="fw-bold">${lot.lot_number}</div>
@@ -938,7 +938,7 @@
 
         container.innerHTML = lots.map(lot => `
           <div class="col-md-6">
-            <div class="card stock-lot-card p-3" data-lot-id="${lot.id}" data-lot-number="${KBFormat.text(lot.lot_number)}" data-available="${lot.current_weight_kg}">
+            <div class="stock-lot-card p-3" data-lot-id="${lot.id}" data-lot-number="${KBFormat.text(lot.lot_number)}" data-available="${lot.current_weight_kg}">
               <div class="d-flex justify-content-between align-items-start">
                 <div>
                   <div class="fw-bold">${KBFormat.text(lot.lot_number)}</div>

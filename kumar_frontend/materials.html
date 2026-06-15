@@ -174,7 +174,7 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Add New Material</h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Add New Material</div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -220,7 +220,7 @@
                 </select>
               </div>
               
-              <div class="col-12"><hr><h6>Dimensions (Optional)</h6></div>
+              <div class="col-12"><hr><div class="h6" role="heading" aria-level="6">Dimensions (Optional)</div></div>
               <div class="col-md-3">
                 <label for="matThickness" class="form-label">Thickness (mm)</label>
                 <input type="number" step="0.001" class="form-control" id="matThickness">
@@ -238,7 +238,7 @@
                 <input type="number" step="0.01" class="form-control" id="matDiameter">
               </div>
 
-              <div class="col-12"><hr><h6>Inventory Settings</h6></div>
+              <div class="col-12"><hr><div class="h6" role="heading" aria-level="6">Inventory Settings</div></div>
               <div class="col-md-4">
                 <label for="matUnit" class="form-label">Default Unit</label>
                 <select class="form-select" id="matUnit">
@@ -314,7 +314,7 @@
                   <span class="badge bg-secondary">${m.code}</span>
                   <span class="badge bg-${m.is_active ? 'success' : 'danger'}">${m.is_active ? 'Active' : 'Inactive'}</span>
                 </div>
-                <h6 class="card-title">${m.name}</h6>
+                <div class="card-title h6" role="heading" aria-level="6">${m.name}</div>
                 <div class="mb-2">
                   <span class="badge bg-primary">${m.material_type}</span>
                   ${m.grade ? `<span class="badge bg-info spec-badge">${m.grade}</span>` : ''}

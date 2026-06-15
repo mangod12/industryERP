@@ -3,29 +3,29 @@
    For bright plant offices, 15" monitors, 8hr daily use
    ---------------------------------------------------- */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Roboto+Slab:wght@600;700&display=swap');
 
 /* ========== 1. Custom Properties ========== */
 :root {
   /* Brand palette */
-  --primary: #075a9f;
-  --primary-hex: #075a9f;
-  --primary-dark: #064a82;
+  --primary: #0b4f86;
+  --primary-hex: #0b4f86;
+  --primary-dark: #083b63;
   --primary-light: #e8f2fb;
   --primary-light-hex: #e8f2fb;
   --accent-green: #14804a;
   --accent-green-hex: #14804a;
-  --warning-amber: #b7791f;
+  --warning-amber: #8a5a00;
   --warning-amber-hex: #b7791f;
-  --danger-red: #b42318;
+  --danger-red: #a21712;
   --danger-red-hex: #b42318;
   --surface: #f3f6fa;
   --surface-hex: #f3f6fa;
   --surface-muted: #edf1f6;
   --surface-raised: #ffffff;
   --surface-raised-hex: #ffffff;
-  --text-primary: #202733;
-  --text-primary-hex: #202733;
+  --text-primary: #1f2937;
+  --text-primary-hex: #1f2937;
   --text-secondary: #596574;
   --text-secondary-hex: #596574;
   --border: #d8e0ea;
@@ -36,13 +36,14 @@
   --stage-fab-fg: oklch(35% 0.12 250);
   --stage-paint-bg: oklch(92% 0.04 75);
   --stage-paint-fg: oklch(40% 0.12 75);
-  --stage-dispatch-bg: oklch(92% 0.04 300);
-  --stage-dispatch-fg: oklch(35% 0.12 300);
+  --stage-dispatch-bg: #eef6ff;
+  --stage-dispatch-fg: #0b4f86;
   --stage-complete-bg: oklch(92% 0.04 145);
   --stage-complete-fg: oklch(35% 0.12 145);
 
   /* Typography */
   --font-body: Aptos, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-heading: "Roboto Slab", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* Spacing scale */
@@ -87,18 +88,18 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-body);
+  font-family: var(--font-heading);
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0;
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
 h1, .h1 { font-size: 2rem; font-weight: 700; }
 h2 { font-size: 1.5rem; }
 h4 { font-size: 1.15rem; }
 h5 { font-size: 1.05rem; font-weight: 700; color: var(--primary); }
-p, small, .text-muted { line-height: 1.45; }
+p, small, .text-muted { line-height: 1.5; }
 
 a { color: var(--primary); }
 a:hover { color: var(--primary); opacity: 0.85; }
@@ -303,6 +304,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
+  padding: var(--sp-2);
 }
 
 .card.shadow-sm,
@@ -313,6 +315,34 @@ a:hover { color: var(--primary); opacity: 0.85; }
 
 .card-body {
   padding: var(--sp-5);
+}
+
+.card > .card-header {
+  margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-2)) 0;
+}
+
+.card.p-0,
+.card-body.p-0 {
+  overflow: hidden;
+}
+
+.card:not(:has(> .card-body)):not(:has(> .table-responsive)):not(.p-0) {
+  padding: var(--sp-5);
+}
+
+.modal-content {
+  padding: var(--sp-3);
+}
+
+.modal-content .modal-header,
+.modal-content .modal-body,
+.modal-content .modal-footer {
+  padding-left: var(--sp-5);
+  padding-right: var(--sp-5);
+}
+
+.alert {
+  padding: var(--sp-4) var(--sp-5);
 }
 
 .card > .table-responsive:first-child:last-child {
@@ -414,6 +444,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
 .stat-card, .kpi-card {
   background: var(--surface-raised);
   border: 1px solid var(--border);
+  border-top-width: 1px !important;
   border-radius: var(--radius);
   padding: var(--sp-4) var(--sp-5);
 }
@@ -449,7 +480,7 @@ a:hover { color: var(--primary); opacity: 0.85; }
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  line-height: 1.2;
+  line-height: 1.35;
   border-width: 1px;
 }
 

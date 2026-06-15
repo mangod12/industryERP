@@ -99,14 +99,12 @@ Verified on 2026-06-15:
 - `pytest tests -q`: 507 passed, 2 skipped.
 - `detect-secrets scan ...`: no findings after explicit false-positive allowlists.
 - Playwright: 4 passed, major pages rendered, screenshots captured under `docs/screenshots/`, visible controls checked for accessible names, and GRN/dispatch lifecycle controls checked for state gates.
+- `npm run design:impeccable`: passed with zero reported anti-patterns after the factory UI hardening pass.
 - `bandit -r backend_core/app -x tests`: 19 Low findings only. Most are broad `try/except/pass` and one false positive for token type `"bearer"`.
-- `npm run design:impeccable`: not clean yet. Current full static scan reports 117 existing design findings across legacy HTML pages.
-
 Known residuals:
 
 - `mypy backend_core/app/services --ignore-missing-imports --no-strict-optional` still reports the existing SQLAlchemy typing baseline; CI already treats mypy as non-blocking.
 - FastAPI/Pydantic deprecation warnings remain. They do not break tests today, but Pydantic V3 and FastAPI lifespan migration should be scheduled.
-- The full Impeccable pass still reports legacy static HTML style issues, mostly heading hierarchy, modal/card padding, nested cards, and typography pairing. The captured primary workflows were visually inspected and pass Playwright.
 - The in-process rate limiter and token revocation model are not sufficient for multi-instance production without Redis or another shared store.
 
 ## Production-Hardening Changes Applied
@@ -131,6 +129,7 @@ Known residuals:
 - Wired dispatch filters, detail view, manual lot picking, FIFO auto-pick, picked-line removal, submit-for-approval, confirm-dispatch, and state-gated action buttons.
 - Added shared frontend `KBFormat` and `KBConfirm` helpers for operator-safe display values and high-stakes confirmations.
 - Added Playwright coverage for visible button labels, Invalid Date/NaN leaks, and GRN/dispatch lifecycle controls.
+- Cleared the full Impeccable static design audit by tightening the shared design system, replacing purple dispatch accents, improving contrast, flattening nested modal panels, fixing heading hierarchy, and increasing operator-friendly spacing.
 
 ## Module Map
 

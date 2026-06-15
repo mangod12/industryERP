@@ -343,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .notif-item { padding: 10px 16px; border-bottom: 1px solid #f5f5f5; cursor: pointer;
           transition: background 0.15s; }
         .notif-item:hover { background: #f8f9fa; }
-        .notif-item.unread { background: #f0f7ff; border-left: 3px solid #0d6efd; }
+        .notif-item.unread { background: #f0f7ff; box-shadow: inset 0 0 0 1px #b6d8ff; }
         .notif-item .notif-msg { font-size: 0.85rem; color: #333; margin-bottom: 2px; }
         .notif-item .notif-time { font-size: 0.72rem; color: #999; }
         .notif-empty { padding: 24px; text-align: center; color: #aaa; font-size: 0.85rem; }
@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
           display: flex; flex-direction: column; gap: 8px; }
         .notif-toast { background: #fff; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
           padding: 12px 18px; min-width: 280px; max-width: 360px; animation: notifSlideIn 0.35s ease;
-          border-left: 4px solid #0d6efd; display: flex; align-items: flex-start; gap: 10px; }
+          box-shadow: 0 4px 20px rgba(0,0,0,0.15), inset 0 0 0 1px #b6d8ff; display: flex; align-items: flex-start; gap: 10px; }
         .notif-toast .nt-icon { font-size: 1.2rem; flex-shrink: 0; }
         .notif-toast .nt-body { flex: 1; }
         .notif-toast .nt-msg { font-size: 0.85rem; color: #333; }

@@ -120,7 +120,7 @@
   <main class="kb-main">
   <div class="container-fluid main-container">
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-5">
       <div>
         <h1 class="fw-bold mb-0">Raw Materials Inventory</h1>
         <small class="text-muted">Raw material availability and usage tracking. Materials auto-deduct when fabrication
@@ -136,13 +136,13 @@
     </div>
 
     <!-- Quick Stats -->
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-5">
       <div class="col-md-3">
-        <div class="card p-3 h-100">
+        <div class="card p-4 h-100">
           <div class="d-flex justify-content-between">
             <div>
               <small class="text-muted">Total Stock (Purchased)</small>
-              <h4 id="statTotalPurchased" class="mono">0</h4>
+              <div id="statTotalPurchased" class="mono h4">0</div>
             </div>
             <button type="button" class="btn btn-sm btn-outline-secondary reset-btn d-none" onclick="resetStock()"
               title="Reset Total Stock (Clear Everything)">
@@ -152,11 +152,11 @@
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 h-100">
+        <div class="card p-4 h-100">
           <div class="d-flex justify-content-between">
             <div>
               <small class="text-muted">Total Consumed</small>
-              <h4 id="statTotalConsumed" class="mono">0</h4>
+              <div id="statTotalConsumed" class="mono h4">0</div>
             </div>
             <button type="button" class="btn btn-sm btn-outline-secondary reset-btn d-none" onclick="resetConsumed()"
               title="Reset Consumed Only">
@@ -166,15 +166,15 @@
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 h-100">
+        <div class="card p-4 h-100">
           <small class="text-muted">Current Available</small>
-          <h4 id="statCurrentStock" class="mono">0</h4>
+          <div id="statCurrentStock" class="mono h4">0</div>
         </div>
       </div>
       <div class="col-md-3">
-        <div class="card p-3 h-100">
+        <div class="card p-4 h-100">
           <small class="text-muted">Low Stock Items</small>
-          <h4 id="statLowStock" class="text-danger mono">0</h4>
+          <div id="statLowStock" class="text-danger mono h4">0</div>
         </div>
       </div>
     </div>
@@ -230,7 +230,7 @@
     <!-- Inventory Table Card -->
     <div class="card shadow-sm border-0 mb-3">
       <div class="card-body">
-        <h5 class="fw-semibold mb-3">Material List</h5>
+        <div class="fw-semibold mb-4 h5" role="heading" aria-level="5">Material List</div>
 
         <div class="table-responsive">
           <table id="inventoryTable" class="table align-middle">
@@ -268,7 +268,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Add New Raw Material</h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Add New Raw Material</div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -315,7 +315,7 @@
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Material Name Mappings</h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Material Name Mappings</div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">

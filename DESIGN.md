@@ -18,7 +18,7 @@ One primary color carries identity. Steel-blue as the anchor, warm neutrals for 
 ### Stage Colors
 - Fabrication: oklch(60% 0.15 250) — blue
 - Painting: oklch(70% 0.15 75) — amber
-- Dispatch: oklch(55% 0.15 300) — purple
+- Dispatch: #0b4f86 on #eef6ff - steel blue
 - Completed: oklch(60% 0.18 145) — green
 
 ## Typography

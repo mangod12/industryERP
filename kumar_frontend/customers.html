@@ -124,8 +124,8 @@
     </div>
 
     <!-- Search & Filters -->
-    <div class="card shadow-sm border-0 mb-4">
-      <div class="card-body">
+    <section class="kb-section mb-4">
+      <div>
         <div class="row g-3 align-items-end">
 
           <div class="col-md-4">
@@ -158,12 +158,12 @@
 
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Customers List Card -->
-    <div class="card shadow-sm border-0 mb-3">
-      <div class="card-body">
-        <h5 class="fw-semibold mb-3">Customer Projects</h5>
+    <section class="kb-section mb-3">
+      <div>
+        <div class="fw-semibold mb-3 h5" role="heading" aria-level="5">Customer Projects</div>
 
         <div class="table-responsive">
           <table class="table align-middle">
@@ -184,7 +184,7 @@
         </div>
 
       </div>
-    </div>
+    </section>
 
     <!-- Empty / No Results State -->
     <div class="kb-empty-state d-none" id="noCustomerResults">
@@ -200,7 +200,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Add New Customer</h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Add New Customer</div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -226,7 +226,7 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Upload Tracking Excel/CSV</h5>
+          <div class="modal-title h5" role="heading" aria-level="5">Upload Tracking Excel/CSV</div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -257,11 +257,11 @@
 
           <!-- Material Matching Summary -->
           <div id="materialMatchingArea" class="d-none mb-3">
-            <div class="card border-primary">
-              <div class="card-header bg-primary text-white">
+            <div class="kb-inline-summary">
+              <div class="bg-primary text-white px-3 py-2">
                 <strong>📊 Material Matching Summary</strong>
               </div>
-              <div class="card-body">
+              <div class="p-3">
                 <div class="row">
                   <div class="col-md-6">
                     <div id="matchedProfiles" class="mb-2"></div>
@@ -276,7 +276,7 @@
           </div>
 
           <div id="excelPreviewArea" class="d-none">
-            <h6 class="fw-bold">📄 Data Preview (first 15 rows):</h6>
+            <div class="fw-bold h6" role="heading" aria-level="6">📄 Data Preview (first 15 rows):</div>
             <div id="excelPreviewContent" class="table-responsive" style="max-height: 350px; overflow-y: auto;"></div>
             <div class="mt-2 d-flex justify-content-between">
               <small class="text-muted">Total rows: <span id="totalRowsCount">0</span></small>

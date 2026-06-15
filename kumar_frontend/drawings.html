@@ -26,11 +26,13 @@
 
     .view-card {
       overflow: hidden;
+      padding: 0.75rem;
     }
 
     .view-card .card-header {
-      background: linear-gradient(180deg, rgba(16, 24, 40, 0.04), rgba(16, 24, 40, 0));
-      border-bottom: 1px solid rgba(16, 24, 40, 0.08);
+      background: #f3f6fa;
+      border-bottom: 1px solid #d8e0ea;
+      color: var(--text-primary);
     }
 
     .progress-thin {
@@ -70,7 +72,7 @@
     }
 
     .kanban-card {
-      border: 1px solid rgba(16, 24, 40, 0.08);
+      border: 1px solid #d8e0ea;
       border-top: 3px solid var(--primary);
       border-radius: 10px;
       padding: 0.85rem;
@@ -296,7 +298,7 @@
     <div class="view-card card shadow-sm border-0 mb-4" id="tableViewCard">
       <div class="card-header d-flex justify-content-between align-items-center">
         <div>
-          <h5 class="mb-0">Drawing Register</h5>
+          <div class="mb-0 h5" role="heading" aria-level="5">Drawing Register</div>
           <small class="text-muted">Released and draft drawings with live production completion.</small>
         </div>
         <span class="badge text-bg-light" id="drawingCountBadge">0 drawings</span>
@@ -324,7 +326,7 @@
     <div class="view-card card shadow-sm border-0 d-none" id="kanbanViewCard">
       <div class="card-header d-flex justify-content-between align-items-center">
         <div>
-          <h5 class="mb-0">Production Kanban</h5>
+          <div class="mb-0 h5" role="heading" aria-level="5">Production Kanban</div>
           <small class="text-muted">Live instance flow across cutting to dispatch.</small>
         </div>
         <span class="badge text-bg-light" id="kanbanScopeLabel">All active instances</span>
@@ -340,7 +342,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <div>
-            <h5 class="modal-title mb-0">Drawing Detail</h5>
+            <div class="modal-title mb-0 h5" role="heading" aria-level="5">Drawing Detail</div>
             <small class="text-muted" id="detailSubtitle">-</small>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -358,7 +360,7 @@
       <div class="modal-content">
         <form id="newDrawingForm">
           <div class="modal-header">
-            <h5 class="modal-title">New Drawing</h5>
+            <div class="modal-title h5" role="heading" aria-level="5">New Drawing</div>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
@@ -750,7 +752,7 @@
         assembliesEl.innerHTML = '<div class="accordion" id="assembliesAccordion">' + detail.assemblies.map(function (assembly, index) {
           return '' +
             '<div class="accordion-item">' +
-            '<h2 class="accordion-header">' +
+            '<div class="accordion-header h2" role="heading" aria-level="2">' +
             '<button class="accordion-button ' + (index === 0 ? '' : 'collapsed') + '" type="button" data-bs-toggle="collapse" data-bs-target="#assembly-' + assembly.id + '">' +
             '<div class="w-100 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center me-3">' +
             '<span class="fw-semibold">' + escapeHtml(assembly.mark_number) + '</span>' +
@@ -759,7 +761,7 @@
             formatTons(assembly.total_weight_kg) + ' tons</small>' +
             '</div>' +
             '</button>' +
-            '</h2>' +
+            '</div>' +
             '<div id="assembly-' + assembly.id + '" class="accordion-collapse collapse ' + (index === 0 ? 'show' : '') + '" data-bs-parent="#assembliesAccordion">' +
             '<div class="accordion-body">' +
             renderAssemblyTable(detail, assembly) +

@@ -139,7 +139,7 @@
 
     /* --- Section heading --- */
     .section-heading {
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: var(--font-heading);
       font-weight: 700;
       font-size: 1rem;
       color: var(--text-primary);
@@ -268,7 +268,7 @@
     <!-- Dashboard Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
-        <h1 class="fw-bold mb-0" style="font-family: 'Inter', system-ui, sans-serif;">Dashboard</h1>
+        <h1 class="fw-bold mb-0">Dashboard</h1>
         <small class="text-muted">Real-time overview of operations</small>
       </div>
       <div>
@@ -347,7 +347,7 @@
         <div class="card shadow-sm border-0">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="section-heading">Loss Analytics (30 Days)</h5>
+              <div class="section-heading h5" role="heading" aria-level="5">Loss Analytics (30 Days)</div>
               <div>
                 <a href="scrap.html" class="btn btn-sm btn-outline-warning me-2">View Scrap</a>
                 <a href="reusable.html" class="btn btn-sm btn-outline-success">View Reusable</a>
@@ -400,7 +400,7 @@
     <div class="row g-4 mb-4">
       <div class="col-md-8">
         <div class="card p-4 kb-card">
-          <h6 class="section-heading mb-3">Raw Materials Overview</h6>
+          <div class="section-heading mb-3 h6" role="heading" aria-level="6">Raw Materials Overview</div>
           <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
             <table class="table table-sm align-middle">
               <thead class="thead-clean">
@@ -423,7 +423,7 @@
       </div>
       <div class="col-md-4">
         <div class="card p-4 kb-card">
-          <h6 class="section-heading mb-3">Alerts and Notifications</h6>
+          <div class="section-heading mb-3 h6" role="heading" aria-level="6">Alerts and Notifications</div>
           <div id="alertsContainer">
             <div class="text-muted">Loading alerts...</div>
           </div>
@@ -435,7 +435,7 @@
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="section-heading">Live Production Status</h5>
+          <div class="section-heading h5" role="heading" aria-level="5">Live Production Status</div>
           <a href="tracking_v2.html" class="btn btn-sm btn-outline-primary">View All Tracking</a>
         </div>
 
@@ -463,7 +463,7 @@
     <!-- Recent Activity -->
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-body">
-        <h5 class="section-heading mb-3">Recent Activity</h5>
+        <div class="section-heading mb-3 h5" role="heading" aria-level="5">Recent Activity</div>
         <div id="recentActivity">
           <div class="text-muted">Loading recent activity...</div>
         </div>

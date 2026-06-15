@@ -11,9 +11,9 @@
   <style>
     :root {
       --kb-bg: #f8fafc;
-      --kb-primary: #0f172a;
+      --kb-primary: #0b4f86;
       --kb-accent: #3b82f6;
-      --kb-danger: #ef4444;
+      --kb-danger: #a21712;
       --kb-success: #22c55e;
       --kb-surface: #ffffff;
       --kb-text: #334155;
@@ -22,7 +22,7 @@
 
     body {
       background-color: var(--kb-bg);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: var(--font-body);
       color: var(--kb-text);
       min-height: 100vh;
       display: flex;
@@ -46,10 +46,15 @@
     }
 
     .card-header-custom {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #0b4f86 0%, #083b63 100%);
       padding: 30px;
       color: white;
       position: relative;
+    }
+
+    .card-header-custom,
+    .card-header-custom * {
+      color: #ffffff !important;
     }
 
     .back-btn {
@@ -80,16 +85,19 @@
       border: 2px solid rgba(255, 255, 255, 0.2);
     }
 
-    .user-identity h2 {
+    .user-identity h2,
+    .user-identity .h2 {
       font-weight: 700;
       margin: 0;
       font-size: 1.5rem;
+      color: #ffffff;
     }
 
     .user-identity p {
       margin: 0;
       opacity: 0.8;
       font-size: 0.95rem;
+      color: #ffffff;
     }
 
     .role-badge {
@@ -162,6 +170,7 @@
 
     .btn-save {
       background: var(--kb-primary);
+      color: #ffffff;
       border: none;
       padding: 10px 24px;
       border-radius: 8px;
@@ -169,7 +178,8 @@
     }
 
     .btn-save:hover {
-      background: #1e293b;
+      background: #083b63;
+      color: #ffffff;
     }
 
     .logout-btn-wrapper {
@@ -304,7 +314,7 @@
             <i class="bi bi-person"></i>
           </div>
           <div class="user-identity">
-            <h2 id="pf-username">Loading...</h2>
+            <div id="pf-username" class="h2" role="heading" aria-level="2">Loading...</div>
             <p id="pf-email">...</p>
             <span id="pf-role" class="role-badge user">...</span>
           </div>
@@ -312,8 +322,8 @@
       </div>
 
       <div class="card-body-custom">
-        <h5 class="mb-4 text-muted small text-uppercase fw-bold"><i class="bi bi-info-circle me-2"></i>Profile Details
-        </h5>
+        <div class="mb-4 text-muted small text-uppercase fw-bold h5" role="heading" aria-level="5"><i class="bi bi-info-circle me-2"></i>Profile Details
+        </div>
 
         <div class="detail-row">
           <span class="detail-label">Username</span>
@@ -337,7 +347,7 @@
     <!-- Security Card -->
     <div class="kb-card">
       <div class="card-body-custom">
-        <h5 class="mb-4 text-muted small text-uppercase fw-bold"><i class="bi bi-shield-lock me-2"></i>Security</h5>
+        <div class="mb-4 text-muted small text-uppercase fw-bold h5" role="heading" aria-level="5"><i class="bi bi-shield-lock me-2"></i>Security</div>
 
         <p class="text-muted small mb-3">Ensure your account is using a long, random password to stay secure.</p>
 
