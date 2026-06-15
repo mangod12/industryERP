@@ -14,7 +14,7 @@ if env_db:
 elif env_mode == "production":
     raise RuntimeError(
         "CRITICAL: DATABASE_URL environment variable must be set in production! "
-        "Example: DATABASE_URL=postgresql://user:pass@host/dbname"
+        "Example: DATABASE_URL=postgresql://<user>:<password>@<host>/<database>"
     )
 else:
     # Development fallback — local SQLite

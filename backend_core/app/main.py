@@ -46,6 +46,8 @@ def get_cors_origins():
     origins_env = os.getenv("CORS_ORIGINS", "")
     if origins_env:
         return [o.strip() for o in origins_env.split(",") if o.strip()]
+    if os.getenv("ENVIRONMENT", "development") == "production":
+        raise RuntimeError("CORS_ORIGINS must be set explicitly in production")
     # Default development origins
     return [
         "http://localhost:3000",
@@ -80,6 +82,10 @@ def create_app() -> FastAPI:
     @app.get("/version")
     def get_version():
         return {"version": VERSION, "app": "KBSteel ERP"}
+
+    @app.get("/healthz")
+    def healthz():
+        return {"status": "ok", "version": VERSION}
 
     app.add_middleware(
         CORSMiddleware,

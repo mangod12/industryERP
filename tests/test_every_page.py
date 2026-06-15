@@ -3,11 +3,16 @@ Test EVERY page and EVERY API call as a real user would.
 Simulates: login → navigate to each page → trigger every data load → test every form.
 """
 
+import os
 import sys
 
+import pytest
 import requests
 
-BASE = "http://127.0.0.1:8001"
+if os.getenv("RUN_LIVE_E2E") != "1":
+    pytest.skip("live HTTP smoke requires RUN_LIVE_E2E=1", allow_module_level=True)
+
+BASE = os.getenv("E2E_BASE_URL", "http://127.0.0.1:8001").rstrip("/")
 S = requests.Session()
 results = []
 TOKEN = None
@@ -49,7 +54,13 @@ def put(path, data=None, expect=200):
 
 # =====================================================================
 print("\n=== LOGIN PAGE ===")
-_, r = post("/auth/login", {"username": "boss", "password": "Boss1234!"})
+_, r = post(
+    "/auth/login",
+    {
+        "username": os.getenv("E2E_USERNAME", "boss"),
+        "password": os.getenv("E2E_PASSWORD", "Boss1234!"),
+    },
+)
 TOKEN = r.json().get("access_token", "")
 t("Got token", bool(TOKEN))
 

@@ -156,7 +156,13 @@ def update_my_settings(
 
 
 @router.get("/roles/{role}", response_model=schemas.RoleNotificationSettingOut)
-def get_role_settings(role: str, db: Session = Depends(get_db)):
+def get_role_settings(
+    role: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if current_user.role != role and current_user.role != "Boss":
+        raise HTTPException(status_code=403, detail="Can only view settings for your own role")
     r = db.query(models.RoleNotificationSetting).filter(models.RoleNotificationSetting.role == role).first()
     if not r:
         raise HTTPException(status_code=404, detail="Role settings not found")

@@ -4,11 +4,20 @@
  */
 
 const KBConfig = {
-  // API Configuration — prefer same-origin whenever the UI is served over HTTP(S).
-  // Fallback to :8000 only for file:// or other non-standard local static usage.
-  API_BASE: /^https?:$/.test(window.location.protocol)
-    ? window.location.origin
-    : `${window.location.protocol}//${window.location.hostname || '127.0.0.1'}:8000`,
+  // API Configuration. Production should serve the frontend from FastAPI, so
+  // same-origin is the default. For local static servers, set
+  // window.KB_API_BASE before this script, localStorage.kb_api_base, or
+  // ?apiBase=http://127.0.0.1:8000.
+  API_BASE: (() => {
+    const params = new URLSearchParams(window.location.search);
+    const override = window.KB_API_BASE || localStorage.getItem('kb_api_base') || params.get('apiBase');
+    if (override) return override.replace(/\/$/, '');
+    if (window.location.protocol === 'file:') return 'http://127.0.0.1:8000';
+    if (['127.0.0.1', 'localhost'].includes(window.location.hostname) && window.location.port === '5500') {
+      return 'http://127.0.0.1:8000';
+    }
+    return window.location.origin;
+  })(),
 
   // Available roles in the system
   ROLES: Object.freeze({

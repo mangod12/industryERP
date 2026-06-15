@@ -1,8 +1,30 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const BASE = 'https://kbsteel-backend-498310931350.asia-south1.run.app';
-const FRONTEND = BASE; // same origin serves frontend
+const BASE = process.env.E2E_BASE_URL || 'http://127.0.0.1:8000';
+const FRONTEND = process.env.E2E_FRONTEND_URL || BASE; // same origin serves frontend by default
+const USERNAME = process.env.E2E_USERNAME;
+const PASSWORD = process.env.E2E_PASSWORD;
+
+async function login(request) {
+  test.skip(!USERNAME || !PASSWORD, 'E2E_USERNAME and E2E_PASSWORD are required for authenticated checks');
+  const res = await request.post(`${BASE}/auth/login`, {
+    data: { username: USERNAME, password: PASSWORD }
+  });
+  expect(res.ok()).toBeTruthy();
+  const json = await res.json();
+  expect(json.access_token).toBeTruthy();
+  expect(json.token_type).toBe('bearer');
+  return json.access_token;
+}
+
+async function loginViaUi(page) {
+  test.skip(!USERNAME || !PASSWORD, 'E2E_USERNAME and E2E_PASSWORD are required for authenticated checks');
+  await page.goto(`${FRONTEND}/login.html`);
+  await page.fill('input[type="text"], input[name="username"], #username', USERNAME);
+  await page.fill('input[type="password"]', PASSWORD);
+  await page.click('button[type="submit"], .btn-primary, #loginBtn');
+}
 
 test.describe('KBSteel Live Deployment Check', () => {
 
@@ -29,20 +51,11 @@ test.describe('KBSteel Live Deployment Check', () => {
   });
 
   test('Login with admin credentials', async ({ request }) => {
-    const res = await request.post(`${BASE}/auth/login`, {
-      data: { username: 'admin', password: 'AdminTest2026Kbs' }
-    });
-    expect(res.ok()).toBeTruthy();
-    const json = await res.json();
-    expect(json.access_token).toBeTruthy();
-    expect(json.token_type).toBe('bearer');
+    await login(request);
   });
 
   test('Authenticated: enhanced dashboard returns 6 cards', async ({ request }) => {
-    const login = await request.post(`${BASE}/auth/login`, {
-      data: { username: 'admin', password: 'AdminTest2026Kbs' }
-    });
-    const { access_token } = await login.json();
+    const access_token = await login(request);
     const headers = { Authorization: `Bearer ${access_token}` };
 
     const res = await request.get(`${BASE}/dashboard/enhanced-summary`, { headers });
@@ -53,10 +66,7 @@ test.describe('KBSteel Live Deployment Check', () => {
   });
 
   test('Authenticated: reports list returns 8 reports', async ({ request }) => {
-    const login = await request.post(`${BASE}/auth/login`, {
-      data: { username: 'admin', password: 'AdminTest2026Kbs' }
-    });
-    const { access_token } = await login.json();
+    const access_token = await login(request);
     const headers = { Authorization: `Bearer ${access_token}` };
 
     const res = await request.get(`${BASE}/api/v2/reports/`, { headers });
@@ -66,10 +76,7 @@ test.describe('KBSteel Live Deployment Check', () => {
   });
 
   test('Authenticated: stock-balance report has correct structure', async ({ request }) => {
-    const login = await request.post(`${BASE}/auth/login`, {
-      data: { username: 'admin', password: 'AdminTest2026Kbs' }
-    });
-    const { access_token } = await login.json();
+    const access_token = await login(request);
     const headers = { Authorization: `Bearer ${access_token}` };
 
     const res = await request.get(`${BASE}/api/v2/reports/stock-balance`, { headers });
@@ -81,10 +88,7 @@ test.describe('KBSteel Live Deployment Check', () => {
   });
 
   test('Authenticated: company settings accessible', async ({ request }) => {
-    const login = await request.post(`${BASE}/auth/login`, {
-      data: { username: 'admin', password: 'AdminTest2026Kbs' }
-    });
-    const { access_token } = await login.json();
+    const access_token = await login(request);
     const headers = { Authorization: `Bearer ${access_token}` };
 
     const res = await request.get(`${BASE}/api/v2/settings/company`, { headers });
@@ -95,10 +99,7 @@ test.describe('KBSteel Live Deployment Check', () => {
   });
 
   test('Authenticated: print format returns 404 for nonexistent GRN', async ({ request }) => {
-    const login = await request.post(`${BASE}/auth/login`, {
-      data: { username: 'admin', password: 'AdminTest2026Kbs' }
-    });
-    const { access_token } = await login.json();
+    const access_token = await login(request);
     const headers = { Authorization: `Bearer ${access_token}` };
 
     const res = await request.get(`${BASE}/api/v2/print/grn/99999`, { headers });
@@ -119,11 +120,7 @@ test.describe('KBSteel Live Deployment Check', () => {
   });
 
   test('Dashboard page loads after login', async ({ page }) => {
-    // Login via UI
-    await page.goto(`${FRONTEND}/login.html`);
-    await page.fill('input[type="text"], input[name="username"], #username', 'admin');
-    await page.fill('input[type="password"]', 'AdminTest2026Kbs');
-    await page.click('button[type="submit"], .btn-primary, #loginBtn');
+    await loginViaUi(page);
 
     // Wait for redirect to dashboard
     await page.waitForURL(/index\.html|\/$/i, { timeout: 10000 }).catch(() => {});
@@ -135,11 +132,7 @@ test.describe('KBSteel Live Deployment Check', () => {
   });
 
   test('System settings page loads', async ({ page }) => {
-    // Login first
-    await page.goto(`${FRONTEND}/login.html`);
-    await page.fill('input[type="text"], input[name="username"], #username', 'admin');
-    await page.fill('input[type="password"]', 'AdminTest2026Kbs');
-    await page.click('button[type="submit"], .btn-primary, #loginBtn');
+    await loginViaUi(page);
     await page.waitForTimeout(2000);
 
     // Navigate to system settings

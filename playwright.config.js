@@ -1,0 +1,27 @@
+const { defineConfig, devices } = require('@playwright/test');
+
+const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:8000';
+
+module.exports = defineConfig({
+  testDir: './tests/playwright',
+  timeout: 45_000,
+  expect: { timeout: 10_000 },
+  retries: process.env.CI ? 1 : 0,
+  reporter: [
+    ['list'],
+    ['html', { open: 'never', outputFolder: 'playwright-report' }]
+  ],
+  use: {
+    baseURL,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    viewport: { width: 1440, height: 1000 }
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] }
+    }
+  ]
+});

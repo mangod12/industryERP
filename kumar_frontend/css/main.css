@@ -3,7 +3,7 @@
    For bright plant offices, 15" monitors, 8hr daily use
    ---------------------------------------------------- */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
 
 /* ========== 1. Custom Properties ========== */
 :root {
@@ -42,7 +42,7 @@
   --stage-complete-fg: oklch(35% 0.12 145);
 
   /* Typography */
-  --font-body: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-body: Aptos, "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* Spacing scale */
@@ -91,7 +91,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   color: var(--text-primary);
   letter-spacing: 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 h1, .h1 { font-size: 2rem; font-weight: 700; }
@@ -120,6 +120,13 @@ a:hover { color: var(--primary); opacity: 0.85; }
   padding: 0;
   max-width: var(--max-width);
   margin: 0;
+}
+
+.main-container > .d-flex.justify-content-between > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-2);
 }
 
 /* ========== 4. Layout: Top Bar + Sidebar ========== */
@@ -668,6 +675,15 @@ a:hover { color: var(--primary); opacity: 0.85; }
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
+}
+
+.dropdown-menu {
+  padding: var(--sp-2);
+}
+
+.dropdown-item {
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
 }
 
 .nav-tabs {

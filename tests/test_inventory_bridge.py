@@ -211,12 +211,8 @@ class TestFindMatchingV2Lot:
 
     def test_section_fallback_match(self, db):
         """When name doesn't match, falls back to section->category matching."""
-        mat, lot = _create_material_and_lot(
-            db, name="Category Match", code="MAT-CAT-01", category="angle"
-        )
-        inv = create_test_inventory(
-            db, name="Completely Different Name", section="angle", total=200.0
-        )
+        mat, lot = _create_material_and_lot(db, name="Category Match", code="MAT-CAT-01", category="angle")
+        inv = create_test_inventory(db, name="Completely Different Name", section="angle", total=200.0)
 
         result = InventoryBridgeService.find_matching_v2_lot(db, inv)
 
@@ -237,9 +233,7 @@ class TestBridgeDeduction:
         inv = create_test_inventory(db, name="Bridge Steel", total=1000.0, used=0.0)
         user = create_test_user(db)
 
-        movement = InventoryBridgeService.bridge_deduction(
-            db, inv, 50.0, "fabrication:123", user.id
-        )
+        movement = InventoryBridgeService.bridge_deduction(db, inv, 50.0, "fabrication:123", user.id)
 
         assert movement is not None
         assert movement.movement_type == MovementType.CONSUMPTION
@@ -249,33 +243,25 @@ class TestBridgeDeduction:
         assert movement.created_by == user.id
 
     def test_updates_lot_weight(self, db):
-        mat, lot = _create_material_and_lot(
-            db, name="Lot Weight Steel", code="MAT-LW-01", weight_kg=Decimal("500")
-        )
+        mat, lot = _create_material_and_lot(db, name="Lot Weight Steel", code="MAT-LW-01", weight_kg=Decimal("500"))
         inv = create_test_inventory(db, name="Lot Weight Steel", total=1000.0)
         user = create_test_user(db)
 
-        InventoryBridgeService.bridge_deduction(
-            db, inv, 100.0, "fabrication:456", user.id
-        )
+        InventoryBridgeService.bridge_deduction(db, inv, 100.0, "fabrication:456", user.id)
         db.flush()
 
         db.expire(lot)
         assert lot.current_weight_kg == Decimal("400.000")
 
     def test_records_valuation(self, db):
-        mat, lot = _create_material_and_lot(
-            db, name="Valued Steel", code="MAT-VAL-01"
-        )
+        mat, lot = _create_material_and_lot(db, name="Valued Steel", code="MAT-VAL-01")
         lot.purchase_rate = Decimal("45.00")
         db.flush()
 
         inv = create_test_inventory(db, name="Valued Steel", total=1000.0)
         user = create_test_user(db)
 
-        movement = InventoryBridgeService.bridge_deduction(
-            db, inv, 10.0, "fabrication:789", user.id
-        )
+        movement = InventoryBridgeService.bridge_deduction(db, inv, 10.0, "fabrication:789", user.id)
 
         assert movement is not None
         assert movement.valuation_rate is not None
@@ -288,22 +274,16 @@ class TestBridgeDeduction:
         user = create_test_user(db)
 
         # Should not raise
-        movement = InventoryBridgeService.bridge_deduction(
-            db, inv, 10.0, "fabrication:999", user.id
-        )
+        movement = InventoryBridgeService.bridge_deduction(db, inv, 10.0, "fabrication:999", user.id)
 
         assert movement is None
 
     def test_clamps_when_exceeding_lot_weight(self, db):
-        mat, lot = _create_material_and_lot(
-            db, name="Low Stock Steel", code="MAT-LOW-01", weight_kg=Decimal("20")
-        )
+        mat, lot = _create_material_and_lot(db, name="Low Stock Steel", code="MAT-LOW-01", weight_kg=Decimal("20"))
         inv = create_test_inventory(db, name="Low Stock Steel", total=1000.0)
         user = create_test_user(db)
 
-        movement = InventoryBridgeService.bridge_deduction(
-            db, inv, 100.0, "fabrication:big", user.id
-        )
+        movement = InventoryBridgeService.bridge_deduction(db, inv, 100.0, "fabrication:big", user.id)
 
         assert movement is not None
         # Should clamp to available 20 kg
@@ -316,9 +296,7 @@ class TestBridgeDeduction:
 
     def test_same_transaction_rollback(self, db):
         """Rollback undoes both v1 and v2 changes."""
-        mat, lot = _create_material_and_lot(
-            db, name="Rollback Steel", code="MAT-RB-01", weight_kg=Decimal("500")
-        )
+        mat, lot = _create_material_and_lot(db, name="Rollback Steel", code="MAT-RB-01", weight_kg=Decimal("500"))
         inv = create_test_inventory(db, name="Rollback Steel", total=1000.0, used=0.0)
         user = create_test_user(db)
 
@@ -329,9 +307,7 @@ class TestBridgeDeduction:
         db.add(inv)
 
         # Perform v2 bridge
-        movement = InventoryBridgeService.bridge_deduction(
-            db, inv, 50.0, "fabrication:rollback", user.id
-        )
+        movement = InventoryBridgeService.bridge_deduction(db, inv, 50.0, "fabrication:rollback", user.id)
 
         assert movement is not None
 
@@ -346,23 +322,17 @@ class TestBridgeDeduction:
         assert lot.current_weight_kg == initial_lot_weight
 
         # Movement should not exist
-        count = db.query(StockMovement).filter(
-            StockMovement.reference_type == "v1_bridge"
-        ).count()
+        count = db.query(StockMovement).filter(StockMovement.reference_type == "v1_bridge").count()
         assert count == 0
 
     def test_bridge_with_no_user_id_returns_none_gracefully(self, db):
         """Bridge with user_id=None should not crash (FK constraint
         prevents inserting with user 0, but the bridge catches all errors)."""
-        mat, lot = _create_material_and_lot(
-            db, name="NoUser Steel", code="MAT-NU-01"
-        )
+        mat, lot = _create_material_and_lot(db, name="NoUser Steel", code="MAT-NU-01")
         inv = create_test_inventory(db, name="NoUser Steel", total=1000.0)
 
         # user_id=None -> created_by=0 -> FK violation -> caught by try/except
-        movement = InventoryBridgeService.bridge_deduction(
-            db, inv, 10.0, "fabrication:noid", None
-        )
+        movement = InventoryBridgeService.bridge_deduction(db, inv, 10.0, "fabrication:noid", None)
 
         # Bridge should gracefully return None (error caught internally)
         assert movement is None
@@ -378,69 +348,49 @@ class TestReconciliationReport:
 
     def test_matched_items(self, db):
         """Items with matching v1 and v2 quantities appear in 'matched'."""
-        mat, lot = _create_material_and_lot(
-            db, name="Matched Steel", code="MAT-MATCH-01", weight_kg=Decimal("500")
-        )
-        inv = create_test_inventory(
-            db, name="Matched Steel", total=500.0, used=0.0
-        )
+        mat, lot = _create_material_and_lot(db, name="Matched Steel", code="MAT-MATCH-01", weight_kg=Decimal("500"))
+        inv = create_test_inventory(db, name="Matched Steel", total=500.0, used=0.0)
 
         report = InventoryBridgeService.get_reconciliation_report(db)
 
         assert len(report["matched"]) >= 1
-        match = next(
-            (m for m in report["matched"] if m["v1_id"] == inv.id), None
-        )
+        match = next((m for m in report["matched"] if m["v1_id"] == inv.id), None)
         assert match is not None
         assert match["v2_material_id"] == mat.id
         assert abs(match["drift_kg"]) <= 0.5
 
     def test_drifted_items(self, db):
         """Items with significant quantity differences appear in 'drifted'."""
-        mat, lot = _create_material_and_lot(
-            db, name="Drifted Steel", code="MAT-DRIFT-01", weight_kg=Decimal("500")
-        )
+        mat, lot = _create_material_and_lot(db, name="Drifted Steel", code="MAT-DRIFT-01", weight_kg=Decimal("500"))
         # v1 says 300 available, v2 has 500 -> drift of 200
-        inv = create_test_inventory(
-            db, name="Drifted Steel", total=500.0, used=200.0
-        )
+        inv = create_test_inventory(db, name="Drifted Steel", total=500.0, used=200.0)
 
         report = InventoryBridgeService.get_reconciliation_report(db)
 
         assert len(report["drifted"]) >= 1
-        drifted = next(
-            (d for d in report["drifted"] if d["v1_id"] == inv.id), None
-        )
+        drifted = next((d for d in report["drifted"] if d["v1_id"] == inv.id), None)
         assert drifted is not None
         assert abs(drifted["drift_kg"] - 200.0) < 1.0
 
     def test_v1_only_items(self, db):
         """Items only in v1 (no v2 match) appear in 'v1_only'."""
-        inv = create_test_inventory(
-            db, name="OnlyInV1Material", total=100.0, used=10.0
-        )
+        inv = create_test_inventory(db, name="OnlyInV1Material", total=100.0, used=10.0)
 
         report = InventoryBridgeService.get_reconciliation_report(db)
 
         assert len(report["v1_only"]) >= 1
-        v1_item = next(
-            (v for v in report["v1_only"] if v["v1_id"] == inv.id), None
-        )
+        v1_item = next((v for v in report["v1_only"] if v["v1_id"] == inv.id), None)
         assert v1_item is not None
         assert v1_item["v1_available"] == 90.0
 
     def test_v2_only_items(self, db):
         """Materials only in v2 (no v1 match) appear in 'v2_only'."""
-        mat, lot = _create_material_and_lot(
-            db, name="OnlyInV2Material", code="MAT-V2ONLY-01", weight_kg=Decimal("750")
-        )
+        mat, lot = _create_material_and_lot(db, name="OnlyInV2Material", code="MAT-V2ONLY-01", weight_kg=Decimal("750"))
 
         report = InventoryBridgeService.get_reconciliation_report(db)
 
         assert len(report["v2_only"]) >= 1
-        v2_item = next(
-            (v for v in report["v2_only"] if v["v2_material_id"] == mat.id), None
-        )
+        v2_item = next((v for v in report["v2_only"] if v["v2_material_id"] == mat.id), None)
         assert v2_item is not None
         assert v2_item["v2_available_kg"] == 750.0
 
@@ -473,9 +423,7 @@ class TestFeatureFlag:
             db,
             customer.id,
             current_stage="fabrication",
-            material_requirements=json.dumps(
-                [{"material_id": inv.id, "qty": 50, "inventory_name": inv.name}]
-            ),
+            material_requirements=json.dumps([{"material_id": inv.id, "qty": 50, "inventory_name": inv.name}]),
         )
         st = StageTracking(
             production_item_id=item.id,
@@ -489,9 +437,7 @@ class TestFeatureFlag:
         db.commit()
 
         # Ensure flag is off
-        with patch(
-            "backend_core.app.services.tracking_service.V2_BRIDGE_ENABLED", False
-        ):
+        with patch("backend_core.app.services.tracking_service.V2_BRIDGE_ENABLED", False):
             TrackingService.advance_stage(db, item.id, "painting", user.id)
             db.commit()
 
@@ -500,9 +446,7 @@ class TestFeatureFlag:
         assert inv.used == 50.0
 
         # No v2 movement should exist
-        count = db.query(StockMovement).filter(
-            StockMovement.reference_type == "v1_bridge"
-        ).count()
+        count = db.query(StockMovement).filter(StockMovement.reference_type == "v1_bridge").count()
         assert count == 0
 
     def test_bridge_called_when_flag_on(self, db):
@@ -510,20 +454,14 @@ class TestFeatureFlag:
         user = create_test_user(db, role="Boss")
         customer = create_test_customer(db)
 
-        mat, lot = _create_material_and_lot(
-            db, name="Flag On Steel", code="MAT-FLAGON-01", weight_kg=Decimal("1000")
-        )
-        inv = create_test_inventory(
-            db, name="Flag On Steel", total=1000.0, used=0.0
-        )
+        mat, lot = _create_material_and_lot(db, name="Flag On Steel", code="MAT-FLAGON-01", weight_kg=Decimal("1000"))
+        inv = create_test_inventory(db, name="Flag On Steel", total=1000.0, used=0.0)
 
         item = create_test_production_item(
             db,
             customer.id,
             current_stage="fabrication",
-            material_requirements=json.dumps(
-                [{"material_id": inv.id, "qty": 75, "inventory_name": inv.name}]
-            ),
+            material_requirements=json.dumps([{"material_id": inv.id, "qty": 75, "inventory_name": inv.name}]),
         )
         st = StageTracking(
             production_item_id=item.id,
@@ -536,9 +474,7 @@ class TestFeatureFlag:
         db.add(st)
         db.commit()
 
-        with patch(
-            "backend_core.app.services.tracking_service.V2_BRIDGE_ENABLED", True
-        ):
+        with patch("backend_core.app.services.tracking_service.V2_BRIDGE_ENABLED", True):
             TrackingService.advance_stage(db, item.id, "painting", user.id)
             db.commit()
 
@@ -547,9 +483,13 @@ class TestFeatureFlag:
         assert inv.used == 75.0
 
         # v2 movement should exist
-        movements = db.query(StockMovement).filter(
-            StockMovement.reference_type == "v1_bridge",
-        ).all()
+        movements = (
+            db.query(StockMovement)
+            .filter(
+                StockMovement.reference_type == "v1_bridge",
+            )
+            .all()
+        )
         assert len(movements) == 1
         assert float(movements[0].weight_change_kg) == -75.0
         assert movements[0].movement_type == MovementType.CONSUMPTION
@@ -571,12 +511,8 @@ class TestIntegrationAdvanceStageWithBridge:
         user = create_test_user(db, role="Boss")
         customer = create_test_customer(db)
 
-        mat, lot = _create_material_and_lot(
-            db, name="Integration Steel", code="MAT-INT-01", weight_kg=Decimal("2000")
-        )
-        inv = create_test_inventory(
-            db, name="Integration Steel", total=2000.0, used=0.0
-        )
+        mat, lot = _create_material_and_lot(db, name="Integration Steel", code="MAT-INT-01", weight_kg=Decimal("2000"))
+        inv = create_test_inventory(db, name="Integration Steel", total=2000.0, used=0.0)
 
         item = create_test_production_item(
             db,
@@ -584,9 +520,7 @@ class TestIntegrationAdvanceStageWithBridge:
             current_stage="fabrication",
             quantity=10.0,
             weight_per_unit=5.0,
-            material_requirements=json.dumps(
-                [{"material_id": inv.id, "qty": 50, "inventory_name": inv.name}]
-            ),
+            material_requirements=json.dumps([{"material_id": inv.id, "qty": 50, "inventory_name": inv.name}]),
         )
         st = StageTracking(
             production_item_id=item.id,
@@ -599,9 +533,7 @@ class TestIntegrationAdvanceStageWithBridge:
         db.add(st)
         db.commit()
 
-        with patch(
-            "backend_core.app.services.tracking_service.V2_BRIDGE_ENABLED", True
-        ):
+        with patch("backend_core.app.services.tracking_service.V2_BRIDGE_ENABLED", True):
             result = TrackingService.advance_stage(db, item.id, "painting", user.id)
             db.commit()
 
@@ -613,16 +545,24 @@ class TestIntegrationAdvanceStageWithBridge:
         assert inv.used == 50.0
 
         # Verify MaterialUsage record
-        usage = db.query(MaterialUsage).filter(
-            MaterialUsage.production_item_id == item.id,
-        ).first()
+        usage = (
+            db.query(MaterialUsage)
+            .filter(
+                MaterialUsage.production_item_id == item.id,
+            )
+            .first()
+        )
         assert usage is not None
         assert usage.qty == 50.0
 
         # Verify v2 StockMovement
-        v2_movement = db.query(StockMovement).filter(
-            StockMovement.reference_type == "v1_bridge",
-        ).first()
+        v2_movement = (
+            db.query(StockMovement)
+            .filter(
+                StockMovement.reference_type == "v1_bridge",
+            )
+            .first()
+        )
         assert v2_movement is not None
         assert float(v2_movement.weight_change_kg) == -50.0
 

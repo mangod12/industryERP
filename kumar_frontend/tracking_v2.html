@@ -11,18 +11,18 @@
   <style>
     /* Kanban Board Styles */
     .kanban-board {
-      display: flex;
-      gap: 16px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
       min-height: calc(100vh - 300px);
     }
 
     .kanban-column {
-      flex: 1;
-      min-width: 300px;
+      min-width: 0;
       background: #f8fbfe;
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px;
     }
 
     .kanban-column-header {
@@ -372,6 +372,7 @@
 
     @media (max-width: 991px) {
       .kanban-board {
+        display: flex;
         overflow-x: auto;
         min-height: auto;
         padding-bottom: 8px;

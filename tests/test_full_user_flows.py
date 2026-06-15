@@ -18,11 +18,19 @@ Tests cover:
 13. Frontend HTML pages load check
 """
 
+import os
 import time
 
+import pytest
 import requests
 
-BASE = "http://127.0.0.1:8000"
+if os.getenv("RUN_LIVE_E2E") != "1":
+    pytest.skip("live HTTP flow requires RUN_LIVE_E2E=1", allow_module_level=True)
+
+BASE = os.getenv("E2E_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+E2E_USERNAME = os.getenv("E2E_USERNAME", "boss")
+E2E_PASSWORD = os.getenv("E2E_PASSWORD", "Boss1234!")
+E2E_TEMP_PASSWORD = os.getenv("E2E_TEMP_PASSWORD", "NewBoss5678!")  # pragma: allowlist secret
 SESSION = requests.Session()
 TOKEN = None
 HEADERS = {}
@@ -62,7 +70,7 @@ r = SESSION.post(f"{BASE}/auth/login", json={"username": "", "password": ""})
 log("Login with empty creds returns error", r.status_code in (400, 401, 422))
 
 # Good login
-r = SESSION.post(f"{BASE}/auth/login", json={"username": "boss", "password": "Boss1234!"})
+r = SESSION.post(f"{BASE}/auth/login", json={"username": E2E_USERNAME, "password": E2E_PASSWORD})
 if assert_ok(r, "Login with valid creds"):
     data = r.json()
     TOKEN = data["access_token"]
@@ -627,18 +635,18 @@ assert_ok(r, "Update profile")
 r = SESSION.post(
     f"{BASE}/users/me/change-password",
     headers=HEADERS,
-    json={"old_password": "Boss1234!", "new_password": "NewBoss5678!"},
+    json={"old_password": E2E_PASSWORD, "new_password": E2E_TEMP_PASSWORD},
 )
 if assert_ok(r, "Change password"):
     # Change back
-    r2 = SESSION.post(f"{BASE}/auth/login", json={"username": "boss", "password": "NewBoss5678!"})
+    r2 = SESSION.post(f"{BASE}/auth/login", json={"username": E2E_USERNAME, "password": E2E_TEMP_PASSWORD})
     if r2.status_code == 200:
         new_token = r2.json()["access_token"]
         new_headers = {"Authorization": f"Bearer {new_token}"}
         r3 = SESSION.post(
             f"{BASE}/users/me/change-password",
             headers=new_headers,
-            json={"old_password": "NewBoss5678!", "new_password": "Boss1234!"},
+            json={"old_password": E2E_TEMP_PASSWORD, "new_password": E2E_PASSWORD},
         )
         log("Password changed back", r3.status_code == 200)
         HEADERS = new_headers

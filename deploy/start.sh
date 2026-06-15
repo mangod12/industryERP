@@ -30,7 +30,7 @@ if [ -z "$DATABASE_URL" ]; then
     exit 1
 fi
 
-if [ -z "$KUMAR_SECRET_KEY" ] || [ "$KUMAR_SECRET_KEY" = "GENERATE_A_64_CHAR_RANDOM_SECRET_HERE" ]; then
+if [ -z "$KUMAR_SECRET_KEY" ] || [ "$KUMAR_SECRET_KEY" = "GENERATE_A_64_CHAR_RANDOM_SECRET_HERE" ]; then  # pragma: allowlist secret
     echo "[deploy] ERROR: KUMAR_SECRET_KEY must be set to a real secret!"
     echo "  Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\""
     exit 1
@@ -42,6 +42,11 @@ export ENVIRONMENT=production
 echo "[deploy] Starting KumarBrothers Steel ERP..."
 echo "[deploy] Database: ...@$(echo $DATABASE_URL | cut -d'@' -f2)"
 echo "[deploy] Workers: 4"
+
+mkdir -p /var/log/kbsteel
+
+echo "[deploy] Running database migrations..."
+alembic upgrade head
 
 # Start with Gunicorn + Uvicorn workers for production performance
 # - 4 workers (adjust based on CPU cores: 2 * cores + 1)

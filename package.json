@@ -1,0 +1,15 @@
+{
+  "name": "industry-erp-qa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local QA harness for KumarBrothers Steel ERP",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "design:impeccable": "impeccable detect kumar_frontend"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.0",
+    "impeccable": "3.0.1"
+  }
+}

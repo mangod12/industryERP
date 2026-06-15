@@ -4,10 +4,10 @@
         "builder": "NIXPACKS"
     },
     "deploy": {
-        "startCommand": "gunicorn -w 4 -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:$PORT",
+        "startCommand": "alembic upgrade head && gunicorn -w ${WEB_CONCURRENCY:-4} -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:$PORT",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 10,
-        "healthcheckPath": "/docs",
+        "healthcheckPath": "/healthz",
         "healthcheckTimeout": 30
     }
 }

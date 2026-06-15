@@ -103,7 +103,6 @@ def _create_grn_with_line(
 
 
 def _create_dispatch_with_line(db, customer_id, stock_lot_id, user_id, weight_kg=Decimal("100.000")):
-
     dispatch = DispatchNote(
         dispatch_number=f"DSP-DW-{datetime.utcnow().timestamp()}",
         customer_id=customer_id,

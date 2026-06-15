@@ -97,6 +97,12 @@ class TestClientSetup:
         assert "version" in body
         assert "app" in body
 
+    def test_healthz_endpoint(self, boss_client):
+        """The production health endpoint returns a stable lightweight status."""
+        resp = boss_client.get("/healthz")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "ok"
+
     def test_boss_client_is_authenticated(self, db, boss_client):
         """Boss client can hit an auth-protected endpoint."""
         # Create a customer so the list endpoint has data
@@ -104,9 +110,28 @@ class TestClientSetup:
         resp = boss_client.get("/customers/")
         assert resp.status_code == 200
 
+    def test_role_notification_settings_require_auth(self, client):
+        """Role notification preferences are not public metadata."""
+        resp = client.get("/notifications/roles/Boss")
+        assert resp.status_code == 401
+
     def test_user_factory_persists_in_db(self, db):
         """A user created via factory is queryable from the same session."""
         user = create_test_user(db, username="persist_check", role="User")
         found = db.query(User).filter(User.username == "persist_check").first()
         assert found is not None
         assert found.id == user.id
+
+    def test_production_cors_requires_explicit_origins(self, monkeypatch):
+        """Production mode must not silently fall back to development CORS origins."""
+        from backend_core.app.main import get_cors_origins
+
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.delenv("CORS_ORIGINS", raising=False)
+
+        try:
+            get_cors_origins()
+        except RuntimeError as exc:
+            assert "CORS_ORIGINS" in str(exc)
+        else:
+            raise AssertionError("production mode accepted implicit CORS origins")
