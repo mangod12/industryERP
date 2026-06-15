@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend_core/ backend_core/
 COPY kumar_frontend/ kumar_frontend/
 COPY deploy/ deploy/
+COPY scripts/ scripts/
 COPY alembic/ alembic/
 COPY alembic.ini alembic.ini
 
@@ -21,4 +22,4 @@ ENV PORT=8080
 
 EXPOSE 8080
 
-CMD exec sh -c "alembic upgrade head && gunicorn -w ${WEB_CONCURRENCY:-2} -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:$PORT --timeout 120"
+CMD exec sh -c "alembic upgrade head && python scripts/create_admin.py && gunicorn -w ${WEB_CONCURRENCY:-2} -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:$PORT --timeout 120"
