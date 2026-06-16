@@ -3,7 +3,7 @@ param(
     [string]$WebAppName = "industryerp-06161244878",
     [string]$AcrName = "industryerpacr06161244878",
     [string]$ImageName = "industryerp",
-    [string]$ImageTag = "prod"
+    [string]$ImageTag = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +14,15 @@ if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     throw "Docker was not found. Start Docker Desktop before deploying."
+}
+
+if (-not $ImageTag) {
+    if (Get-Command git -ErrorAction SilentlyContinue) {
+        $ImageTag = (& git rev-parse --short HEAD 2>$null).Trim()
+    }
+    if (-not $ImageTag) {
+        $ImageTag = Get-Date -Format "yyyyMMddHHmmss"
+    }
 }
 
 function Invoke-Az {
