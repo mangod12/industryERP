@@ -8,10 +8,12 @@ from io import BytesIO
 import pandas as pd
 import pytest
 
-from backend_core.app.models import MaterialMapping
+from backend_core.app.models import MaterialMapping, ProductionItem
 from backend_core.app.services.production_service import ProductionService
 from tests.conftest import (
+    create_test_customer,
     create_test_inventory,
+    create_test_user,
 )
 
 
@@ -62,7 +64,7 @@ class TestColumnMapping:
         assert mapping.get("Drawing No") == "item_code"
 
     def test_weight_aliases(self):
-        for alias in ["Weight", "Wt", "Wt.", "Wt-(Kg)", "Wt (Kg)", "Weight (Kg)", "Unit Weight"]:
+        for alias in ["Weight", "Wt", "Wt.", "Wt-(Kg)", "Wt (Kg)", "Weight (Kg)", "Unit Weight", "UNITWT."]:
             mapping = ProductionService.get_column_mapping([alias])
             assert mapping.get(alias) == "weight_per_unit", f"'{alias}' should map to weight_per_unit"
 
@@ -137,6 +139,38 @@ class TestFileReading:
     def test_unsupported_file_format_raises_error(self):
         with pytest.raises(ValueError, match="Unsupported file format"):
             ProductionService.read_file_to_dataframe(b"data", "test.txt")
+
+
+# ===========================================================================
+# TestProductionImport
+# ===========================================================================
+
+
+class TestProductionImport:
+    """Tests for production workbook import edge cases."""
+
+    def test_import_skips_whitespace_only_item_names(self, db):
+        user = create_test_user(db)
+        customer = create_test_customer(db)
+        csv_content = (
+            b"SR. NO,NAME,PROFILE,QTY,UNITWT.\n"
+            b"1,          ,ISMC250,1,35.82\n"
+            b"2,BEAM,UB254X146X37,2,128.675\n"
+        )
+
+        result = ProductionService.process_production_excel(
+            db=db,
+            file_content=csv_content,
+            filename="part-list.csv",
+            user_id=user.id,
+            customer_id=customer.id,
+        )
+
+        assert result["created"] == 2
+        assert result["grand_total_weight_kg"] == pytest.approx(257.35)
+        imported_items = db.query(ProductionItem).filter(ProductionItem.customer_id == customer.id).all()
+        assert len(imported_items) == 1
+        assert imported_items[0].item_name == "BEAM"
 
     def test_unsupported_format_doc(self):
         with pytest.raises(ValueError, match="Unsupported file format"):

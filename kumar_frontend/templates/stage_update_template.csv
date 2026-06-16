@@ -1,0 +1,4 @@
+Item Code,NAME,Status,stage_notes,Quantity
+TCI-SFD-49-02-11-07-000-01817,BEAM,in_progress,Fabrication started,1
+TCI-SFD-49-02-11-07-000-01818,BEAM,completed,Fabrication completed and ready for painting,1
+TCI-SFD-49-02-11-07-000-01819,COLUMN,pending,Waiting for material clearance,2

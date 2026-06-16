@@ -74,6 +74,8 @@ class ProductionService:
             "unit weight mt",
             "unit wt",
             "unit wt.",
+            "unitwt",
+            "unitwt.",
             "p.c weight",
             "pc weight",
             "act unit wt",
@@ -482,11 +484,12 @@ class ProductionService:
                 code = cls.to_native(row.get(field_to_col.get("item_code")))
                 name = cls.to_native(row.get(field_to_col.get("item_name")))
 
-                if not name or pd.isna(name):
+                name_str = str(name).strip() if name is not None else ""
+
+                if not name_str or name_str.lower() == "nan" or pd.isna(name):
                     continue  # Skip empty rows
 
                 code_str = str(code).strip() if code else f"ITEM-{upload.id}-{row_idx}"
-                name_str = str(name).strip()
 
                 # Check Dedupe strictly by item_code
                 item = existing_map.get(code_str.lower())

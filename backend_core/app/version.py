@@ -6,4 +6,4 @@ Bump VERSION before each deployment:
   - PATCH: bug fixes, cleanup
 """
 
-VERSION = "2.1.0"
+VERSION = "2.1.1"
