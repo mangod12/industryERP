@@ -2,3 +2,4 @@ material_name,weight_kg,reason_code,dimensions,length_mm,width_mm,quantity
 MS Plate 10mm,112.5,cutting_waste,900mm x 160mm x 10mm,900,160,11
 ISMB 200 Beam Offcut,78.4,leftover,1850mm ISMB 200 offcut,1850,100,3
 Paint Primer Red Oxide,12.0,overrun,opened cans,,,2
+UB254X146X37 Offcut,42.75,leftover,1250mm UB254X146X37 offcut,1250,146,1
