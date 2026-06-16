@@ -1,8 +1,6 @@
-name: Deploy to Cloud Run
+name: Deploy to Cloud Run (manual only)
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 env:
