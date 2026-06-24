@@ -5,12 +5,13 @@ Usage:
 
 Optional environment:
     DATABASE_URL=sqlite:///path/to/demo.db
-    DEMO_ADMIN_PASSWORD=Boss1234!  # pragma: allowlist secret
+    DEMO_ADMIN_PASSWORD=<local-only demo password>
 """
 
 from __future__ import annotations
 
 import os
+import secrets
 import sys
 from datetime import date, datetime
 from decimal import Decimal
@@ -24,7 +25,7 @@ from backend_core.app import models, models_accounting, models_v2, models_v3  # 
 from backend_core.app.db import Base, SessionLocal, engine  # noqa: E402
 from backend_core.app.security import hash_password  # noqa: E402
 
-DEMO_PASSWORD = os.getenv("DEMO_ADMIN_PASSWORD", "Boss1234!")  # pragma: allowlist secret
+DEMO_PASSWORD = os.getenv("DEMO_ADMIN_PASSWORD") or secrets.token_urlsafe(18)
 
 
 def get_or_create(db, model, defaults=None, **lookup):
@@ -659,7 +660,7 @@ def main():
         seed_accounting(db)
         db.commit()
         print("Demo data ready.")
-        print("Login: admin / " + DEMO_PASSWORD)
+        print("Demo admin users seeded.")
         print("Database: " + str(engine.url))
     except Exception:
         db.rollback()

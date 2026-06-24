@@ -1,7 +1,21 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+def _clean_text(value: str) -> str:
+    """Normalize API text fields before persistence or auth lookup."""
+    if not isinstance(value, str):
+        return value
+    return value.replace("\x00", "").strip()
+
+
+class CleanTextModel(BaseModel):
+    @field_validator("*", mode="before")
+    @classmethod
+    def strip_null_bytes_and_edges(cls, value):
+        return _clean_text(value)
 
 
 class Token(BaseModel):
@@ -10,20 +24,20 @@ class Token(BaseModel):
     role: str = "User"
 
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+class LoginRequest(CleanTextModel):
+    username: str = Field(min_length=1, max_length=150)
+    password: str = Field(min_length=1, max_length=128)
 
 
-class UserBase(BaseModel):
-    username: str
-    email: str
-    company: str | None = None
+class UserBase(CleanTextModel):
+    username: str = Field(min_length=3, max_length=64, pattern=r"^[A-Za-z0-9_.@-]+$")
+    email: EmailStr
+    company: str | None = Field(default=None, max_length=160)
 
 
 class UserCreate(UserBase):
-    password: str
-    role: str
+    password: str = Field(min_length=8, max_length=128)
+    role: str = Field(min_length=1, max_length=64)
 
 
 class UserResponse(UserBase):
@@ -46,9 +60,9 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
-class CustomerCreate(BaseModel):
-    name: str
-    project_details: Optional[str]
+class CustomerCreate(CleanTextModel):
+    name: str = Field(min_length=1, max_length=200)
+    project_details: Optional[str] = Field(default=None, max_length=2000)
 
 
 class ProductionItemCreate(BaseModel):
@@ -206,9 +220,9 @@ class StageStatusOut(BaseModel):
         from_attributes = True
 
 
-class QueryCreate(BaseModel):
-    title: str
-    message: str
+class QueryCreate(CleanTextModel):
+    title: str = Field(min_length=1, max_length=200)
+    message: str = Field(min_length=1, max_length=4000)
 
 
 class QueryResponse(BaseModel):
@@ -224,9 +238,9 @@ class QueryResponse(BaseModel):
         from_attributes = True
 
 
-class QueryReply(BaseModel):
-    reply: str
-    status: str  # IN_PROGRESS or CLOSED
+class QueryReply(CleanTextModel):
+    reply: str = Field(min_length=1, max_length=4000)
+    status: str = Field(min_length=1, max_length=32)  # IN_PROGRESS or CLOSED
 
 
 # Legacy schema kept for backward-compat if needed
@@ -244,8 +258,8 @@ class QueryOutLegacy(BaseModel):
         from_attributes = True
 
 
-class InstructionCreate(BaseModel):
-    message: str
+class InstructionCreate(CleanTextModel):
+    message: str = Field(min_length=1, max_length=4000)
 
 
 class InstructionOut(BaseModel):
@@ -352,8 +366,8 @@ class RoleNotificationSettingIn(NotificationSettingIn):
 
 
 class ChangePasswordIn(BaseModel):
-    old_password: str
-    new_password: str
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 # Backwards-compatible alias

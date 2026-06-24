@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 
-const USERNAME = process.env.E2E_USERNAME || 'admin';
-const PASSWORD = process.env.E2E_PASSWORD || 'Boss1234!'; // pragma: allowlist secret
+const USERNAME = process.env.E2E_USERNAME;
+const PASSWORD = process.env.E2E_PASSWORD;
 const screenshotDir = path.resolve(__dirname, '../../docs/screenshots');
 
 const AUTHENTICATED_PAGES = [
@@ -52,6 +52,9 @@ async function capture(page, name) {
 }
 
 test.beforeAll(() => {
+  if (!USERNAME || !PASSWORD) {
+    throw new Error('E2E_USERNAME and E2E_PASSWORD are required for authenticated Playwright checks.');
+  }
   fs.mkdirSync(screenshotDir, { recursive: true });
 });
 

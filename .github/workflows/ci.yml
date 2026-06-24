@@ -83,10 +83,17 @@ jobs:
       - name: Run live browser QA and design audit
         env:
           ENVIRONMENT: development
-          KUMAR_SECRET_KEY: ci-test-key-minimum-32-characters-long
           DATABASE_URL: sqlite:///./ci_erp.db
           E2E_BASE_URL: http://127.0.0.1:8000
+          E2E_USERNAME: admin
         run: |
+          KUMAR_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          DEMO_ADMIN_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+          echo "::add-mask::$KUMAR_SECRET_KEY"
+          echo "::add-mask::$DEMO_ADMIN_PASSWORD"
+          export KUMAR_SECRET_KEY
+          export DEMO_ADMIN_PASSWORD
+          export E2E_PASSWORD="$DEMO_ADMIN_PASSWORD"
           python scripts/seed_demo.py
           python -m uvicorn backend_core.app.main:app --host 127.0.0.1 --port 8000 &
           SERVER_PID=$!
@@ -136,9 +143,11 @@ jobs:
 
       - name: Verify container starts
         run: |
+          KUMAR_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+          echo "::add-mask::$KUMAR_SECRET_KEY"
           docker run -d --name kbtest \
             -e ENVIRONMENT=development \
-            -e KUMAR_SECRET_KEY=ci-test-key-minimum-32-characters-long \
+            -e KUMAR_SECRET_KEY="$KUMAR_SECRET_KEY" \
             -p 8080:8080 kbsteel-backend:test \
             gunicorn -w 1 -k uvicorn.workers.UvicornWorker backend_core.app.main:app --bind 0.0.0.0:8080 --timeout 30
           sleep 8

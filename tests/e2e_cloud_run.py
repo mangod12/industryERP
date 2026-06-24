@@ -15,7 +15,7 @@ import requests
 
 BASE_URL = os.getenv(
     "E2E_BASE_URL",
-    "https://kbsteel-backend-498310931350.asia-south1.run.app",
+    "https://industryerp-06161244878.azurewebsites.net",
 )
 
 # Will be set by login fixture
@@ -407,6 +407,15 @@ class TestSecurity:
         else:
             body_str = str(body)
         assert "<script>" not in body_str
+
+    def test_security_headers_present(self):
+        """Security headers should be present on live responses."""
+        r = requests.get(f"{BASE_URL}/version", timeout=15)
+        assert r.status_code == 200
+        assert r.headers.get("x-content-type-options") == "nosniff"
+        assert r.headers.get("x-frame-options") == "DENY"
+        assert r.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+        assert "frame-ancestors 'none'" in r.headers.get("content-security-policy", "")
 
 
 # ─── 7. ERROR HANDLING ─────────────────────────────────────────────────────

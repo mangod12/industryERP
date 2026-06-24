@@ -151,6 +151,7 @@ Known residuals:
 - GRN and dispatch approval hooks now refresh locked rows, reject inconsistent duplicate side effects, and behave idempotently after a document is already approved.
 - CI now blocks on backend lint/format across `backend_core`, `tests`, and `scripts`; full pytest; pip-audit; JS syntax; Impeccable; and live Playwright browser QA before Docker build.
 - CI/CD deployment now targets Microsoft Azure through `.github/workflows/deploy.yml`. The workflow uses GitHub OIDC (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`) to push images to `industryerpacr06161244878.azurecr.io/industryerp` and update Azure App Service `industryerp-06161244878`.
+- Security hardening added after Azure CI/CD migration: FastAPI responses set CSP, frame, content sniffing, referrer, permissions, opener, and HTTPS HSTS headers; auth and high-risk text schemas enforce bounds and strip null bytes; CI browser QA generates masked demo credentials at runtime; demo/deploy scripts no longer print plaintext passwords.
 
 ## Module Map
 
