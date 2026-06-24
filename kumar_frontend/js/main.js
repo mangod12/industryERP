@@ -110,6 +110,22 @@
       return { ...options, kbSuccessMessage: message };
     }
   };
+  const KBPageLifecycle = window.KBPageLifecycle || {
+    unloading: false,
+    backgroundFetchFailed(err) {
+      const message = String((err && err.message) || err || '');
+      return this.unloading
+        && (err && err.name === 'AbortError'
+          || /Failed to fetch|NetworkError|Load failed/i.test(message));
+    }
+  };
+  window.KBPageLifecycle = KBPageLifecycle;
+  window.addEventListener('pagehide', () => {
+    KBPageLifecycle.unloading = true;
+  });
+  window.addEventListener('beforeunload', () => {
+    KBPageLifecycle.unloading = true;
+  });
   window.KBFormat = {
     text(value, fallback = 'Not recorded') {
       const text = value === null || value === undefined ? '' : String(value).trim();
@@ -571,7 +587,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Update dropdown list
           renderNotifDropdown(items);
-        } catch (err) { console.error('Notification fetch error:', err); }
+        } catch (err) {
+          if (window.KBPageLifecycle?.backgroundFetchFailed(err)) return;
+          console.error('Notification fetch error:', err);
+        }
       }
 
       function renderNotifDropdown(items) {
@@ -655,9 +674,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${days}d ago`;
       }
 
-      // Initial fetch + poll every 30 seconds
+      // Initial fetch + poll every 30 seconds while the page is active.
       fetchNotifications();
-      setInterval(fetchNotifications, 30000);
+      const notificationPoll = setInterval(() => {
+        if (!window.KBPageLifecycle?.unloading && document.visibilityState !== 'hidden') {
+          fetchNotifications();
+        }
+      }, 30000);
+      window.addEventListener('pagehide', () => clearInterval(notificationPoll), { once: true });
     })();
   }
 
@@ -1270,6 +1294,7 @@ document.addEventListener('DOMContentLoaded', () => {
       notifList.innerHTML = '';
       notifList.appendChild(wrap);
     } catch (err) {
+      if (window.KBPageLifecycle?.backgroundFetchFailed(err)) return;
       notifList.innerHTML = `<div class='text-danger'>Error: ${err.message}</div>`;
     }
   }

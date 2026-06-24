@@ -492,6 +492,27 @@
       };
     }
 
+    let pageIsUnloading = false;
+    let dashboardRefreshId = 0;
+
+    window.addEventListener('pagehide', () => {
+      pageIsUnloading = true;
+    });
+    window.addEventListener('beforeunload', () => {
+      pageIsUnloading = true;
+    });
+
+    function isBenignBackgroundError(err) {
+      const message = String((err && err.message) || err || '');
+      const navigationAbort = err && err.name === 'AbortError'
+        || /Failed to fetch|NetworkError|Load failed/i.test(message);
+      return navigationAbort && (pageIsUnloading || window.KBPageLifecycle?.unloading);
+    }
+
+    function shouldApplyRefresh(refreshId) {
+      return !pageIsUnloading && refreshId === dashboardRefreshId;
+    }
+
     function escapeHtml(s) {
       return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
@@ -504,6 +525,7 @@
     }
 
     async function refreshDashboard() {
+      const refreshId = ++dashboardRefreshId;
       try {
         // Use the new dashboard-data endpoint for comprehensive data
         const res = await fetch(`${API_BASE}/inventory/dashboard-data`, backgroundOptions({
@@ -511,6 +533,7 @@
         }));
         if (!res.ok) throw new Error('Failed to load dashboard data');
         const data = await res.json();
+        if (!shouldApplyRefresh(refreshId)) return;
 
         // Update inventory stats with grand totals
         const inv = data.inventory;
@@ -534,6 +557,7 @@
         }));
         if (invRes.ok) {
           const invItems = await invRes.json();
+          if (!shouldApplyRefresh(refreshId)) return;
           const invBody = document.getElementById('inventoryOverview');
           invBody.innerHTML = '';
 
@@ -598,6 +622,7 @@
         }));
         if (trackRes.ok) {
           const trackingPayload = await trackRes.json();
+          if (!shouldApplyRefresh(refreshId)) return;
           const items = Array.isArray(trackingPayload)
             ? trackingPayload
             : Array.isArray(trackingPayload.items)
@@ -623,30 +648,34 @@
           }
         }
 
+        if (!shouldApplyRefresh(refreshId)) return;
         // Update last refresh time
         document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
 
         // Load loss analytics
-        await loadLossAnalytics();
+        await loadLossAnalytics(refreshId);
 
       } catch (err) {
+        if (isBenignBackgroundError(err) || !shouldApplyRefresh(refreshId)) return;
         console.error('Dashboard refresh error:', err);
         // Fallback: try the old endpoint
         try {
           await refreshDashboardLegacy();
         } catch (e) {
+          if (isBenignBackgroundError(e)) return;
           console.error('Legacy dashboard also failed:', e);
         }
       }
     }
 
     // Load loss analytics from scrap API
-    async function loadLossAnalytics() {
+    async function loadLossAnalytics(refreshId = dashboardRefreshId) {
       try {
         const [analytics, summary] = await Promise.all([
           fetch(`${API_BASE}/scrap/analytics?days=30`, backgroundOptions({ headers: authHeaders() })).then(r => r.ok ? r.json() : null),
           fetch(`${API_BASE}/scrap/summary`, backgroundOptions({ headers: authHeaders() })).then(r => r.ok ? r.json() : null),
         ]);
+        if (!shouldApplyRefresh(refreshId)) return;
 
         if (analytics) {
           document.getElementById('scrapRate').textContent = `${analytics.scrap_rate_pct}%`;
@@ -660,6 +689,7 @@
           document.getElementById('pendingScrap').textContent = `${summary.scrap_pending_kg} kg`;
         }
       } catch (e) {
+        if (isBenignBackgroundError(e)) return;
         console.error('Loss analytics error:', e);
       }
     }
@@ -689,9 +719,23 @@
     refreshDashboard();
     loadNotifications();
 
-    // Auto-refresh every 30 seconds for real-time updates
-    setInterval(refreshDashboard, 30000);
-    setInterval(loadNotifications, 60000); // Check notifications every minute
+    // Poll only while the page is active; clear timers on navigation.
+    const dashboardPoll = setInterval(() => {
+      if (!pageIsUnloading && document.visibilityState !== 'hidden') refreshDashboard();
+    }, 30000);
+    const notificationPoll = setInterval(() => {
+      if (!pageIsUnloading && document.visibilityState !== 'hidden') loadNotifications();
+    }, 60000);
+    window.addEventListener('pagehide', () => {
+      clearInterval(dashboardPoll);
+      clearInterval(notificationPoll);
+    }, { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (!pageIsUnloading && document.visibilityState === 'visible') {
+        refreshDashboard();
+        loadNotifications();
+      }
+    });
 
     // --- Notification Logic ---
     async function loadNotifications() {
@@ -740,6 +784,7 @@
         }
 
       } catch (e) {
+        if (isBenignBackgroundError(e)) return;
         console.error('Notification fetch error:', e);
       }
     }
