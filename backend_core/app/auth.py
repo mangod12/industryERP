@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from . import models, schemas
 from .deps import boss_or_supervisor, get_db
-from .security import RateLimiter, create_access_token, hash_password, verify_password
+from .security import RateLimiter, can_create_role, create_access_token, hash_password, normalize_role, verify_password
 
 logger = logging.getLogger(__name__)
 
@@ -91,28 +91,12 @@ def register_user(user_in: schemas.UserCreate, db: Session = Depends(get_db), cu
     if len(user_in.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
 
-    # Normalize role to Title Case for backend permission consistency
-    # Frontend might send 'software_supervisor' -> we want 'Software Supervisor'
-    role_map = {
-        "boss": "Boss",
-        "software_supervisor": "Software Supervisor",
-        "user": "User",
-        "store_keeper": "Store Keeper",
-        "qa_inspector": "QA Inspector",
-        "dispatch_operator": "Dispatch Operator",
-        "fabricator": "Fabricator",
-        "painter": "Painter",
-        "dispatch": "Dispatch",
-    }
-
-    # 1. Try exact match first (if they sent "Boss")
-    # 2. Try lower case lookup (if they sent "boss")
-    # 3. Default to "User" if unknown
-    final_role = user_in.role
-    if user_in.role in role_map.values():
-        final_role = user_in.role  # Already correct
-    else:
-        final_role = role_map.get(user_in.role.lower(), "User")
+    final_role = normalize_role(user_in.role)
+    if not can_create_role(current_user.role, final_role):
+        raise HTTPException(
+            status_code=403,
+            detail=f"{current_user.role} cannot create {final_role} accounts",
+        )
 
     new_user = models.User(
         username=user_in.username,

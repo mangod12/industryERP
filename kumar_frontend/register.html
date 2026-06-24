@@ -305,6 +305,7 @@
     (function populateRoles() {
       const roleSelect = document.getElementById('roleSelect');
       const description = document.getElementById('roleDescription');
+      const currentRole = localStorage.getItem('kb_role') || 'User';
       const roles = (typeof KBConfig !== 'undefined' && Array.isArray(KBConfig.ROLE_OPTIONS))
         ? KBConfig.ROLE_OPTIONS
         : [
@@ -312,8 +313,25 @@
             { value: 'Software Supervisor', label: 'Software Supervisor', description: 'ERP operations' },
             { value: 'User', label: 'User', description: 'Read-only visibility' }
           ];
+      const roleRank = {
+        'Boss': 100,
+        'Software Supervisor': 80,
+        'Store Keeper': 50,
+        'QA Inspector': 50,
+        'Dispatch Operator': 50,
+        'Fabricator': 30,
+        'Painter': 30,
+        'User': 10
+      };
+      const creatableRoles = roles.filter(role => {
+        if (currentRole === 'Boss') return true;
+        if (currentRole === 'Software Supervisor') {
+          return (roleRank[role.value] || 0) < roleRank['Software Supervisor'];
+        }
+        return false;
+      });
 
-      roles.forEach(role => {
+      creatableRoles.forEach(role => {
         const option = document.createElement('option');
         option.value = role.value;
         option.textContent = role.label;

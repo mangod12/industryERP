@@ -144,6 +144,7 @@ Known residuals:
 - Raw-material reset buttons now use typed `KBConfirm` confirmation, clearer labels, and toast-based failures instead of native dialogs.
 - Stock overview now exports visible lots to CSV, loads movement history in the lot detail modal, and disables unsupported Hold/Release controls with a tooltip instead of presenting dead actions.
 - User registration now uses the shared role catalog and backend permissions include Fabricator/Painter/legacy Dispatch roles for production operations.
+- Account creation now enforces role hierarchy: Boss can create any configured account role, Software Supervisor can create only lower-privilege worker/view roles, and worker/view roles cannot create accounts. The register page mirrors this role dropdown, but `/auth/register` is the authoritative guard.
 - Fixed `/api/v2/inventory/movements/{lot_id}` to use `User.username` rather than a non-existent user display column.
 - Number sequence generation now uses an atomic PostgreSQL `INSERT .. ON CONFLICT DO UPDATE RETURNING` path, with SQLite retaining the local-test path.
 - GRN and dispatch approval hooks now refresh locked rows, reject inconsistent duplicate side effects, and behave idempotently after a document is already approved.

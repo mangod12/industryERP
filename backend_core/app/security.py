@@ -370,6 +370,70 @@ ROLE_PERMISSIONS: dict[str, Set[str]] = {
     },
 }
 
+ACCOUNT_ROLE_OPTIONS = (
+    "Boss",
+    "Software Supervisor",
+    "Store Keeper",
+    "QA Inspector",
+    "Dispatch Operator",
+    "Fabricator",
+    "Painter",
+    "User",
+)
+
+ROLE_ALIASES = {
+    "boss": "Boss",
+    "software_supervisor": "Software Supervisor",
+    "software supervisor": "Software Supervisor",
+    "user": "User",
+    "store_keeper": "Store Keeper",
+    "store keeper": "Store Keeper",
+    "qa_inspector": "QA Inspector",
+    "qa inspector": "QA Inspector",
+    "dispatch_operator": "Dispatch Operator",
+    "dispatch operator": "Dispatch Operator",
+    "fabricator": "Fabricator",
+    "painter": "Painter",
+    "dispatch": "Dispatch",
+}
+
+ROLE_CREATION_RANK = {
+    "Boss": 100,
+    "Software Supervisor": 80,
+    "Store Keeper": 50,
+    "QA Inspector": 50,
+    "Dispatch Operator": 50,
+    "Fabricator": 30,
+    "Painter": 30,
+    "Dispatch": 30,
+    "User": 10,
+}
+
+
+def normalize_role(role: str) -> str:
+    """Normalize role labels from API/UI payloads to canonical backend labels."""
+    value = (role or "").strip()
+    if value in ROLE_CREATION_RANK:
+        return value
+    return ROLE_ALIASES.get(value.lower(), "User")
+
+
+def get_creatable_roles(creator_role: str) -> tuple[str, ...]:
+    """Return account roles a creator may assign without privilege escalation."""
+    creator = normalize_role(creator_role)
+    if creator == "Boss":
+        return ACCOUNT_ROLE_OPTIONS
+    if creator == "Software Supervisor":
+        creator_rank = ROLE_CREATION_RANK[creator]
+        return tuple(role for role in ACCOUNT_ROLE_OPTIONS if ROLE_CREATION_RANK[role] < creator_rank)
+    return ()
+
+
+def can_create_role(creator_role: str, target_role: str) -> bool:
+    """True when creator_role is allowed to create target_role."""
+    target = normalize_role(target_role)
+    return target in get_creatable_roles(creator_role)
+
 
 def get_role_permissions(role: str) -> Set[str]:
     """Get permissions for a role"""

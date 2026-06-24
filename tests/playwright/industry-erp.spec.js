@@ -417,6 +417,28 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
       'User'
     ]);
 
+    await page.evaluate(() => localStorage.setItem('kb_role', 'Software Supervisor'));
+    await page.goto('/register.html');
+    await waitForApp(page);
+    const supervisorRoleOptions = await page.locator('#roleSelect option').evaluateAll(options =>
+      options.map(option => option.value).filter(Boolean)
+    );
+    expect(supervisorRoleOptions).toEqual([
+      'Store Keeper',
+      'QA Inspector',
+      'Dispatch Operator',
+      'Fabricator',
+      'Painter',
+      'User'
+    ]);
+    expect(supervisorRoleOptions).not.toContain('Boss');
+    expect(supervisorRoleOptions).not.toContain('Software Supervisor');
+
+    await page.evaluate(() => localStorage.setItem('kb_role', 'User'));
+    await page.goto('/register.html');
+    await page.waitForURL(/index\.html|\/$/, { timeout: 15_000 });
+    await expect(page.locator('main')).toContainText('Dashboard');
+
     await page.evaluate(() => {
       localStorage.removeItem('kb_token');
       localStorage.removeItem('kb_role');
