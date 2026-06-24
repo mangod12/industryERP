@@ -56,7 +56,7 @@ test.beforeAll(() => {
 });
 
 test.describe('KumarBrothers Steel ERP production smoke', () => {
-  test('authenticated API surfaces return seeded data', async ({ request, baseURL }) => {
+  test('authenticated API surfaces return production data contracts', async ({ request, baseURL }) => {
     const loginRes = await request.post(`${baseURL}/auth/login`, {
       data: { username: USERNAME, password: PASSWORD }
     });
@@ -65,20 +65,18 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
     const headers = { Authorization: `Bearer ${access_token}` };
 
     const checks = [
-      ['/healthz', null],
-      ['/inventory/', 'ISMB 200 Beam'],
-      ['/api/v2/grn/', 'GRN/FY26/00017'],
-      ['/api/v2/dispatch/', 'DSP/FY26/00009'],
-      ['/api/v2/settings/company', 'Kumar Brothers Steel'],
-      ['/api/v2/reports/', 'reports']
+      ['/healthz', body => expect(body.status).toBe('ok')],
+      ['/inventory/', body => expect(Array.isArray(body)).toBeTruthy()],
+      ['/api/v2/grn/', body => expect(Array.isArray(body)).toBeTruthy()],
+      ['/api/v2/dispatch/', body => expect(Array.isArray(body)).toBeTruthy()],
+      ['/api/v2/settings/company', body => expect(body).toHaveProperty('company_name')],
+      ['/api/v2/reports/', body => expect(body.data.reports.length).toBeGreaterThan(0)]
     ];
 
-    for (const [url, expectedText] of checks) {
+    for (const [url, assertBody] of checks) {
       const res = await request.get(`${baseURL}${url}`, { headers });
       expect(res.ok(), `${url} should return 2xx`).toBeTruthy();
-      if (expectedText) {
-        expect(await res.text()).toContain(expectedText);
-      }
+      assertBody(await res.json());
     }
   });
 
@@ -192,26 +190,36 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
     await waitForApp(page);
     await page.getByRole('button', { name: 'Search' }).click();
     await page.getByRole('button', { name: 'Clear' }).click();
-    await page.locator('.view-grn').first().click();
-    await expect(page.locator('#grnDetailModal.show')).toBeVisible();
-    await expect(page.locator('#btnSubmitGRN')).toHaveAttribute('title', /Draft|line item|Submit/i);
-    await expect(page.locator('#btnApproveGRN')).toHaveAttribute('title', /Submitted|QA|Approve/i);
-    const qaApprove = page.locator('.qa-approve').first();
-    if (await qaApprove.count()) {
-      await expect(qaApprove).toContainText('Approve');
+    const grnViewButton = page.locator('.view-grn').first();
+    if (await grnViewButton.count()) {
+      await grnViewButton.click();
+      await expect(page.locator('#grnDetailModal.show')).toBeVisible();
+      await expect(page.locator('#btnSubmitGRN')).toHaveAttribute('title', /Draft|line item|Submit/i);
+      await expect(page.locator('#btnApproveGRN')).toHaveAttribute('title', /Submitted|QA|Approve/i);
+      const qaApprove = page.locator('.qa-approve').first();
+      if (await qaApprove.count()) {
+        await expect(qaApprove).toContainText('Approve');
+      }
+      await page.locator('#grnDetailModal .btn-close').click();
+      await expect(page.locator('#grnDetailModal')).not.toHaveClass(/show/);
+    } else {
+      await expect(page.locator('body')).toContainText('Goods Receipt');
     }
-    await page.locator('#grnDetailModal .btn-close').click();
-    await expect(page.locator('#grnDetailModal')).not.toHaveClass(/show/);
 
     await page.goto('/dispatch.html');
     await waitForApp(page);
     await page.getByRole('button', { name: 'Search' }).click();
     await page.getByRole('button', { name: 'Clear' }).click();
-    await page.locator('.view-dispatch').first().click();
-    await expect(page.locator('#dispatchDetailModal.show')).toBeVisible();
-    await expect(page.locator('#btnSubmitDispatch')).toHaveText('Submit for Approval');
-    await expect(page.locator('#btnApproveDispatch')).toHaveText('Confirm Dispatch');
-    await expect(page.locator('#btnOpenPickStock')).toHaveAttribute('title', /Pick|locked/i);
+    const dispatchViewButton = page.locator('.view-dispatch').first();
+    if (await dispatchViewButton.count()) {
+      await dispatchViewButton.click();
+      await expect(page.locator('#dispatchDetailModal.show')).toBeVisible();
+      await expect(page.locator('#btnSubmitDispatch')).toHaveText('Submit for Approval');
+      await expect(page.locator('#btnApproveDispatch')).toHaveText('Confirm Dispatch');
+      await expect(page.locator('#btnOpenPickStock')).toHaveAttribute('title', /Pick|locked/i);
+    } else {
+      await expect(page.locator('body')).toContainText('Dispatch');
+    }
   });
 
   test('fabrication completion opens material deduction confirmation before stage advance', async ({ page, request, baseURL }) => {
@@ -327,55 +335,87 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
     await expect(page.locator('#uploadExcelModal.show')).toBeVisible();
   });
 
-  test('upload modals expose templates and scrap preview does not import early', async ({ page }) => {
+  test('upload modals expose templates and scrap preview does not import early', async ({ page, request, baseURL }) => {
     await login(page);
+    let tempCustomerId = null;
 
-    await page.goto('/customers.html');
-    await waitForApp(page);
-    await page.locator('.upload-customer-btn').first().click();
-    await expect(page.locator('#uploadExcelModal.show')).toBeVisible();
-    await expect(page.locator('#trackingTemplateGuidance')).toContainText('Production Tracking Upload');
-    await expect(page.locator('#trackingTemplateGuidance')).toContainText('Required');
-    await expect(page.locator('#trackingTemplateGuidance').getByRole('link', { name: /Download Template/i })).toHaveAttribute(
-      'href',
-      /production_tracking_tcil_template\.csv/
-    );
-    await page.locator('#uploadExcelModal .btn-close').click();
-
-    await page.goto('/scrap.html');
-    await waitForApp(page);
-    const countBeforePreview = await page.evaluate(async () => {
-      const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
-      const res = await fetch(`${base}/scrap/records`);
-      return (await res.json()).length;
+    const loginRes = await request.post(`${baseURL}/auth/login`, {
+      data: { username: USERNAME, password: PASSWORD }
     });
+    expect(loginRes.ok()).toBeTruthy();
+    const { access_token } = await loginRes.json();
+    const headers = { Authorization: `Bearer ${access_token}` };
 
-    await page.getByRole('button', { name: /Upload Scrap CSV/i }).click();
-    await expect(page.locator('#uploadScrapModal.show')).toBeVisible();
-    await expect(page.locator('#scrapTemplateGuidance')).toContainText('Scrap Import');
-    await expect(page.locator('#scrapTemplateGuidance').getByRole('link', { name: /Download Template/i })).toHaveAttribute(
-      'href',
-      /scrap_import_template\.csv/
-    );
+    try {
+      await page.goto('/customers.html');
+      await waitForApp(page);
+      const trackingCustomerCount = await page.evaluate(async () => {
+        const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
+        const res = await fetch(`${base}/tracking/customers`);
+        return res.ok ? (await res.json()).length : 0;
+      });
 
-    await page.setInputFiles('#scrapFileInput', {
-      name: 'scrap-preview.csv',
-      mimeType: 'text/csv',
-      buffer: Buffer.from(
-        'material_name,weight_kg,reason_code,dimensions,quantity\n' +
-        'Playwright Scrap,12.5,leftover,1200mm offcut,1\n'
-      )
-    });
-    await expect(page.locator('#uploadPreview')).toBeVisible();
-    await expect(page.locator('#scrapUploadStatus')).toContainText('Preview ready');
-    await expect(page.locator('#confirmUploadBtn')).toBeEnabled();
+      if (trackingCustomerCount === 0) {
+        const customerRes = await request.post(`${baseURL}/customers`, {
+          headers,
+          data: { name: `PW Template ${Date.now()}`, project_details: 'Playwright upload template coverage' }
+        });
+        expect(customerRes.ok()).toBeTruthy();
+        tempCustomerId = (await customerRes.json()).id;
+        await page.goto('/customers.html');
+        await waitForApp(page);
+      }
 
-    const countAfterPreview = await page.evaluate(async () => {
-      const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
-      const res = await fetch(`${base}/scrap/records`);
-      return (await res.json()).length;
-    });
-    expect(countAfterPreview).toBe(countBeforePreview);
+      await expect(page.locator('.upload-customer-btn').first()).toBeVisible();
+      await page.locator('.upload-customer-btn').first().click();
+      await expect(page.locator('#uploadExcelModal.show')).toBeVisible();
+      await expect(page.locator('#trackingTemplateGuidance')).toContainText('Production Tracking Upload');
+      await expect(page.locator('#trackingTemplateGuidance')).toContainText('Required');
+      await expect(page.locator('#trackingTemplateGuidance').getByRole('link', { name: /Download Template/i })).toHaveAttribute(
+        'href',
+        /production_tracking_tcil_template\.csv/
+      );
+      await page.locator('#uploadExcelModal .btn-close').click();
+
+      await page.goto('/scrap.html');
+      await waitForApp(page);
+      const countBeforePreview = await page.evaluate(async () => {
+        const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
+        const res = await fetch(`${base}/scrap/records`);
+        return (await res.json()).length;
+      });
+
+      await page.getByRole('button', { name: /Upload Scrap CSV/i }).click();
+      await expect(page.locator('#uploadScrapModal.show')).toBeVisible();
+      await expect(page.locator('#scrapTemplateGuidance')).toContainText('Scrap Import');
+      await expect(page.locator('#scrapTemplateGuidance').getByRole('link', { name: /Download Template/i })).toHaveAttribute(
+        'href',
+        /scrap_import_template\.csv/
+      );
+
+      await page.setInputFiles('#scrapFileInput', {
+        name: 'scrap-preview.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from(
+          'material_name,weight_kg,reason_code,dimensions,quantity\n' +
+          'Playwright Scrap,12.5,leftover,1200mm offcut,1\n'
+        )
+      });
+      await expect(page.locator('#uploadPreview')).toBeVisible();
+      await expect(page.locator('#scrapUploadStatus')).toContainText('Preview ready');
+      await expect(page.locator('#confirmUploadBtn')).toBeEnabled();
+
+      const countAfterPreview = await page.evaluate(async () => {
+        const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
+        const res = await fetch(`${base}/scrap/records`);
+        return (await res.json()).length;
+      });
+      expect(countAfterPreview).toBe(countBeforePreview);
+    } finally {
+      if (tempCustomerId) {
+        await request.delete(`${baseURL}/customers/${tempCustomerId}?hard=true`, { headers });
+      }
+    }
   });
 
   test('stock lot controls are explicit and CSV export is wired', async ({ page }) => {

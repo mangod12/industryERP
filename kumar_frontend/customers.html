@@ -323,7 +323,17 @@
         return p.toString();
       }
 
+      function setCustomerMessage(message, variant = 'muted') {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="text-center text-${variant}">${escapeHtml(message)}</td>
+          </tr>
+        `;
+        emptyEl.classList.add('d-none');
+      }
+
       async function applyCustomerFilters() {
+        setCustomerMessage('Loading customer projects...');
         try {
           const qs = buildParams();
           const url = qs ? `${api}?${qs}` : api;
@@ -334,7 +344,7 @@
         } catch (err) {
           if (isNavigationAbort(err)) return;
           console.error('Customer fetch error', err);
-          renderCustomers([]);
+          setCustomerMessage('Customer projects could not be loaded. Use Refresh to try again.', 'danger');
         }
       }
 
@@ -377,6 +387,7 @@
         if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
       }
       window.renderCustomers = renderCustomers;
+      window.applyCustomerFilters = applyCustomerFilters;
 
       tbody.addEventListener('click', event => {
         const row = event.target.closest('tr[data-customer-id]');
@@ -793,8 +804,11 @@
         }
       };
 
-      // initial load
-      applyCustomerFilters();
+      // Initial load runs after shared auth/fetch setup has settled.
+      window.addEventListener('DOMContentLoaded', applyCustomerFilters, { once: true });
+      if (document.readyState !== 'loading') {
+        window.setTimeout(applyCustomerFilters, 0);
+      }
 
       // NOTE: Auto-refresh REMOVED - use manual refresh to avoid UI interference
     })();
