@@ -150,6 +150,7 @@ Known residuals:
 - Number sequence generation now uses an atomic PostgreSQL `INSERT .. ON CONFLICT DO UPDATE RETURNING` path, with SQLite retaining the local-test path.
 - GRN and dispatch approval hooks now refresh locked rows, reject inconsistent duplicate side effects, and behave idempotently after a document is already approved.
 - CI now blocks on backend lint/format across `backend_core`, `tests`, and `scripts`; full pytest; pip-audit; JS syntax; Impeccable; and live Playwright browser QA before Docker build.
+- CI/CD deployment now targets Microsoft Azure through `.github/workflows/deploy.yml`. The workflow uses GitHub OIDC (`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`) to push images to `industryerpacr06161244878.azurecr.io/industryerp` and update Azure App Service `industryerp-06161244878`.
 
 ## Module Map
 

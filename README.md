@@ -1,8 +1,14 @@
 # KumarBrothers Steel ERP
 
 [![CI](https://github.com/mangod12/industryERP/actions/workflows/ci.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/ci.yml)
+[![Deploy to Microsoft Azure](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml/badge.svg)](https://github.com/mangod12/industryERP/actions/workflows/deploy.yml)
 
 A comprehensive steel fabrication tracking and inventory management system with automatic material deduction, Excel import, and real-time dashboard.
+
+**Live Azure deployment:** https://industryerp-06161244878.azurewebsites.net
+
+**Deployment target:** Microsoft Azure App Service for Containers, backed by Azure Container Registry and Azure Database for PostgreSQL.
+
 ## 📸 System Screenshots
 
 ### Dashboard
@@ -76,7 +82,7 @@ A comprehensive steel fabrication tracking and inventory management system with 
 ## 🔄 Step-by-Step Guide
 
 ### STEP 1: Add Raw Materials (Admin)
-**Page: Raw Materials** → http://127.0.0.1:5500/raw_material.html
+**Page: Raw Materials** → `/raw_material.html`
 
 Before tracking can auto-deduct materials, you must add your steel profiles:
 
@@ -99,7 +105,7 @@ ISMC250         - Indian Standard Medium Channel 250
 ---
 
 ### STEP 2: Add Customer/Project (Admin)
-**Page: Customers** → http://127.0.0.1:5500/customers.html
+**Page: Customers** → `/customers.html`
 
 1. Click **"+ Add Customer"**
 2. Enter customer name and project details
@@ -141,7 +147,7 @@ The system auto-detects these columns:
 ---
 
 ### STEP 4: Track Progress Through Stages
-**Page: Tracking** → http://127.0.0.1:5500/tracking.html
+**Page: Tracking** → `/tracking_v2.html`
 
 All items follow this sequence (cannot skip stages):
 
@@ -163,7 +169,7 @@ When Fabrication is marked **Complete**:
 ---
 
 ### STEP 5: Monitor on Dashboard
-**Page: Dashboard** → http://127.0.0.1:5500/index.html
+**Page: Dashboard** → `/index.html`
 
 Real-time display (auto-refreshes every 10 seconds):
 
@@ -241,7 +247,7 @@ DWG-003,CHANNEL,ISMC250,1,38.5
 ### Step 1: Setup Environment
 
 ```powershell
-cd c:\Users\ansha\Downloads\next_project
+cd D:\industryERP
 
 # Create and activate virtual environment (optional but recommended)
 python -m venv .venv
@@ -254,26 +260,14 @@ pip install -r requirements.txt
 ### Step 2: Start Backend Server
 
 ```powershell
-cd backend_core
-python -m uvicorn app.main:app --reload --port 8000
+python -m uvicorn backend_core.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Backend will be available at: **http://127.0.0.1:8000**
+Backend and frontend will be available from the same local server: **http://127.0.0.1:8000**
 
-### Step 3: Start Frontend Server
+### Step 3: Access the Application
 
-Open a new terminal:
-
-```powershell
-cd kumar_frontend
-python -m http.server 5500
-```
-
-Frontend will be available at: **http://127.0.0.1:5500**
-
-### Step 4: Access the Application
-
-Open your browser and navigate to: **http://127.0.0.1:5500/login.html**
+Open your browser and navigate to: **http://127.0.0.1:8000/login.html**
 
 ---
 
@@ -281,7 +275,7 @@ Open your browser and navigate to: **http://127.0.0.1:5500/login.html**
 
 | Username | Password | Role | Permissions |
 |----------|----------|------|-------------|
-| `admin` | `Admin@123` | Boss | Full access to all features |
+| `admin` | `Boss1234!` | Boss | Full access to all seeded local demo features |
 
 ### Creating Additional Test Users
 
@@ -306,7 +300,7 @@ After logging in as admin, you can create users with different roles:
 | Dashboard | `/index.html` | Overview and stats |
 | Raw Materials | `/raw_material.html` | Add/manage steel profiles |
 | Customers | `/customers.html` | Customer management + Excel upload |
-| Tracking | `/tracking.html` | Stage tracking (Fab/Paint/Dispatch) |
+| Tracking | `/tracking_v2.html` | Stage tracking (Fab/Paint/Dispatch) |
 | GRN | `/grn.html` | Goods Receipt Notes |
 | Dispatch | `/dispatch.html` | Outward dispatch management |
 | Settings | `/settings.html` | System settings |
@@ -337,7 +331,7 @@ Once the backend is running, access the interactive API docs:
 ## 🏗️ Project Structure
 
 ```
-next_project/
+industryERP/
 ├── backend_core/           # FastAPI Backend
 │   ├── app/
 │   │   ├── main.py         # App entry point
@@ -356,7 +350,7 @@ next_project/
 │   ├── login.html          # Login page
 │   ├── raw_material.html   # Raw materials management
 │   ├── customers.html      # Customers + Excel upload
-│   ├── tracking.html       # Stage tracking
+│   ├── tracking_v2.html    # Stage tracking
 │   ├── grn.html            # Goods Receipt Notes
 │   ├── dispatch.html       # Dispatch management
 │   ├── js/
@@ -402,8 +396,39 @@ For production deployment, set these environment variables:
 ```powershell
 $env:KUMAR_SECRET_KEY = "your-secure-64-char-secret-key"
 $env:ENVIRONMENT = "production"
-$env:CORS_ORIGINS = "https://yourdomain.com"
+$env:DATABASE_URL = "postgresql://..."
+$env:CORS_ORIGINS = "https://industryerp-06161244878.azurewebsites.net"
 ```
+
+## ☁️ Microsoft Azure CI/CD
+
+Production deployment is handled by GitHub Actions workflow
+`.github/workflows/deploy.yml`.
+
+The deploy workflow runs manually through `workflow_dispatch` and automatically
+after the `KBSteel CI` workflow succeeds on `main`.
+
+Required GitHub repository variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `AZURE_WEBAPP_NAME` | Azure App Service name |
+| `AZURE_RESOURCE_GROUP` | Production resource group |
+| `AZURE_CONTAINER_REGISTRY` | ACR login server |
+| `AZURE_IMAGE_NAME` | Container image repository name |
+| `AZURE_LIVE_URL` | Public Azure URL used for health verification |
+
+Required GitHub repository secrets:
+
+| Secret | Purpose |
+|--------|---------|
+| `AZURE_CLIENT_ID` | GitHub OIDC Azure application client ID |
+| `AZURE_TENANT_ID` | Azure tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+
+Azure runtime settings are configured on the App Service. Secret runtime values
+such as `DATABASE_URL`, `KUMAR_SECRET_KEY`, and admin credentials must remain in
+Azure App Service configuration, not in the repository.
 
 ---
 
@@ -426,7 +451,7 @@ Remove-Item backend_core/data/kumar_core.db
 
 ### Create admin user manually
 ```powershell
-cd c:\Users\ansha\Downloads\next_project
+cd D:\industryERP
 python scripts/create_admin.py
 ```
 

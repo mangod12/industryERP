@@ -1,63 +1,86 @@
-name: Deploy to Cloud Run (manual only)
+name: Deploy to Microsoft Azure
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["KBSteel CI"]
+    branches: [main]
+    types: [completed]
 
-env:
-  PROJECT_ID: kbsteel-erp
-  REGION: asia-south1
-  SERVICE: kbsteel-backend
-  REPOSITORY: cloud-run-source-deploy
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: azure-production-deploy
+  cancel-in-progress: true
 
 jobs:
   deploy:
+    name: Build, push, and deploy container
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
 
-    permissions:
-      contents: read
-      id-token: write
+    env:
+      AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_CONTAINER_REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
+      AZURE_IMAGE_NAME: ${{ vars.AZURE_IMAGE_NAME }}
+      AZURE_LIVE_URL: ${{ vars.AZURE_LIVE_URL }}
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - id: auth
-        uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - uses: google-github-actions/setup-gcloud@v2
-
-      - name: Build and push to Artifact Registry
+      - name: Verify Azure deployment configuration
         run: |
-          gcloud builds submit \
-            --tag ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }} \
-            --project ${{ env.PROJECT_ID }} \
-            --gcs-log-dir gs://kbsteel-erp_cloudbuild/logs \
-            --timeout 600
+          test -n "$AZURE_WEBAPP_NAME"
+          test -n "$AZURE_RESOURCE_GROUP"
+          test -n "$AZURE_CONTAINER_REGISTRY"
+          test -n "$AZURE_IMAGE_NAME"
+          test -n "$AZURE_LIVE_URL"
 
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${{ env.SERVICE }} \
-            --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }} \
-            --region ${{ env.REGION }} \
-            --project ${{ env.PROJECT_ID }} \
-            --allow-unauthenticated \
-            --add-cloudsql-instances ${{ env.PROJECT_ID }}:${{ env.REGION }}:kbsteel-pg \
-            --max-instances 5 \
-            --memory 1Gi \
-            --cpu-boost \
-            --port 8080 \
-            --timeout 120
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify deployment
+      - name: Build and push image to Azure Container Registry
         run: |
-          URL=$(gcloud run services describe ${{ env.SERVICE }} \
-            --region ${{ env.REGION }} \
-            --project ${{ env.PROJECT_ID }} \
-            --format "value(status.url)")
-          echo "Deployed to: $URL"
-          sleep 15
-          STATUS=$(curl -sf "$URL/version" | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])")
-          echo "Live version: $STATUS"
+          ACR_NAME="${AZURE_CONTAINER_REGISTRY%%.azurecr.io}"
+          IMAGE_TAG="$DEPLOY_SHA"
+          IMAGE="${AZURE_CONTAINER_REGISTRY}/${AZURE_IMAGE_NAME}:${IMAGE_TAG}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+          az acr login --name "$ACR_NAME"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy image to Azure App Service
+        run: |
+          az webapp config container set \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME" \
+            --container-image-name "$IMAGE" \
+            --container-registry-url "https://$AZURE_CONTAINER_REGISTRY"
+
+          az webapp restart \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "$AZURE_WEBAPP_NAME"
+
+      - name: Verify live deployment
+        run: |
+          for i in {1..30}; do
+            if curl -fsS "$AZURE_LIVE_URL/healthz"; then
+              echo "Azure deployment is healthy at $AZURE_LIVE_URL"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Azure deployment did not become healthy in time" >&2
+          exit 1
