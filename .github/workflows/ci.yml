@@ -87,6 +87,7 @@ jobs:
           DATABASE_URL: sqlite:///./ci_erp.db
           E2E_BASE_URL: http://127.0.0.1:8000
         run: |
+          python scripts/seed_demo.py
           python -m uvicorn backend_core.app.main:app --host 127.0.0.1 --port 8000 &
           SERVER_PID=$!
           trap "kill $SERVER_PID" EXIT
