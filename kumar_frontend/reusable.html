@@ -323,6 +323,10 @@
 <script>
 const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
 
+function isNavigationAbort(err) {
+  return Boolean(window.KBPageLifecycle?.backgroundFetchFailed(err));
+}
+
 function escapeHtml(s) { 
   return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); 
 }
@@ -348,6 +352,7 @@ async function loadStats() {
     const reusable = await fetch(`${API_BASE}/scrap/reusable?quality_grade=A`).then(r => r.json());
     document.getElementById('statGradeA').textContent = reusable.length;
   } catch(e) {
+    if (isNavigationAbort(e)) return;
     console.error('Stats error:', e);
   }
 }
@@ -373,6 +378,7 @@ async function refreshReusable() {
     renderTable(items);
     loadStats();
   } catch(e) {
+    if (isNavigationAbort(e)) return;
     console.error('Refresh error:', e);
   }
 }

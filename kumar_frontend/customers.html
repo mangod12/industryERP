@@ -308,6 +308,10 @@
       const emptyEl = document.getElementById('noCustomerResults');
       let uploadTemplateCache = null;
 
+      function isNavigationAbort(err) {
+        return Boolean(window.KBPageLifecycle?.backgroundFetchFailed(err));
+      }
+
       function buildParams() {
         const p = new URLSearchParams();
         const s = document.getElementById('searchCustomer').value.trim();
@@ -327,7 +331,11 @@
           if (!res.ok) throw new Error('Fetch failed');
           const data = await res.json();
           renderCustomers(data || []);
-        } catch (err) { console.error('Customer fetch error', err); renderCustomers([]); }
+        } catch (err) {
+          if (isNavigationAbort(err)) return;
+          console.error('Customer fetch error', err);
+          renderCustomers([]);
+        }
       }
 
       function renderCustomers(items) {
@@ -658,6 +666,7 @@
             select.innerHTML += `<option value="${inv.id}">${escapeHtml(inv.name)} (Available: ${available.toFixed(2)} ${inv.unit})</option>`;
           });
         } catch (err) {
+          if (isNavigationAbort(err)) return;
           console.error('Failed to load inventory', err);
         }
       }
@@ -750,7 +759,10 @@
           document.querySelectorAll('.mapping-selector').forEach(sel => {
             sel.innerHTML += options;
           });
-        } catch (err) { console.error('Failed to populate selectors', err); }
+        } catch (err) {
+          if (isNavigationAbort(err)) return;
+          console.error('Failed to populate selectors', err);
+        }
       }
 
       window.quickMap = async function (btn) {

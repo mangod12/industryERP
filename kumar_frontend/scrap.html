@@ -374,6 +374,10 @@ let uploadedData = null;
 let selectedScrapFile = null;
 let uploadTemplateCache = null;
 
+function isNavigationAbort(err) {
+  return Boolean(window.KBPageLifecycle?.backgroundFetchFailed(err));
+}
+
 function escapeHtml(s) { 
   return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); 
 }
@@ -470,6 +474,7 @@ async function loadStats() {
     document.getElementById('statReusable').textContent = `${summary.reusable_available_kg} kg`;
     document.getElementById('statScrapRate').textContent = `${analytics.scrap_rate_pct}%`;
   } catch(e) {
+    if (isNavigationAbort(e)) return;
     console.error('Stats error:', e);
   }
 }
@@ -492,6 +497,7 @@ async function refreshScrap() {
     renderScrapTable(records);
     loadStats();
   } catch(e) {
+    if (isNavigationAbort(e)) return;
     console.error('Refresh error:', e);
   }
 }
@@ -792,6 +798,7 @@ async function loadCustomers() {
       select.appendChild(opt);
     });
   } catch(e) {
+    if (isNavigationAbort(e)) return;
     console.error('Load customers error:', e);
   }
 }
