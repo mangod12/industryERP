@@ -327,6 +327,57 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
     await expect(page.locator('#uploadExcelModal.show')).toBeVisible();
   });
 
+  test('upload modals expose templates and scrap preview does not import early', async ({ page }) => {
+    await login(page);
+
+    await page.goto('/customers.html');
+    await waitForApp(page);
+    await page.locator('.upload-customer-btn').first().click();
+    await expect(page.locator('#uploadExcelModal.show')).toBeVisible();
+    await expect(page.locator('#trackingTemplateGuidance')).toContainText('Production Tracking Upload');
+    await expect(page.locator('#trackingTemplateGuidance')).toContainText('Required');
+    await expect(page.locator('#trackingTemplateGuidance').getByRole('link', { name: /Download Template/i })).toHaveAttribute(
+      'href',
+      /production_tracking_tcil_template\.csv/
+    );
+    await page.locator('#uploadExcelModal .btn-close').click();
+
+    await page.goto('/scrap.html');
+    await waitForApp(page);
+    const countBeforePreview = await page.evaluate(async () => {
+      const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
+      const res = await fetch(`${base}/scrap/records`);
+      return (await res.json()).length;
+    });
+
+    await page.getByRole('button', { name: /Upload Scrap CSV/i }).click();
+    await expect(page.locator('#uploadScrapModal.show')).toBeVisible();
+    await expect(page.locator('#scrapTemplateGuidance')).toContainText('Scrap Import');
+    await expect(page.locator('#scrapTemplateGuidance').getByRole('link', { name: /Download Template/i })).toHaveAttribute(
+      'href',
+      /scrap_import_template\.csv/
+    );
+
+    await page.setInputFiles('#scrapFileInput', {
+      name: 'scrap-preview.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        'material_name,weight_kg,reason_code,dimensions,quantity\n' +
+        'Playwright Scrap,12.5,leftover,1200mm offcut,1\n'
+      )
+    });
+    await expect(page.locator('#uploadPreview')).toBeVisible();
+    await expect(page.locator('#scrapUploadStatus')).toContainText('Preview ready');
+    await expect(page.locator('#confirmUploadBtn')).toBeEnabled();
+
+    const countAfterPreview = await page.evaluate(async () => {
+      const base = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : window.location.origin;
+      const res = await fetch(`${base}/scrap/records`);
+      return (await res.json()).length;
+    });
+    expect(countAfterPreview).toBe(countBeforePreview);
+  });
+
   test('stock lot controls are explicit and CSV export is wired', async ({ page }) => {
     await login(page);
     await page.goto('/stock.html');
@@ -389,5 +440,58 @@ test.describe('KumarBrothers Steel ERP production smoke', () => {
       const hasPageOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
       expect(hasPageOverflow, `${url} should not create tablet page-level horizontal overflow`).toBeFalsy();
     }
+  });
+
+  test('operational pages do not register disruptive auto-refresh intervals', async ({ page }) => {
+    await login(page);
+    await page.addInitScript(() => {
+      const originalSetInterval = window.setInterval;
+      window.__kbRegisteredIntervals = [];
+      window.setInterval = function (handler, timeout, ...args) {
+        const source = typeof handler === 'function'
+          ? Function.prototype.toString.call(handler)
+          : String(handler);
+        window.__kbRegisteredIntervals.push({ source, timeout });
+        return originalSetInterval.call(this, handler, timeout, ...args);
+      };
+    });
+
+    for (const url of ['drawings.html', 'scrap.html', 'reusable.html']) {
+      await page.goto(`/${url}`);
+      await waitForApp(page);
+      const disruptiveIntervals = await page.evaluate(() =>
+        window.__kbRegisteredIntervals
+          .filter(item => /refreshPage|refreshScrap|refreshReusable/.test(item.source))
+          .map(item => ({
+            timeout: item.timeout,
+            source: item.source.slice(0, 120)
+          }))
+      );
+      expect(disruptiveIntervals, `${url} should use manual refresh for operator data`).toEqual([]);
+    }
+  });
+
+  test('background dashboard refreshes do not show global loader or generic toasts', async ({ page }) => {
+    await login(page);
+    await page.addInitScript(() => {
+      window.__kbRequestUiEvents = [];
+      window.addEventListener('kb:request-ui', event => {
+        window.__kbRequestUiEvents.push(event.detail);
+      });
+    });
+
+    await page.goto('/index.html');
+    await waitForApp(page);
+
+    const backgroundEvents = await page.evaluate(() =>
+      (window.__kbRequestUiEvents || []).filter(event => event.mode === 'background')
+    );
+    expect(backgroundEvents.length, 'dashboard should mark polling reads as background requests').toBeGreaterThan(0);
+    expect(
+      backgroundEvents.filter(event => event.showLoader || event.toastErrors || event.toastSuccess),
+      'background requests should not trigger global loader or generic toast behavior'
+    ).toEqual([]);
+    await expect(page.locator('#globalLoader')).toHaveClass(/d-none/);
+    await expect(page.locator('#toastContainer')).not.toContainText('Operation successful');
   });
 });

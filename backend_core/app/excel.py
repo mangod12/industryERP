@@ -9,6 +9,94 @@ from .services.production_service import ProductionService
 
 router = APIRouter()
 
+UPLOAD_TEMPLATES = [
+    {
+        "id": "production_tracking",
+        "title": "Production Tracking Upload",
+        "used_on": "Customers",
+        "description": "Create or update customer production items and start them at Fabrication.",
+        "template_url": "/templates/production_tracking_tcil_template.csv",
+        "accepted_formats": [".csv", ".xlsx", ".xlsm", ".xltx", ".xltm"],
+        "required_columns": ["Item Name"],
+        "recommended_columns": ["Item Code", "Item Name", "Section", "Qty", "Weight"],
+        "optional_columns": [
+            "Length (mm)",
+            "Unit",
+            "Remarks",
+            "Assembly",
+            "Revision",
+            "Area m2",
+            "Priority",
+            "Paint",
+            "Required Date",
+            "Lot",
+        ],
+        "column_notes": [
+            "Section/Profile should match Raw Materials for automatic material linking.",
+            "Weight is treated as unit weight in kg unless the column name says MT.",
+            "Qty defaults to 1 when blank.",
+        ],
+        "sample_rows": [
+            {
+                "Item Code": "TCI-SFD-49-02-11-07-000-01817",
+                "Item Name": "BEAM",
+                "Section": "UB203X133X25",
+                "Qty": 1,
+                "Weight": 199.139,
+            }
+        ],
+    },
+    {
+        "id": "stage_update",
+        "title": "Stage Update Upload",
+        "used_on": "Stage API",
+        "description": "Bulk update Fabrication, Painting, or Dispatch statuses for existing items.",
+        "template_url": "/templates/stage_update_template.csv",
+        "accepted_formats": [".csv", ".xlsx", ".xlsm", ".xltx", ".xltm"],
+        "required_columns": ["Item Code or Item Name", "Status"],
+        "recommended_columns": ["Item Code", "Item Name", "Status", "stage_notes", "Quantity"],
+        "optional_columns": ["stage_notes", "Quantity"],
+        "column_notes": [
+            "Valid stages are fabrication, painting, and dispatch.",
+            "Status accepts completed, done, yes, true, in_progress, wip, working, started, or pending.",
+            "Items are matched by Item Code first, then Item Name.",
+        ],
+        "sample_rows": [
+            {
+                "Item Code": "TCI-SFD-49-02-11-07-000-01818",
+                "Item Name": "BEAM",
+                "Status": "completed",
+                "stage_notes": "Fabrication completed and ready for painting",
+            }
+        ],
+    },
+    {
+        "id": "scrap_import",
+        "title": "Scrap Import",
+        "used_on": "Scrap",
+        "description": "Record scrap or leftover material after dispatch or production review.",
+        "template_url": "/templates/scrap_import_template.csv",
+        "accepted_formats": [".csv", ".xlsx"],
+        "required_columns": ["material_name", "weight_kg"],
+        "recommended_columns": ["material_name", "weight_kg", "reason_code", "dimensions", "quantity"],
+        "optional_columns": ["reason_code", "dimensions", "length_mm", "width_mm", "quantity"],
+        "column_notes": [
+            "Valid reason_code values are cutting_waste, defect, damage, overrun, and leftover.",
+            "Blank reason_code defaults to leftover.",
+            "Preview the grouped rows before confirming import.",
+        ],
+        "sample_rows": [
+            {
+                "material_name": "MS Plate 10mm",
+                "weight_kg": 112.5,
+                "reason_code": "cutting_waste",
+                "dimensions": "900mm x 160mm x 10mm",
+                "quantity": 11,
+            }
+        ],
+    },
+]
+
 
 @router.post("/upload")
 async def upload_excel(file: UploadFile = File(...), current_user=Depends(get_current_user)):
@@ -45,6 +133,12 @@ async def upload_excel(file: UploadFile = File(...), current_user=Depends(get_cu
         )
 
     return {"sheets": sheets}
+
+
+@router.get("/templates")
+async def list_upload_templates(current_user=Depends(get_current_user)):
+    """Return upload template metadata and download links for the frontend."""
+    return {"templates": UPLOAD_TEMPLATES}
 
 
 @router.post("/import-tracking/{customer_id}")

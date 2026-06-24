@@ -94,6 +94,28 @@ class ReusableStockOut(BaseModel):
         from_attributes = True
 
 
+def _read_scrap_upload_dataframe(file: UploadFile, content: bytes) -> pd.DataFrame:
+    filename = (file.filename or "").lower()
+    if not filename.endswith((".csv", ".xlsx")):
+        raise HTTPException(status_code=400, detail="Only CSV and Excel files supported")
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    try:
+        if filename.endswith(".xlsx"):
+            return pd.read_excel(BytesIO(content))
+
+        last_error: Exception | None = None
+        for encoding in ["utf-8", "latin-1", "cp1252"]:
+            try:
+                return pd.read_csv(BytesIO(content), encoding=encoding)
+            except Exception as exc:
+                last_error = exc
+        raise ValueError(str(last_error) if last_error else "Failed to read CSV")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
+
+
 # ============ Scrap Endpoints ============
 
 
@@ -144,28 +166,24 @@ async def upload_scrap_csv(
     current_user: models.User = Depends(get_current_user),
 ):
     """Upload CSV of scrap items after dispatch."""
-    if not file.filename.endswith((".csv", ".xlsx")):
-        raise HTTPException(status_code=400, detail="Only CSV and Excel files supported")
-
     content = await file.read()
-
-    try:
-        if file.filename.endswith(".xlsx"):
-            df = pd.read_excel(BytesIO(content))
-        else:
-            for encoding in ["utf-8", "latin-1", "cp1252"]:
-                try:
-                    df = pd.read_csv(BytesIO(content), encoding=encoding)
-                    break
-                except Exception:
-                    continue
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
+    df = _read_scrap_upload_dataframe(file, content)
 
     try:
         return ScrapService.bulk_import_csv(db, df, current_user.id, customer_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/preview-upload")
+async def preview_scrap_upload(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Preview a scrap upload without creating scrap records."""
+    content = await file.read()
+    df = _read_scrap_upload_dataframe(file, content)
+    return ScrapService.preview_bulk_import_csv(df)
 
 
 @router.put("/records/{record_id}/status")

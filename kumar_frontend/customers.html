@@ -231,6 +231,7 @@
         </div>
         <div class="modal-body">
           <input type="hidden" id="uploadCustomerId">
+          <div id="trackingTemplateGuidance" class="mb-3"></div>
           <div class="alert alert-info">
             <strong>📋 Workflow:</strong>
             <ol class="mb-0 mt-2">
@@ -305,6 +306,7 @@
       const btn = document.getElementById('applyCustomerFiltersBtn');
       const tbody = document.getElementById('customersTableBody');
       const emptyEl = document.getElementById('noCustomerResults');
+      let uploadTemplateCache = null;
 
       function buildParams() {
         const p = new URLSearchParams();
@@ -434,9 +436,63 @@
 
         // Load inventory for selection
         await loadInventoryOptions();
+        await renderTemplateGuidance('production_tracking', 'trackingTemplateGuidance');
 
         new bootstrap.Modal(document.getElementById('uploadExcelModal')).show();
       };
+
+      async function getUploadTemplates() {
+        if (uploadTemplateCache) return uploadTemplateCache;
+        const res = await fetch(`${API_BASE}/excel/templates`);
+        if (!res.ok) throw new Error('Could not load upload templates');
+        const data = await res.json();
+        uploadTemplateCache = data.templates || [];
+        return uploadTemplateCache;
+      }
+
+      async function renderTemplateGuidance(templateId, targetId) {
+        const target = document.getElementById(targetId);
+        if (!target) return null;
+        try {
+          const templates = await getUploadTemplates();
+          const template = templates.find(t => t.id === templateId);
+          if (!template) return null;
+          target.innerHTML = `
+            <div class="kb-inline-summary">
+              <div class="bg-primary text-white px-3 py-2 d-flex justify-content-between align-items-center">
+                <strong><i class="bi bi-file-earmark-spreadsheet"></i> ${escapeHtml(template.title)}</strong>
+                <a class="btn btn-sm btn-light" href="${escapeHtml(template.template_url)}" download>
+                  <i class="bi bi-download"></i> Download Template
+                </a>
+              </div>
+              <div class="p-3">
+                <div class="small text-muted mb-2">${escapeHtml(template.description)}</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="fw-semibold small">Required</div>
+                    <div class="small">${template.required_columns.map(escapeHtml).join(', ')}</div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="fw-semibold small">Recommended</div>
+                    <div class="small">${template.recommended_columns.map(escapeHtml).join(', ')}</div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="fw-semibold small">Accepted Files</div>
+                    <div class="small">${template.accepted_formats.map(escapeHtml).join(', ')}</div>
+                  </div>
+                </div>
+                <ul class="small text-muted mb-0 mt-2">
+                  ${template.column_notes.map(note => `<li>${escapeHtml(note)}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+          `;
+          return template;
+        } catch (err) {
+          target.innerHTML = '<div class="alert alert-warning py-2 mb-0">Template guide is unavailable. You can still preview the file before import.</div>';
+          return null;
+        }
+      }
 
       document.getElementById('previewExcelBtn').addEventListener('click', async function () {
         const customerId = document.getElementById('uploadCustomerId').value;
@@ -459,6 +515,7 @@
           });
           if (!res.ok) throw new Error('Failed to analyze file');
           const data = await res.json();
+          const template = await renderTemplateGuidance('production_tracking', 'trackingTemplateGuidance');
 
           // Show Material Matching Summary
           const matchingArea = document.getElementById('materialMatchingArea');
@@ -522,7 +579,31 @@
 
           document.getElementById('totalRowsCount').textContent = data.file_info.total_rows;
 
-          let html = '<table class="table table-sm table-bordered table-hover"><thead class="table-light"><tr>';
+          let html = '';
+          const detectedFields = new Set(Object.values(data.column_mapping || {}));
+          const detectedText = Array.from(detectedFields).join(', ') || 'No known columns detected';
+          const missingRequired = detectedFields.has('item_name') ? [] : ['Item Name'];
+          const missingRecommended = template
+            ? template.recommended_columns.filter(column => {
+                const expectedMap = {
+                  'Item Code': 'item_code',
+                  'Item Name': 'item_name',
+                  'Section': 'section',
+                  'Qty': 'quantity',
+                  'Weight': 'weight_per_unit'
+                };
+                return expectedMap[column] && !detectedFields.has(expectedMap[column]);
+              })
+            : [];
+
+          html += `
+            <div class="alert ${missingRequired.length ? 'alert-danger' : 'alert-success'} py-2">
+              <div><strong>Detected fields:</strong> ${escapeHtml(detectedText)}</div>
+              ${missingRequired.length ? `<div><strong>Missing required:</strong> ${missingRequired.map(escapeHtml).join(', ')}</div>` : ''}
+              ${missingRecommended.length ? `<div class="small"><strong>Recommended but not detected:</strong> ${missingRecommended.map(escapeHtml).join(', ')}</div>` : ''}
+            </div>
+          `;
+          html += '<table class="table table-sm table-bordered table-hover"><thead class="table-light"><tr>';
           // Add material status column first
           html += '<th class="text-center">Status</th>';
           data.file_info.columns.forEach(col => {
@@ -549,8 +630,13 @@
           html += '</tbody></table>';
 
           previewContent.innerHTML = html;
-          document.getElementById('uploadStatus').innerHTML = '<span class="text-success">✓ File analyzed - ready for import</span>';
-          document.getElementById('importExcelBtn').disabled = false;
+          if (missingRequired.length) {
+            document.getElementById('uploadStatus').innerHTML = '<span class="text-danger">Add a recognizable Item Name / NAME / Description column before import.</span>';
+            document.getElementById('importExcelBtn').disabled = true;
+          } else {
+            document.getElementById('uploadStatus').innerHTML = '<span class="text-success">✓ File analyzed - ready for import</span>';
+            document.getElementById('importExcelBtn').disabled = false;
+          }
 
         } catch (err) {
           document.getElementById('uploadStatus').innerHTML = '<span class="text-danger">Failed to process file: ' + err.message + '</span>';

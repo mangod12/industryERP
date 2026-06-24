@@ -55,6 +55,104 @@ class ScrapService:
     """Service class for scrap record operations."""
 
     @staticmethod
+    def _normalize_import_dataframe(df: "pandas.DataFrame") -> tuple["pandas.DataFrame", List[str]]:
+        normalized = df.copy()
+        normalized.columns = [str(c).lower().strip().replace(" ", "_") for c in normalized.columns]
+
+        for old_col, new_col in CSV_COLUMN_MAPPING.items():
+            if old_col in normalized.columns and new_col not in normalized.columns:
+                normalized.rename(columns={old_col: new_col}, inplace=True)
+
+        required_cols = ["material_name", "weight_kg"]
+        missing = [c for c in required_cols if c not in normalized.columns]
+        return normalized, missing
+
+    @staticmethod
+    def preview_bulk_import_csv(df: "pandas.DataFrame") -> Dict[str, Any]:
+        """
+        Parse scrap upload rows without writing to the database.
+
+        Returns the same grouping shape as the import path, plus validation
+        details that let operators decide whether to confirm the import.
+        """
+        df, missing = ScrapService._normalize_import_dataframe(df)
+        if missing:
+            return {
+                "ready_to_import": False,
+                "missing_columns": missing,
+                "columns": list(df.columns),
+                "rows_count": int(len(df)),
+                "records_count": 0,
+                "grouped_items": [],
+                "total_weight_kg": 0,
+                "errors": [f"Missing columns: {missing}"],
+            }
+
+        grouped_items: Dict[str, Dict[str, Any]] = {}
+        errors: List[str] = []
+        records_count = 0
+        total_weight = 0.0
+
+        for index, row in df.iterrows():
+            row_number = int(index) + 2
+            material = str(row.get("material_name", "")).strip()
+            if not material or material.lower() == "nan":
+                continue
+
+            try:
+                weight = float(row.get("weight_kg", 0) or 0)
+            except (TypeError, ValueError):
+                errors.append(f"Row {row_number}: weight_kg must be numeric")
+                continue
+            if weight <= 0:
+                errors.append(f"Row {row_number}: weight_kg must be greater than 0")
+                continue
+
+            try:
+                quantity = int(row.get("quantity", 1) or 1)
+            except (TypeError, ValueError):
+                errors.append(f"Row {row_number}: quantity must be a number")
+                continue
+            if quantity <= 0:
+                errors.append(f"Row {row_number}: quantity must be greater than 0")
+                continue
+
+            reason = str(row.get("reason_code", "leftover") or "leftover").strip()
+            if reason not in VALID_REASON_CODES:
+                errors.append(f"Row {row_number}: reason_code must be one of {', '.join(VALID_REASON_CODES)}")
+                continue
+
+            dimensions = str(row.get("dimensions", "") or "")
+            group_key = f"{material}|{dimensions}"
+            if group_key not in grouped_items:
+                grouped_items[group_key] = {
+                    "material_name": material,
+                    "dimensions": dimensions,
+                    "total_weight_kg": 0,
+                    "total_quantity": 0,
+                    "records": [],
+                }
+
+            grouped_items[group_key]["total_weight_kg"] += weight
+            grouped_items[group_key]["total_quantity"] += quantity
+            grouped_items[group_key]["records"].append(
+                {"row": row_number, "weight_kg": weight, "quantity": quantity, "reason_code": reason}
+            )
+            records_count += 1
+            total_weight += weight
+
+        return {
+            "ready_to_import": records_count > 0 and not errors,
+            "missing_columns": [],
+            "columns": list(df.columns),
+            "rows_count": int(len(df)),
+            "records_count": records_count,
+            "grouped_items": list(grouped_items.values()),
+            "total_weight_kg": round(total_weight, 3),
+            "errors": errors,
+        }
+
+    @staticmethod
     def list_scrap_records(
         db: Session,
         *,
@@ -238,19 +336,13 @@ class ScrapService:
         this method handles column normalization, validation, and DB inserts.
         Returns grouped similar items for review.
         """
-        # Normalize column names
-        df.columns = [c.lower().strip().replace(" ", "_") for c in df.columns]
-
-        # Map common column names
-        for old_col, new_col in CSV_COLUMN_MAPPING.items():
-            if old_col in df.columns and new_col not in df.columns:
-                df.rename(columns={old_col: new_col}, inplace=True)
-
-        # Validate required columns
-        required_cols = ["material_name", "weight_kg"]
-        missing = [c for c in required_cols if c not in df.columns]
+        df, missing = ScrapService._normalize_import_dataframe(df)
         if missing:
             raise ValueError(f"Missing columns: {missing}")
+
+        preview = ScrapService.preview_bulk_import_csv(df)
+        if not preview["ready_to_import"]:
+            raise ValueError("; ".join(preview.get("errors") or ["No valid scrap rows found"]))
 
         # Process and group similar items
         records_created: List[models.ScrapRecord] = []

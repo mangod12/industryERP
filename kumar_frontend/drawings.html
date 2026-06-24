@@ -426,7 +426,6 @@
       let customers = [];
       let detailCache = {};
       let currentView = 'table';
-      let pollHandle = null;
       let currentDetailId = null;
 
       const detailModalEl = document.getElementById('drawingDetailModal');
@@ -948,22 +947,6 @@
         }
       }
 
-      function startPolling() {
-        stopPolling();
-        pollHandle = window.setInterval(function () {
-          refreshPage().catch(function (error) {
-            console.error('Auto-refresh failed', error);
-          });
-        }, 15000);
-      }
-
-      function stopPolling() {
-        if (pollHandle) {
-          window.clearInterval(pollHandle);
-          pollHandle = null;
-        }
-      }
-
       document.getElementById('applyFiltersBtn').addEventListener('click', function () {
         refreshPage().catch(function (error) {
           if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to load drawings', 'danger');
@@ -996,10 +979,6 @@
       detailModalEl.addEventListener('hidden.bs.modal', function () {
         currentDetailId = null;
       });
-      document.addEventListener('visibilitychange', function () {
-        if (document.hidden) stopPolling();
-        else startPolling();
-      });
 
       async function init() {
         try {
@@ -1007,7 +986,6 @@
           await loadCustomers();
           await refreshPage();
           if (typeof KBUI !== 'undefined') KBUI.initRoleBasedUI();
-          startPolling();
         } catch (error) {
           console.error(error);
           if (typeof KBUI !== 'undefined') KBUI.showToast(error.message || 'Failed to initialize drawings page', 'danger');

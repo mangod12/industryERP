@@ -93,6 +93,23 @@
   window.showLoader = showLoader;
   window.hideLoader = hideLoader;
   window.showToast = showToast;
+  const KB_REQUEST_MODES = {
+    INTERACTIVE: 'interactive',
+    BACKGROUND: 'background',
+    SILENT: 'silent'
+  };
+  window.KBRequest = {
+    modes: KB_REQUEST_MODES,
+    background(options = {}) {
+      return { ...options, kbRequestMode: KB_REQUEST_MODES.BACKGROUND, kbShowLoader: false, kbToastErrors: false };
+    },
+    silent(options = {}) {
+      return { ...options, kbRequestMode: KB_REQUEST_MODES.SILENT, kbShowLoader: false, kbToastErrors: false };
+    },
+    withSuccess(message, options = {}) {
+      return { ...options, kbSuccessMessage: message };
+    }
+  };
   window.KBFormat = {
     text(value, fallback = 'Not recorded') {
       const text = value === null || value === undefined ? '' : String(value).trim();
@@ -276,8 +293,21 @@
   const _fetch = window.fetch.bind(window);
   window.fetch = async function (...args) {
     const url = args[0];
-    const opts = args[1] || {};
-    const method = (opts.method || 'GET').toUpperCase();
+    const originalOpts = args[1] || {};
+    const opts = { ...originalOpts };
+    const method = (opts.method || (url && url.method) || 'GET').toUpperCase();
+    const requestMode = [KB_REQUEST_MODES.BACKGROUND, KB_REQUEST_MODES.SILENT].includes(opts.kbRequestMode)
+      ? opts.kbRequestMode
+      : KB_REQUEST_MODES.INTERACTIVE;
+    const shouldShowLoader = opts.kbShowLoader === true
+      || (opts.kbShowLoader !== false && requestMode === KB_REQUEST_MODES.INTERACTIVE && method !== 'GET');
+    const shouldToastErrors = opts.kbToastErrors !== false && requestMode === KB_REQUEST_MODES.INTERACTIVE;
+    const successMessage = typeof opts.kbSuccessMessage === 'string' ? opts.kbSuccessMessage.trim() : '';
+
+    delete opts.kbRequestMode;
+    delete opts.kbShowLoader;
+    delete opts.kbToastErrors;
+    delete opts.kbSuccessMessage;
 
     // Skip auth injection for login endpoint
     const isLoginEndpoint = typeof url === 'string' && url.includes('/auth/login');
@@ -287,14 +317,29 @@
       const token = KBAuth.getToken();
       if (token) {
         opts.headers = opts.headers || {};
-        if (!opts.headers['Authorization']) {
+        if (opts.headers instanceof Headers) {
+          if (!opts.headers.has('Authorization')) opts.headers.set('Authorization', `Bearer ${token}`);
+        } else if (Array.isArray(opts.headers)) {
+          const hasAuth = opts.headers.some(([key]) => String(key).toLowerCase() === 'authorization');
+          if (!hasAuth) opts.headers = [...opts.headers, ['Authorization', `Bearer ${token}`]];
+        } else if (!opts.headers['Authorization']) {
           opts.headers['Authorization'] = `Bearer ${token}`;
         }
       }
     }
 
     args[1] = opts;
-    showLoader();
+    window.dispatchEvent(new CustomEvent('kb:request-ui', {
+      detail: {
+        method,
+        mode: requestMode,
+        showLoader: shouldShowLoader,
+        toastErrors: shouldToastErrors,
+        toastSuccess: Boolean(successMessage)
+      }
+    }));
+
+    if (shouldShowLoader) showLoader();
 
     try {
       const res = await _fetch(...args);
@@ -303,7 +348,7 @@
       if (res.status === 401 && typeof KBAuth !== 'undefined') {
         KBAuth.clearAuth();
         if (!window.location.pathname.includes('login.html')) {
-          showToast('Session expired. Redirecting to login...', 'warning');
+          if (shouldToastErrors) showToast('Session expired. Redirecting to login...', 'warning');
           setTimeout(() => { window.location.href = 'login.html'; }, 1500);
         }
       }
@@ -316,16 +361,16 @@
             msg = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
           }
         } catch (e) { }
-        showToast(msg, 'danger');
-      } else {
-        if (method !== 'GET') showToast('Operation successful', 'success');
+        if (shouldToastErrors) showToast(msg, 'danger');
+      } else if (successMessage) {
+        showToast(successMessage, 'success');
       }
       return res;
     } catch (err) {
-      showToast(`Network error: ${err.message}`, 'danger');
+      if (shouldToastErrors) showToast(`Network error: ${err.message}`, 'danger');
       throw err;
     } finally {
-      hideLoader();
+      if (shouldShowLoader) hideLoader();
     }
   };
 })();
@@ -493,7 +538,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       async function fetchNotifications() {
         try {
-          const res = await fetch(`${API_BASE_N}/notifications/`, { headers: authHdrs() });
+          const res = await fetch(`${API_BASE_N}/notifications/`, {
+            headers: authHdrs(),
+            kbRequestMode: 'background',
+            kbShowLoader: false,
+            kbToastErrors: false
+          });
           if (!res.ok) return;
           const items = await res.json();
           cachedNotifications = items;

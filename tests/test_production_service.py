@@ -152,11 +152,7 @@ class TestProductionImport:
     def test_import_skips_whitespace_only_item_names(self, db):
         user = create_test_user(db)
         customer = create_test_customer(db)
-        csv_content = (
-            b"SR. NO,NAME,PROFILE,QTY,UNITWT.\n"
-            b"1,          ,ISMC250,1,35.82\n"
-            b"2,BEAM,UB254X146X37,2,128.675\n"
-        )
+        csv_content = b"SR. NO,NAME,PROFILE,QTY,UNITWT.\n1,          ,ISMC250,1,35.82\n2,BEAM,UB254X146X37,2,128.675\n"
 
         result = ProductionService.process_production_excel(
             db=db,

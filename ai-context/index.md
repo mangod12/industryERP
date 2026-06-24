@@ -1,8 +1,13 @@
 # IndustryERP AI Context
 
-Last verified: 2026-06-15
+Last verified: 2026-06-24
 Source repository: `https://github.com/mangod12/industryERP`
 Source commit cloned: `a3c3bab5d0108272951f16ef67683ac13dd3d432`
+
+## Current Recon
+
+- Deep recon and risk register: [`codebase-recon-2026-06-24.md`](codebase-recon-2026-06-24.md)
+- QA audit: [`qa-audit-2026-06-24.md`](qa-audit-2026-06-24.md)
 
 ## Purpose
 

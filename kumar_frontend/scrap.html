@@ -236,6 +236,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
+        <div id="scrapTemplateGuidance" class="mb-3"></div>
         <div class="alert alert-info">
           <strong>CSV Format:</strong> material_name, dimensions, weight_kg, quantity, reason_code
           <br><small>Reason codes: cutting_waste, defect, damage, overrun, leftover</small>
@@ -249,10 +250,13 @@
         </div>
         
         <div class="drop-zone" id="dropZone">
-          <p class="mb-2">📁 Drop CSV/Excel file here or click to browse</p>
+          <div id="dropZoneContent">
+            <p class="mb-2">📁 Drop CSV/Excel file here or click to browse</p>
+            <small class="text-muted">Supports .csv and .xlsx files</small>
+          </div>
           <input type="file" id="scrapFileInput" accept=".csv,.xlsx" style="display:none">
-          <small class="text-muted">Supports .csv and .xlsx files</small>
         </div>
+        <div id="scrapUploadStatus" class="mt-2"></div>
         
         <div id="uploadPreview" class="mt-3 d-none">
           <div class="h6" role="heading" aria-level="6">Preview - Grouped Similar Items:</div>
@@ -367,6 +371,8 @@
 const API_BASE = (typeof KBConfig !== 'undefined') ? KBConfig.API_BASE : 'http://127.0.0.1:8000';
 let selectedRecordId = null;
 let uploadedData = null;
+let selectedScrapFile = null;
+let uploadTemplateCache = null;
 
 function escapeHtml(s) { 
   return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); 
@@ -399,6 +405,57 @@ function statusBadge(status) {
     'sold': 'Sold',
   };
   return `<span class="badge ${colors[status] || 'bg-secondary'}">${labels[status] || status}</span>`;
+}
+
+async function getUploadTemplates() {
+  if (uploadTemplateCache) return uploadTemplateCache;
+  const res = await fetch(`${API_BASE}/excel/templates`);
+  if (!res.ok) throw new Error('Could not load upload templates');
+  const data = await res.json();
+  uploadTemplateCache = data.templates || [];
+  return uploadTemplateCache;
+}
+
+async function renderScrapTemplateGuidance() {
+  const target = document.getElementById('scrapTemplateGuidance');
+  if (!target) return;
+  try {
+    const templates = await getUploadTemplates();
+    const template = templates.find(t => t.id === 'scrap_import');
+    if (!template) return;
+    target.innerHTML = `
+      <div class="kb-inline-summary">
+        <div class="bg-primary text-white px-3 py-2 d-flex justify-content-between align-items-center">
+          <strong><i class="bi bi-file-earmark-spreadsheet"></i> ${escapeHtml(template.title)}</strong>
+          <a class="btn btn-sm btn-light" href="${escapeHtml(template.template_url)}" download>
+            <i class="bi bi-download"></i> Download Template
+          </a>
+        </div>
+        <div class="p-3">
+          <div class="small text-muted mb-2">${escapeHtml(template.description)}</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="fw-semibold small">Required</div>
+              <div class="small">${template.required_columns.map(escapeHtml).join(', ')}</div>
+            </div>
+            <div class="col-md-4">
+              <div class="fw-semibold small">Recommended</div>
+              <div class="small">${template.recommended_columns.map(escapeHtml).join(', ')}</div>
+            </div>
+            <div class="col-md-4">
+              <div class="fw-semibold small">Accepted Files</div>
+              <div class="small">${template.accepted_formats.map(escapeHtml).join(', ')}</div>
+            </div>
+          </div>
+          <ul class="small text-muted mb-0 mt-2">
+            ${template.column_notes.map(note => `<li>${escapeHtml(note)}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    target.innerHTML = '<div class="alert alert-warning py-2 mb-0">Template guide is unavailable. Use material_name and weight_kg at minimum.</div>';
+  }
 }
 
 async function loadStats() {
@@ -599,6 +656,7 @@ document.getElementById('addScrapBtn').addEventListener('click', async function(
 // CSV Upload handling
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('scrapFileInput');
+const dropZoneContent = document.getElementById('dropZoneContent');
 
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
@@ -614,31 +672,34 @@ fileInput.addEventListener('change', (e) => {
 });
 
 async function handleFile(file) {
-  dropZone.innerHTML = `<p>📄 ${escapeHtml(file.name)}</p><small>Processing...</small>`;
+  selectedScrapFile = file;
+  uploadedData = null;
+  document.getElementById('confirmUploadBtn').disabled = true;
+  document.getElementById('uploadPreview').classList.add('d-none');
+  document.getElementById('scrapUploadStatus').innerHTML = '<span class="text-info"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Previewing file without importing...</span>';
+  dropZoneContent.innerHTML = `<p>📄 ${escapeHtml(file.name)}</p><small>Checking template columns and grouped rows...</small>`;
   
   const formData = new FormData();
   formData.append('file', file);
   
-  const customerId = document.getElementById('uploadCustomerId').value;
-  const url = customerId 
-    ? `${API_BASE}/scrap/upload-csv?customer_id=${customerId}`
-    : `${API_BASE}/scrap/upload-csv`;
-  
   try {
-    const res = await fetch(url, { method: 'POST', body: formData });
+    const res = await fetch(`${API_BASE}/scrap/preview-upload`, { method: 'POST', body: formData });
     const data = await res.json();
     
     if(res.ok) {
       uploadedData = data;
       showPreview(data);
-      document.getElementById('confirmUploadBtn').disabled = false;
+      document.getElementById('confirmUploadBtn').disabled = !data.ready_to_import;
+      document.getElementById('scrapUploadStatus').innerHTML = data.ready_to_import
+        ? '<span class="text-success">✓ Preview ready. Confirm import to create scrap records.</span>'
+        : '<span class="text-danger">Fix the listed issues before importing.</span>';
     } else {
-      alert('Upload failed: ' + (data.detail || 'Unknown error'));
+      document.getElementById('scrapUploadStatus').innerHTML = `<span class="text-danger">Preview failed: ${escapeHtml(data.detail || 'Unknown error')}</span>`;
       resetDropZone();
     }
   } catch(e) {
     console.error('Upload error:', e);
-    alert('Error uploading file');
+    document.getElementById('scrapUploadStatus').innerHTML = `<span class="text-danger">Error previewing file: ${escapeHtml(e.message)}</span>`;
     resetDropZone();
   }
 }
@@ -647,7 +708,7 @@ function showPreview(data) {
   const tbody = document.getElementById('previewBody');
   tbody.innerHTML = '';
   
-  data.grouped_items.forEach(item => {
+  (data.grouped_items || []).forEach(item => {
     const tr = document.createElement('tr');
     tr.className = 'grouped-item';
     tr.innerHTML = `
@@ -658,25 +719,65 @@ function showPreview(data) {
     `;
     tbody.appendChild(tr);
   });
+
+  if(!data.grouped_items || data.grouped_items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No valid import rows found</td></tr>';
+  }
   
   document.getElementById('uploadPreview').classList.remove('d-none');
-  dropZone.innerHTML = `<p class="text-success">✓ ${data.records_count} records imported</p>
-    <p><strong>Total: ${data.total_weight_kg.toFixed(2)} kg</strong></p>`;
+  const errors = data.errors && data.errors.length
+    ? `<div class="alert alert-danger py-2 mt-2 mb-0"><strong>Issues:</strong><ul class="mb-0">${data.errors.map(error => `<li>${escapeHtml(error)}</li>`).join('')}</ul></div>`
+    : '';
+  dropZoneContent.innerHTML = `
+    <p class="${data.ready_to_import ? 'text-success' : 'text-warning'} mb-1">✓ ${data.records_count || 0} rows ready from ${data.rows_count || 0} uploaded rows</p>
+    <p class="mb-0"><strong>Total: ${Number(data.total_weight_kg || 0).toFixed(2)} kg</strong></p>
+    ${errors}
+  `;
 }
 
 function resetDropZone() {
-  dropZone.innerHTML = `<p class="mb-2">📁 Drop CSV/Excel file here or click to browse</p>
-    <input type="file" id="scrapFileInput" accept=".csv,.xlsx" style="display:none">
+  selectedScrapFile = null;
+  uploadedData = null;
+  fileInput.value = '';
+  dropZoneContent.innerHTML = `<p class="mb-2">📁 Drop CSV/Excel file here or click to browse</p>
     <small class="text-muted">Supports .csv and .xlsx files</small>`;
 }
 
-document.getElementById('confirmUploadBtn').addEventListener('click', function() {
-  bootstrap.Modal.getInstance(document.getElementById('uploadScrapModal')).hide();
-  resetDropZone();
-  document.getElementById('uploadPreview').classList.add('d-none');
-  document.getElementById('confirmUploadBtn').disabled = true;
-  refreshScrap();
+document.getElementById('confirmUploadBtn').addEventListener('click', async function() {
+  if(!selectedScrapFile || !uploadedData || !uploadedData.ready_to_import) {
+    document.getElementById('scrapUploadStatus').innerHTML = '<span class="text-warning">Preview a valid file before importing.</span>';
+    return;
+  }
+
+  const customerId = document.getElementById('uploadCustomerId').value;
+  const formData = new FormData();
+  formData.append('file', selectedScrapFile);
+  const url = customerId
+    ? `${API_BASE}/scrap/upload-csv?customer_id=${customerId}`
+    : `${API_BASE}/scrap/upload-csv`;
+
+  this.disabled = true;
+  document.getElementById('scrapUploadStatus').innerHTML = '<span class="text-info"><span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Importing confirmed scrap records...</span>';
+  try {
+    const res = await fetch(url, { method: 'POST', body: formData });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || 'Import failed');
+    document.getElementById('scrapUploadStatus').innerHTML = `<span class="text-success">✓ Imported ${data.records_count || 0} scrap records.</span>`;
+    setTimeout(() => {
+      bootstrap.Modal.getInstance(document.getElementById('uploadScrapModal')).hide();
+      resetDropZone();
+      document.getElementById('uploadPreview').classList.add('d-none');
+      document.getElementById('confirmUploadBtn').disabled = true;
+      refreshScrap();
+    }, 700);
+  } catch(e) {
+    console.error('Import error:', e);
+    document.getElementById('scrapUploadStatus').innerHTML = `<span class="text-danger">Import failed: ${escapeHtml(e.message)}</span>`;
+    this.disabled = false;
+  }
 });
+
+document.getElementById('uploadScrapModal').addEventListener('show.bs.modal', renderScrapTemplateGuidance);
 
 // Load customers for dropdown
 async function loadCustomers() {
@@ -694,9 +795,6 @@ async function loadCustomers() {
     console.error('Load customers error:', e);
   }
 }
-
-// Auto-refresh every 30 seconds
-setInterval(refreshScrap, 30000);
 
 // Initial load
 loadCustomers();

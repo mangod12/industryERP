@@ -483,6 +483,15 @@
       return token ? { 'Authorization': `Bearer ${token}` } : {};
     }
 
+    function backgroundOptions(options = {}) {
+      return {
+        ...options,
+        kbRequestMode: 'background',
+        kbShowLoader: false,
+        kbToastErrors: false
+      };
+    }
+
     function escapeHtml(s) {
       return String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     }
@@ -497,9 +506,9 @@
     async function refreshDashboard() {
       try {
         // Use the new dashboard-data endpoint for comprehensive data
-        const res = await fetch(`${API_BASE}/inventory/dashboard-data`, {
+        const res = await fetch(`${API_BASE}/inventory/dashboard-data`, backgroundOptions({
           headers: authHeaders()
-        });
+        }));
         if (!res.ok) throw new Error('Failed to load dashboard data');
         const data = await res.json();
 
@@ -520,9 +529,9 @@
         document.getElementById('stageCompleted').textContent = `${tracking.fully_completed || 0} Jobs`;
 
         // Fetch full inventory for overview table
-        const invRes = await fetch(`${API_BASE}/inventory/`, {
+        const invRes = await fetch(`${API_BASE}/inventory/`, backgroundOptions({
           headers: authHeaders()
-        });
+        }));
         if (invRes.ok) {
           const invItems = await invRes.json();
           const invBody = document.getElementById('inventoryOverview');
@@ -584,9 +593,9 @@
         }
 
         // Fetch live production items
-        const trackRes = await fetch(`${API_BASE}/api/tracking/all-items?page=1&page_size=10`, {
+        const trackRes = await fetch(`${API_BASE}/api/tracking/all-items?page=1&page_size=10`, backgroundOptions({
           headers: authHeaders()
-        });
+        }));
         if (trackRes.ok) {
           const trackingPayload = await trackRes.json();
           const items = Array.isArray(trackingPayload)
@@ -635,8 +644,8 @@
     async function loadLossAnalytics() {
       try {
         const [analytics, summary] = await Promise.all([
-          fetch(`${API_BASE}/scrap/analytics?days=30`, { headers: authHeaders() }).then(r => r.ok ? r.json() : null),
-          fetch(`${API_BASE}/scrap/summary`, { headers: authHeaders() }).then(r => r.ok ? r.json() : null),
+          fetch(`${API_BASE}/scrap/analytics?days=30`, backgroundOptions({ headers: authHeaders() })).then(r => r.ok ? r.json() : null),
+          fetch(`${API_BASE}/scrap/summary`, backgroundOptions({ headers: authHeaders() })).then(r => r.ok ? r.json() : null),
         ]);
 
         if (analytics) {
@@ -657,9 +666,9 @@
 
     // Legacy refresh for backwards compatibility
     async function refreshDashboardLegacy() {
-      const res = await fetch(`${API_BASE}/tracking/dashboard/summary`, {
+      const res = await fetch(`${API_BASE}/tracking/dashboard/summary`, backgroundOptions({
         headers: authHeaders()
-      });
+      }));
 
 
 
@@ -687,7 +696,7 @@
     // --- Notification Logic ---
     async function loadNotifications() {
       try {
-        const res = await fetch(`${API_BASE}/notifications/`, { headers: authHeaders() });
+        const res = await fetch(`${API_BASE}/notifications/`, backgroundOptions({ headers: authHeaders() }));
         if (!res.ok) return;
         const notifs = await res.json();
 
